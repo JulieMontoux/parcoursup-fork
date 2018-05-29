@@ -19,30 +19,22 @@
  */
 package parcoursup.ordreappel;
 
-import parcoursup.ordreappel.algo.AlgoOrdreAppel;
-import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
-import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
 import parcoursup.ordreappel.donnees.ConnecteurDonneesAppel;
+import parcoursup.ordreappel.donnees.ConnecteurDonneesAppelOracle;
 
-/* Le calcul des ordres d'appel dans Parcoursup
-    et leur enregistrement dans la base de données est effectué par le code suivant.
-    Ce code est exécuté une fois en début de campagne,  à une date située entre
-    la réception des classements et des taux et l'envoi des premières propositions. */
-public class CalculOrdreAppel {
+public class CalculOrdreAppelOracle {
 
-    private final ConnecteurDonneesAppel acces;
+    public static void main(String... args) throws Exception {
 
-    public CalculOrdreAppel(ConnecteurDonneesAppel acces) {
-        this.acces = acces;
+        if (args.length < 3) {
+            System.out.println("Usage: calculeOrdreAppel serveur login password");
+            return;
+        }
+
+        ConnecteurDonneesAppel acces
+                = new ConnecteurDonneesAppelOracle(args[0], args[1], args[2]);
+        CalculOrdreAppel calculOrdreAppel = new CalculOrdreAppel(acces);
+        calculOrdreAppel.execute();
     }
 
-    public void execute() throws Exception {
-
-        AlgoOrdreAppelEntree entree = acces.recupererDonneesOrdreAppel();
-
-        AlgoOrdreAppelSortie sortie = AlgoOrdreAppel.calculeOrdresAppels(entree);
-
-        acces.exporterDonneesOrdresAppel(sortie);
-
-    }
 }
