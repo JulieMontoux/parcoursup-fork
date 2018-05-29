@@ -20,39 +20,23 @@ package parcoursup.propositions;
 
 import java.time.LocalDateTime;
 
-import parcoursup.propositions.algo.AlgoPropositions;
-import parcoursup.propositions.algo.AlgoPropositionsEntree;
-import parcoursup.propositions.algo.AlgoPropositionsSortie;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositions;
+import parcoursup.propositions.donnees.ConnecteurDonneesPropositionsOracle;
 
-/* Le calcul des propositions à envoyer est effectué par le code suivant.
-Ce code est exécuté de manière quotidienne.
- */
-public class EnvoiPropositions {
+public class EnvoiPropositionsOracle {
 
-    private final ConnecteurDonneesPropositions acces;
+    public static void main(String[] args) throws Exception {
 
-    public EnvoiPropositions(ConnecteurDonneesPropositions acces) {
-        this.acces = acces;
-    }
+        if (args.length < 3) {
+            log("Usage: envoiPropositions serveur login password");
+            return;
+        }
 
-    public void execute() throws Exception {
+        ConnecteurDonneesPropositions acces
+                = new ConnecteurDonneesPropositionsOracle(args[0], args[1], args[2]);
 
-        log("Récupération des données");
-        AlgoPropositionsEntree entree = acces.recupererDonnees();
-
-        log("Sauvegarde locale de l'entrée");
-        entree.serialiser(null);
-
-        log("Calcul des propositions");
-        AlgoPropositionsSortie sortie = AlgoPropositions.calculePropositions(entree);
-
-        log("Sauvegarde locale de la sortie");
-        sortie.serialiser(null);
-
-        log("Export des données");
-        acces.exporterDonnees(sortie);
-
+        EnvoiPropositions envoiPropositions = new EnvoiPropositions(acces);
+        envoiPropositions.execute();
     }
 
     static void log(String msg) {
