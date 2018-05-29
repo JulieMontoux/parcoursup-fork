@@ -37,10 +37,7 @@
 						<version>3.7.0</version>
 						<configuration>
 							<excludes>
-								<exclude>**/parcoursup/ordreappel/donnees/ConnecteurDonneesAppelOracle.java</exclude>
-								<exclude>**/parcoursup/ordreappel/CalculOrdreAppelOracle.java</exclude>
-								<exclude>**/parcoursup/propositions/donnees/ConnecteurDonneesPropositionsOracle.java</exclude>
-								<exclude>**/parcoursup/propositions/EnvoiPropositionsOracle.java</exclude>
+								<exclude>**/*Oracle.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>
