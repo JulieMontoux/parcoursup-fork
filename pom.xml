@@ -13,20 +13,6 @@
 	</properties>
 	<build>
 		<sourceDirectory>java</sourceDirectory>
-		<plugins>
-			<plugin>
-				<artifactId>maven-compiler-plugin</artifactId>
-				<version>3.7.0</version>
-				<configuration>
-					<excludes>
-						<exclude>**/parcoursup/ordreappel/donnees/ConnecteurDonneesAppelOracle.java</exclude>
-						<exclude>**/parcoursup/ordreappel/CalculOrdreAppelOracle.java</exclude>
-						<exclude>**/parcoursup/propositions/donnees/ConnecteurDonneesPropositionsOracle.java</exclude>
-						<exclude>**/parcoursup/propositions/EnvoiPropositionsOracle.java</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-		</plugins>
 	</build>
 	<profiles>
 		<profile>
@@ -38,6 +24,28 @@
 					<version>12.1.0.1-atlassian-hosted</version>
 				</dependency>
 			</dependencies>
+		</profile>
+		<profile>
+			<id>exclude</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-compiler-plugin</artifactId>
+						<version>3.7.0</version>
+						<configuration>
+							<excludes>
+								<exclude>**/parcoursup/ordreappel/donnees/ConnecteurDonneesAppelOracle.java</exclude>
+								<exclude>**/parcoursup/ordreappel/CalculOrdreAppelOracle.java</exclude>
+								<exclude>**/parcoursup/propositions/donnees/ConnecteurDonneesPropositionsOracle.java</exclude>
+								<exclude>**/parcoursup/propositions/EnvoiPropositionsOracle.java</exclude>
+							</excludes>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 	</profiles>
 </project>
