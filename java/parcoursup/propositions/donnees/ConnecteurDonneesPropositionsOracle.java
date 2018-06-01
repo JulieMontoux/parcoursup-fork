@@ -1,4 +1,4 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -23,11 +23,12 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import oracle.jdbc.OracleDriver;
 import oracle.jdbc.pool.OracleDataSource;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
@@ -40,11 +41,11 @@ import parcoursup.propositions.algo.VoeuEnAttente;
 import parcoursup.propositions.algo.VoeuUID;
 
 
-/* 
+/*
     Récupération et injection des données depuis et vers la base Oracle
 
     La base identifie:
-    
+
     * chaque candidat par un G_CN_COD
     * chaque formation d'inscription par un G_TI_COD
     * chaque formation d'affectation par un G_TA_COD
@@ -55,8 +56,10 @@ import parcoursup.propositions.algo.VoeuUID;
 */
 public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPropositions {
 
+    private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesPropositionsOracle.class.getName());
+
     /* connexion a la base de données */
-    Connection conn = null;
+    private final Connection conn;
 
     public ConnecteurDonneesPropositionsOracle(String url, String user, String password) throws SQLException {
         if (url == null || url.isEmpty()) {
@@ -74,8 +77,8 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
     @Override
     public AlgoPropositionsEntree recupererDonnees() throws SQLException {
 
-        log("Vérification de l'interruption du flux de données entrantes.");
-        /*Si = 1 indique si le programme d'admission est en train de tourner 
+        LOGGER.info("Vérification de l'interruption du flux de données entrantes.");
+        /*Si = 1 indique si le programme d'admission est en train de tourner
         pour faire des propositions. Si c'est le cas, tout est bloqué*/
         try (ResultSet result
                 = conn.createStatement().executeQuery(
@@ -101,14 +104,14 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         recupererVoeuxSansInternatAClassementPropre();
 
         if (!groupesManquants.isEmpty()) {
-            System.out.println(groupesManquants.size() + " groupes manquants.");
+            LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
         }
 
         if (!internatsManquants.isEmpty()) {
-            System.out.println(internatsManquants.size() + " internats manquants.");
+            LOGGER.log(Level.SEVERE, "{0} internats manquants.", internatsManquants.size());
         }
 
-        log("Fin de la récupération des données depuis la base Oracle");
+        LOGGER.info("Fin de la récupération des données depuis la base Oracle");
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
 
@@ -118,20 +121,20 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
     }
 
-    /* exportation des résultats du calcul: propositions à faire 
+    /* exportation des résultats du calcul: propositions à faire
     et barres internats */
     @Override
     public void exporterDonnees(AlgoPropositionsSortie sortie) throws SQLException {
 
         conn.setAutoCommit(false);
 
-        log("Préparation des tables avant export");
+        LOGGER.info("Préparation des tables avant export");
         conn.createStatement().executeQuery(
                 "DELETE FROM A_ADM_PROP WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
         conn.createStatement().executeQuery(
                 "DELETE FROM A_ADM_POSITIONS_INT WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
- 
-        log("Exportation des propositions d'admission");
+
+        LOGGER.info("Exportation des propositions d'admission");
 
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO A_ADM_PROP "
@@ -142,7 +145,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             for (VoeuEnAttente voe : sortie.propositions) {
                 GroupeAffectationUID groupe = voe.groupe.id;
                 GroupeInternatUID internat = voe.internatID();
-                
+
                 assert voe.id.G_TA_COD == groupe.G_TA_COD;
 
                 ps.setInt(1, voe.id.G_CN_COD);
@@ -158,21 +161,21 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
                 ps.addBatch();
                 if (++count % 500000 == 0) {
-                    log("Exportation des propositions " + (count - 499999) + " a " + count);
+                    LOGGER.log(Level.INFO, "Exportation des propositions {0} a {1}", new Object[]{count - 499999, count});
                     ps.executeBatch();
                     ps.clearBatch();
-                    log("Fait");
+                    LOGGER.info("Fait");
                 }
             }
 
             ps.executeBatch();
-            log(count + " propositions exportées.");
-            
+            LOGGER.log(Level.INFO, "{0} propositions exportées.", count);
+
         }
 
         conn.commit();
 
-        log("Exportation des positions d'admission aux internats");
+        LOGGER.info("Exportation des positions d'admission aux internats");
 
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO A_ADM_POSITIONS_INT "
@@ -206,14 +209,13 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             = new HashSet<>();
 
     /* permet de comptabiliser les groupes manquants, avant le début de campagne */
-    Set<GroupeAffectationUID> groupesManquants
-            = new HashSet<>();
+    private final Set<GroupeAffectationUID> groupesManquants = new HashSet<>();
 
     private void recupererGroupesEtInternats() throws SQLException {
         internats.clear();
         groupesAffectations.clear();
-      
-        log("Récupération des groupes d'affectation");
+
+        LOGGER.info("Récupération des groupes d'affectation");
         try (Statement stmt = conn.createStatement()) {
             stmt.setFetchSize(1000000);
             try (ResultSet result = stmt.executeQuery(
@@ -243,7 +245,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             }
         }
 
-        log("Récupération des internats");
+        LOGGER.info("Récupération des internats");
         try (Statement stmt = conn.createStatement()) {
             stmt.setFetchSize(1000000);
 
@@ -274,7 +276,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             }
         }
 
-        log("Récupération du nombre de jours écoulés depuis l'ouverture de la campagne");
+        LOGGER.info("Récupération du nombre de jours écoulés depuis l'ouverture de la campagne");
         try (ResultSet result
                 = conn.createStatement().executeQuery(
                         "SELECT TRUNC(SYSDATE) - TRUNC(TO_DATE(g_pr_val, 'DD/MM/YYYY:HH24'))+1"
@@ -293,7 +295,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
         int compteur = 0;
 
-        log("Récupération des voeux avec demande internat dans un internat à classement propre");
+        LOGGER.info("Récupération des voeux avec demande internat dans un internat à classement propre");
         try (Statement stmt = conn.createStatement()) {
             stmt.setFetchSize(1000000);
             String requete
@@ -302,7 +304,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     + "v.g_ta_cod,"//id affectation
                     + "ti.g_ti_cod,"//id inscription
                     + "cg.c_gp_cod,"//groupe de classement pédagogique
-                    + "cg.c_cg_ord_app,"//ordre d'appel 
+                    + "cg.c_cg_ord_app,"//ordre d'appel
                     + "cgi.c_gi_cod,"//id internat
 
                     + "cgi.c_ci_ran,"//rang de classement internat
@@ -342,7 +344,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     + "AND ti.g_ti_cla_int_uni IN (0,1)" //restriction aux internats à classement propre
                     ;
 
-            log(requete);
+            LOGGER.info(requete);
 
             try (ResultSet result = stmt.executeQuery(requete)) {
                 while (result.next()) {
@@ -359,7 +361,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     g_ti_cla_int_uni = 2 : internat sans élection
                     g_ti_cla_int_uni = -1 : pas d'internat
                     g_ti_cla_int_uni = 0 : l'internat est par formation
-                    g_ti_cla_int_uni = 1 :  l'internat est commun 
+                    g_ti_cla_int_uni = 1 :  l'internat est commun
                                             à plusieurs formations de l'établissement
                      */
                     boolean estAffecte = result.getBoolean(9);
@@ -412,12 +414,12 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                 }
             }
         }
-        log(compteur + " voeux en attente avec internat à classement propre");
+        LOGGER.log(Level.INFO, "{0} voeux en attente avec internat à classement propre", compteur);
     }
 
     private void recupererVoeuxSansInternatAClassementPropre() throws SQLException {
         int compteur = 0;
-        log("Récupération des voeux sans internat, ou dans un internat sans classement propre");
+        LOGGER.info("Récupération des voeux sans internat, ou dans un internat sans classement propre");
         try (Statement stmt = conn.createStatement()) {
             stmt.setFetchSize(1000000);
             String requete
@@ -452,7 +454,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     //exclut les formations d'inscriptions avec internat à classement propre
                     + " AND (v.i_rh_cod =0 or ti.g_ti_cla_int_uni NOT IN (0,1))";
 
-            log(requete);
+            LOGGER.info(requete);
 
             try (ResultSet result = stmt.executeQuery(requete)) {
                 while (result.next()) {
@@ -491,11 +493,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                 }
             }
         }
-        log(compteur + " voeux en attente sans internat a classement propre");
-    }
-
-    private void log(String message) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + message);
+        LOGGER.log(Level.INFO, "{0} voeux en attente sans internat a classement propre", compteur);
     }
 
 }

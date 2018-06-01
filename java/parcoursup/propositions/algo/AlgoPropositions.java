@@ -1,5 +1,5 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,21 +19,24 @@
  */
 package parcoursup.propositions.algo;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import parcoursup.propositions.test.VerificationsResultats;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class AlgoPropositions {
+
+    private static final Logger LOGGER = Logger.getLogger(AlgoPropositions.class.getName());
 
     /* la boucle principale du calcul des propositions à envoyer */
     public static AlgoPropositionsSortie calculePropositions(AlgoPropositionsEntree entree) {
 
         entree.verifierIntegrite();
 
-        log("Début calcul propositions");
+        LOGGER.info("Début calcul propositions");
 
         /* groupes à mettre à jour */
         Set<GroupeAffectation> groupesAMettreAJour
@@ -48,42 +51,42 @@ public class AlgoPropositions {
         int compteurBoucle = 0;
         while (groupesAMettreAJour.size() > 0) {
 
-            /* calcul des propositions à effectuer, 
+            /* calcul des propositions à effectuer,
             étant données les positions actuelles d'admissions aux internats */
             for (GroupeAffectation gc : groupesAMettreAJour) {
                 gc.mettreAJourPropositions();
             }
 
-            /* Test de surcapacité des internats, avec 
+            /* Test de surcapacité des internats, avec
                mise à jour de la position d'admission si nécessaire.
-            
+
             Baisser la position d'admission d'un internat ne diminue
             pas le nombre de candidats dans les autres internats, voire augmente ces nombres,
             car les formations devront potentiellement descendre plus bas dans l'ordre d'appel.
-            
+
             Par conséquent, on peut mettre à jour toutes les positions d'admission
             de tous les internats sans mettre à jour systématiquement les propositions:
             si un internat est détecté en surcapacité avant la mise
             à jour des propositions, il l'aurait été également après la mise à jour des propositions.
             (Mais la réciproque est fausse en général).
-            
+
             De cette manière, on reste bien dans l'ensemble E des vecteurs de positions
             d'admission supérieurs sur chaque composante au vecteur de positions d'admission
             le plus permissif possible parmi tous ceux respectant les contraintes
             de capacité des internats et situés en deçà des positions maximales
             d'admission.
-            
+
             Ce vecteur est égal, sur chaque composante, à la valeur minimum de cette
             composante parmi les éléments de E.
-            
+
             La boucle termine quand les contraintes de capacité des internats
             sont satisfaites, c'est-à-dire quand ce minimum global est atteint.
-            
+
             Une propriété de symétrie i.e. d'équité intéressante:
             le résultat ne dépend pas de l'ordre dans lequel on itère sur les internats et
             les formations.
              */
-            
+
             groupesAMettreAJour.clear();
 
             for (GroupeInternat internat : entree.internats) {
@@ -95,11 +98,10 @@ public class AlgoPropositions {
             compteurBoucle++;
         }
 
-        log("Calcul terminé après " + compteurBoucle + " itération(s).");
+        LOGGER.log(Level.INFO, "Calcul terminé après {0} itération(s).", compteurBoucle);
 
-        log("Vérification des propriétés attendues des propositions pour un des "
-                + entree.groupesAffectations.size()
-                + " groupes d'affectation");
+        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions pour un des {0} groupes d''affectation",
+                entree.groupesAffectations.size());
 
         int step = Integer.max(1, entree.groupesAffectations.size() / 100);
         int count = 0;
@@ -119,8 +121,8 @@ public class AlgoPropositions {
         }
         System.out.println();
 
-        log("Vérification des propriétés attendues des propositions d'un des "
-                + entree.internats.size() + " internats");
+        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions d''un des {0} internats",
+                entree.internats.size());
 
         step = Integer.max(1, entree.internats.size() / 100);
         count = 0;
@@ -153,9 +155,9 @@ public class AlgoPropositions {
         }
         System.out.println();
 
-        log("Vérification ok");
+        LOGGER.info("Vérification ok");
 
-        log("Préparation données de sortie");
+        LOGGER.info("Préparation données de sortie");
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie();
 
@@ -173,10 +175,6 @@ public class AlgoPropositions {
 
         return sortie;
 
-    }
-
-    private static void log(String msg) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + msg);
     }
 
     private static void afficherJauge() {
