@@ -1,4 +1,4 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Marshaller;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
@@ -38,6 +40,8 @@ import parcoursup.propositions.algo.GroupeInternatUID;
 import parcoursup.propositions.algo.VoeuEnAttente;
 
 public class ExempleAleatoire extends ExemplePropositions {
+
+    private static final Logger LOGGER = Logger.getLogger(ExempleAleatoire.class.getName());
 
     @Override
     String nom() {
@@ -64,7 +68,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
     final int maxNbGroupesParFormation = 5;
 
-    List<Etablissement> etablissements = new LinkedList<>();
+    private final List<Etablissement> etablissements = new LinkedList<>();
 
     int last_G_TI_COD = 1;
     int last_G_TA_COD = 1;
@@ -248,7 +252,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                     }
                 } else {
                     int rangInternat = juryInternat.ajouterCandidat(candidat);
-                            
+
                     if ((rang <= cl.plusHautRangAffecte && rangInternat <= juryInternat.plusHautRangAffecte)) {
                         ga.ajouterCandidatAffecte(candidat.G_CN_COD);
                         internat.ajouterCandidatAffecte(candidat.G_CN_COD);
@@ -289,7 +293,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
             /* le rang le plus haut dans l'ordre d'appel d'un candidat recruté */
             int plusHautRangAffecte = random.nextInt(nbEtudiants / 4);
-            
+
             GroupeClassement() {
                 this.C_G_COD = last_C_GP_COD++;
             }
@@ -329,9 +333,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
     public ExempleAleatoire(int nbEtudiants) {
 
-        if(nbEtudiants < 100)
-            nbEtudiants = 100;
-        this.nbEtudiants = nbEtudiants;
+        this.nbEtudiants = Math.max(100, nbEtudiants);
 
     }
 
@@ -341,16 +343,16 @@ public class ExempleAleatoire extends ExemplePropositions {
         int capacite_totale = 0;
 
         GroupeInternat.nbJoursCampagne = 1 + random.nextInt(70);
-        log("Jours de campagne: " + GroupeInternat.nbJoursCampagne);
+        LOGGER.log(Level.INFO, "Jours de campagne: {0}", GroupeInternat.nbJoursCampagne);
 
-        log("Génération aléatoire des établissements et formations");
+        LOGGER.info("Génération aléatoire des établissements et formations");
         while (capacite_totale < nbEtudiants) {
             Etablissement e = new Etablissement();
             etablissements.add(e);
             capacite_totale += e.capacite();
         }
 
-        log("Génération aléatoire des voeux et classements");
+        LOGGER.info("Génération aléatoire des voeux et classements");
         for (int i = 0; i < nbEtudiants; i++) {
             Candidat c = new Candidat();
             int nbVoeux = (int) (Math.random() * maxNbVoeuxParCandidat);
@@ -360,11 +362,11 @@ public class ExempleAleatoire extends ExemplePropositions {
                 nbVoeux -= e.ajouterVoeux(c);
             }
             if ((i + 1) % 100000 == 0) {
-                log((1 + i) + " étudiants générés ...");
+                LOGGER.log(Level.INFO, "{0}{1} étudiants générés ...", new Object[]{1, i});
             }
         }
 
-        log("Génération données entrée algorithme");
+        LOGGER.info("Génération données entrée algorithme");
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
 
@@ -386,12 +388,8 @@ public class ExempleAleatoire extends ExemplePropositions {
         Marshaller m = jc.createMarshaller();
         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
         m.marshal(entree, new File(nom() + "_entree.xml"));
-        
+
         return entree;
 
-    }
-
-    void log(String msg) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + msg);
     }
 }

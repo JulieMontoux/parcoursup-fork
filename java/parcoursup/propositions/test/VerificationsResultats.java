@@ -1,6 +1,6 @@
-/* 
-    Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
-    
+/*
+    Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+
     This file is part of Algorithmes-de-parcoursup.
 
     Algorithmes-de-parcoursup is free software: you can redistribute it and/or modify
@@ -22,6 +22,8 @@ package parcoursup.propositions.test;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.GroupeInternat;
 import parcoursup.propositions.algo.VoeuEnAttente;
@@ -30,10 +32,12 @@ import parcoursup.propositions.algo.VoeuEnAttente;
 des sorties de l'algorithme.
 Sans garantir la correction du code,
 cela garantit que les résultats produits satisfont les principales propriétés
-énoncées dans le document. 
+énoncées dans le document.
 Des tests complémentaires sont effectués en base par des scripts PL/SQL.
  */
 public class VerificationsResultats {
+
+    private static final Logger LOGGER = Logger.getLogger(VerificationsResultats.class.getName());
 
     /*
     P1 (respect ordre appel pour les voeux sans internat)
@@ -59,7 +63,7 @@ public class VerificationsResultats {
     /*
     P2  (respect ordre appel et classement internat pour les voeux avec internat)
 
-    Si un candidat C1 précède un candidat C2 
+    Si un candidat C1 précède un candidat C2
     à la fois dans l'ordre d'appel d'une formation F
     et dans un classement d'internat I
     et si C1 a un voeu en attente pour F avec internat I
@@ -87,7 +91,7 @@ public class VerificationsResultats {
     P3 (respect classement internat pour les candidats avec une proposition sans internat)
 
     Si un candidat C1 a un voeu en attente pour une formation F avec demande d'internat I
-    et une proposition acceptée ou en attente de réponse de sa part pour la formation F 
+    et une proposition acceptée ou en attente de réponse de sa part pour la formation F
     sans demande d'internat,
     et si C2 est un candidat moins bien classé que C1 à l'internat I
     et si une des nouvelles propositions du jour offre l'internat I à C2
@@ -114,7 +118,7 @@ public class VerificationsResultats {
     P4  (remplissage maximal des formations dans le respect des positions d'admission à l'internat)
 
     Le nombre de propositions doit être inférieur au nombre de places vacantes.
-    
+
     Si le nombre de nouvelles propositions dans une formation est strictement inférieur
     au nombre de places vacantes dans cette formation, alors tous les voeux en attente
     pour cette formation sont des voeux avec internat,
@@ -179,8 +183,8 @@ public class VerificationsResultats {
 
     Si le nombre de nouvelles propositions dans un internat I est strictement inférieur
     au nombre de places vacantes dans I, alors tous les voeux en attente
-    pour une formation F et demande d'internat I sont 
-    soit effectués par des candidats 
+    pour une formation F et demande d'internat I sont
+    soit effectués par des candidats
     dont le classement à l'internat I est strictement supérieur
     à la position d'admission dans I ou bien situés plus bas dans l'ordre d'appel de F
     que tous les candidats ayant reçu une estAProposer de F ce jour là.
@@ -189,8 +193,8 @@ public class VerificationsResultats {
             GroupeInternat internat,
             Map<GroupeAffectation,Integer> rangDernierAppeles
             ) {
-        
-        /* un même candidat peut avoir plusieurs 
+
+        /* un même candidat peut avoir plusieurs
         propositions pour le même internat,
         émanant de différentes formations */
         Set<Integer> candidatsProposes = new HashSet<>();
@@ -200,7 +204,7 @@ public class VerificationsResultats {
                 candidatsProposes.add(v.id.G_CN_COD);
             }
         }
-        
+
         int nbNouveauxArrivants = candidatsProposes.size();
 
         alerterSi(nbNouveauxArrivants > 0
@@ -214,9 +218,9 @@ public class VerificationsResultats {
                     alerterSi(!internat.groupesConcernes.contains(formation), "formation inconnue (?)");
 
                     alerterSi(
-                            (v.internatDejaObtenu() 
+                            (v.internatDejaObtenu()
                                     || v.rangInternat <= internat.positionAdmission)
-                            && (v.formationDejaObtenue() 
+                            && (v.formationDejaObtenue()
                                     || v.ordreAppel <=  rangDernierAppeles.get(v.groupe)),
                             "souscapacité internat compensable par un voeu"
                             + "classé sous la position d'admission internat"
@@ -226,16 +230,16 @@ public class VerificationsResultats {
         }
     }
 
-    
+
     /*
-    P6  (maximalité des positions d'admission) 
-    
+    P6  (maximalité des positions d'admission)
+
     Pour tout internat, la position d'admission est inférieure ou égale à la position maximale d'admission.
     Dans le cas où elle est strictement inférieure, augmenter d'une unité la position d'admission
     entrainerait une surcapacité d'un des internats.
-    
+
     Non-implémenté.
-    
+
      */
     private static void alerterSi(boolean prop, String message) {
         if (prop) {
@@ -245,7 +249,7 @@ public class VerificationsResultats {
 
     private static void prevenirSi(boolean prop, String message) {
         if (prop) {
-            System.out.println("Attention: " + message);
+            LOGGER.log(Level.WARNING, "Attention: {0}", message);
         }
     }
 

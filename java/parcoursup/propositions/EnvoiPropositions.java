@@ -18,7 +18,7 @@
  */
 package parcoursup.propositions;
 
-import java.time.LocalDateTime;
+import java.util.logging.Logger;
 
 import parcoursup.propositions.algo.AlgoPropositions;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
@@ -30,6 +30,8 @@ Ce code est exécuté de manière quotidienne.
  */
 public class EnvoiPropositions {
 
+    private static final Logger LOGGER = Logger.getLogger(EnvoiPropositions.class.getName());
+
     private final ConnecteurDonneesPropositions acces;
 
     public EnvoiPropositions(ConnecteurDonneesPropositions acces) {
@@ -38,24 +40,20 @@ public class EnvoiPropositions {
 
     public void execute() throws Exception {
 
-        log("Récupération des données");
+        LOGGER.info("Récupération des données");
         AlgoPropositionsEntree entree = acces.recupererDonnees();
 
-        log("Sauvegarde locale de l'entrée");
+        LOGGER.info("Sauvegarde locale de l'entrée");
         entree.serialiser(null);
 
-        log("Calcul des propositions");
+        LOGGER.info("Calcul des propositions");
         AlgoPropositionsSortie sortie = AlgoPropositions.calculePropositions(entree);
 
-        log("Sauvegarde locale de la sortie");
+        LOGGER.info("Sauvegarde locale de la sortie");
         sortie.serialiser(null);
 
-        log("Export des données");
+        LOGGER.info("Export des données");
         acces.exporterDonnees(sortie);
 
-    }
-
-    static void log(String msg) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + msg);
     }
 }

@@ -1,5 +1,5 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,18 +19,21 @@
  */
 package parcoursup.ordreappel.donnees;
 
+import static java.util.stream.Collectors.joining;
+
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import oracle.jdbc.OracleDriver;
 import oracle.jdbc.pool.OracleDataSource;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
@@ -40,8 +43,10 @@ import parcoursup.ordreappel.algo.VoeuClasse;
 
 public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
 
+    private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesAppelOracle.class.getName());
+
     /* connexion à la base de données */
-    Connection conn = null;
+    private final Connection conn;
 
     public ConnecteurDonneesAppelOracle(String url, String user, String password) throws SQLException {
         if (url == null || url.isEmpty()) {
@@ -65,9 +70,9 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
 
         try (Statement stmt = conn.createStatement()) {
 
-            /* récupère la liste des groupes et les taux minimum de boursiers 
+            /* récupère la liste des groupes et les taux minimum de boursiers
             et de résidents depuis la base de données */
-            log("Récupération des groupes");
+            LOGGER.info("Récupération des groupes");
             stmt.setFetchSize(1000000);
 
             String sql
@@ -99,7 +104,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                     + " AND   ti.g_ti_eta_cla=2 "
                     + " AND   NVL(g.c_gp_flg_pas_cla, 0)!=1";
 
-            log(sql);
+            LOGGER.info(sql);
 
             try (ResultSet result = stmt.executeQuery(sql)) {
 
@@ -140,7 +145,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
             Set<Integer> groupesManquants = new HashSet<>();
 
             /* récupère la liste des voeux depuis la base de données */
-            log("Récupération des voeux");
+            LOGGER.info("Récupération des voeux");
             stmt.setFetchSize(1000000);
             String sql = "SELECT "
                     //id du groupe de classement
@@ -151,7 +156,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                     + "NVL(C_CG_RAN,0), "
                     //le candidat a-t'il déclaré être boursier? non 0 lycée 1 dusup 2
                     + "g_cn_brs, "
-                    //cette déclaration a-t'elle été confirmée 
+                    //cette déclaration a-t'elle été confirmée
                     //via les remontées de base SIECLE (1)
                     //ou directement par le chef d'établissement (2)
                     + "g_cn_flg_brs_cer,"
@@ -176,11 +181,11 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                     //seulement les formations qui classent
                     + " AND   NVL(gp.c_gp_flg_pas_cla, 0)!=1";
 
-            log(sql);
+            LOGGER.info(sql);
 
             try (ResultSet result = stmt.executeQuery(sql)) {
 
-                /* Remarque: le rang est à null / 0 pour celles des formations 
+                /* Remarque: le rang est à null / 0 pour celles des formations
             non-sélectives qui ne réalisent pas de classement. */
                 while (result.next()) {
 
@@ -215,12 +220,11 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                 stmt.close();
 
                 if (!groupesManquants.isEmpty()) {
-                    log(groupesManquants.size() + " groupes manquants.");
-                    System.out.print("(");
-                    for (int c_gp_cod : groupesManquants) {
-                        System.out.print(c_gp_cod + ",");
-                    }
-                    System.out.println(")");
+                    LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
+                    String list = groupesManquants.stream()
+                            .map(String::valueOf)
+                            .collect(joining(",", "(", ")"));
+                    LOGGER.severe(list);
                     //throw new RuntimeException(groupesManquants.size() + " groupes manquants.");
                 }
 
@@ -241,7 +245,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
 
         try {
 
-            log("Début de l'exportation");
+            LOGGER.info("Début de l'exportation");
 
             preparerExport();
 
@@ -264,10 +268,10 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                         ps.setInt(3, rang++);
                         ps.addBatch();
                         if (++count % 500000 == 0) {
-                            log("Exportation des ordres d'appel des voeux " + (count - 499999) + " a " + count);
+                            LOGGER.log(Level.INFO, "Exportation des ordres d''appel des voeux {0} a {1}", new Object[]{count - 499999, count});
                             ps.executeBatch();
                             ps.clearBatch();
-                            log("Fait");
+                            LOGGER.info("Fait");
                         }
                     }
 
@@ -276,16 +280,16 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
             }
             conn.commit();
 
-            log("Mise à jour de la table C_CAN_GRP");
+            LOGGER.info("Mise à jour de la table C_CAN_GRP");
             conn.createStatement().execute("UPDATE "
                     + "(SELECT  a.C_CG_ORD_APP cible, b.C_CG_ORD_APP source FROM C_CAN_GRP a,"
                     + "J_ORD_APPEL_TMP b WHERE a.G_CN_COD=b.G_CN_COD AND a.C_GP_COD=b.C_GP_COD)"
                     + "SET cible=source");
 
             /* exportation des statistiques mesurant l'écart entre l'ordre d'appel
-            et le classement initial. 
+            et le classement initial.
              */
-            log("Exportation des coefficients de divergence");
+            LOGGER.info("Exportation des coefficients de divergence");
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO C_CAN_ORD_APPEL_DIV (C_GP_COD,COEF_DIV) VALUES (?,?)")) {
                 for (Entry<Integer, OrdreAppel> paire
@@ -298,13 +302,13 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                 ps.executeBatch();
             }
 
-            log("Application des changements");
+            LOGGER.info("Application des changements");
             conn.commit();
 
-            log("Fin de l'exportation");
+            LOGGER.info("Fin de l'exportation");
 
         } catch (SQLException ex) {
-            log("Erreur d'exportation des données");
+            LOGGER.severe("Erreur d'exportation des données");
             throw new RuntimeException("Erreur d'exportation des données", ex);
         }
     }
@@ -321,7 +325,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
             conn.createStatement().execute("DROP TABLE J_ORD_APPEL_TMP");
         } catch (SQLException e) {
             /* peut arriver si la table n'existait pas */
-        };
+        }
 
         conn.createStatement().execute(
                 "CREATE GLOBAL TEMPORARY TABLE J_ORD_APPEL_TMP ("
@@ -337,7 +341,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
             conn.createStatement().execute("DROP TABLE C_CAN_ORD_APPEL_DIV");
         } catch (SQLException e) {
             /* peut arriver si la table n'existait pas */
-        };
+        }
 
         conn.createStatement().execute(
                 "CREATE TABLE C_CAN_ORD_APPEL_DIV ("
@@ -347,10 +351,6 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel {
                 + ")"
         );
 
-    }
-
-    private void log(String message) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + message);
     }
 
 }
