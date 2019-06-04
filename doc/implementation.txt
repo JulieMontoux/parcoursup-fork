@@ -21,9 +21,9 @@ Pour une formation donnée, un candidat donné a accès à au plus un internat.
 
 Le lien entre ces identifiants et les classes de l'algo sont
 
-    GroupeClassement ~ G_CN_COD
+    GroupeClassement ~ C_GP_COD
     VoeuClasse ~ (G_CN_COD,C_GP_COD)
-    VoeuEnAttente ~  VoeuUID ~ (G_CN_COD, G_TA_COD, I_RH_COD)
+    Voeu ~  VoeuUID ~ (G_CN_COD, G_TA_COD, I_RH_COD)
     GroupeAffectation ~  GroupeAffectationUID ~ (C_GP_COD, G_TI_COD, G_TA_COD)
     GroupeInternat ~  GroupeInternatUID ~ (C_GI_COD, NVL(G_TA_COD,0) )
 
@@ -32,79 +32,122 @@ ______________________
 
     Le point d'entrée (main) est dans "java/parcoursup/ordreappel/CalculOrdreAppel.java".
 
-    Le calcul de l'ordre d'appel est effectué indépendamment dans chaque groupe de classement.
-    Le code récupère les groupes de classement, puis les voeux et injecte les voeux
-    dans les groupes de classement correspondant.
+    Les voeux sont récupérés dans la table des voeux A_VOE. Les classements sont récupérés dans la table
+    C_CAN_GRP.
+
+    Le calcul de l'ordre d'appel est effectué indépendamment dans chaque groupe de classement,
+    par la méthode GroupeClassement.calculerOrdreAppel.
 
 Algorithme EnvoiPropositions:
 _____________________________
 
     Le point d'entrée (main) est dans "java/parcoursup/propositions/EnvoiPropositions.java".
 
-    Pour les formations sans internat il suffit simplement de descendre dans
-    l'ordre d'appel tant que la formation n'est pas en surcapacité ou que le rang
-    limite d'appel n'est pas atteint.
+**Données d'entrée**
 
-    Pour les formations avec internat, il faut en plus calculer la valeur de la
-    position d'admission, comme spécifié dans le doc algos. Cette position d'admission,
-    propre à chaque GroupeInternat, paramètre l'assiette des candidats éligibles
-    à une place dans cet internat. 
+    Les voeux sont récupérés dans la table des voeux A_VOE. Le champ a_sv_cod donne le statut du voeu,
+    une jointure avec A_SIT_VOE permet d'identifier les voeux en attente de proposition (a_sv_flg_att=1)
+    et les voeux actuellement proposés (a_sv_flg_aff=1). Les capacités d'accueil dans chaque groupe
+    sont récupérés dans la table A_REC_GRP. Le champ A_RG_NBR_SOU est le nombre souhaité de
+    candidats à appeler (y compris le surbookin) et le champ A_G_RAN_LIM est le rang limite
+    en dessous duquel tous les candidats sont appelés.
 
-    Le calcul de la position d'admission réalise un 
-    compromis entre plusieurs contraintes:
-
-        * respecter les capacités des internats
-        * proposer les places d'internat dans l'ordre du classement internat
-        * avoir des internats remplis en fin de campagne.
-    
-    Elle est inférieure à une position maximum
-    d'admission, qui est augmentée progressivement.
-    Le premier jour, on s'en tient à la liste principale de l'internat: dans
-    un internat de 20 places, la position maximum d'admission est fixée à 20 et
-    seuls les 20 premiers du classement sont susceptibles 
-    de recevoir une proposition d'internat. Certains de ces 20 premiers
-    sont peut-être trop bas dans les classements pédagogiques pour pouvoir
-    recevoir une proposition d'une formation. Dans ce cas, les lits correspondants 
-    sont réservés. Mais pas éternellement: on augmente progressivement la maximum
-    d'admission pour qu'après 30 jours, l'assiette des candidats éligibles soit maximale.
-    Cette ouverture peut-être freinée (mais pas accélérée) par le chef d'établissement,
-    via un pourcentage d'ouverture. Plus de détails sont disponibles dans doc/presentation_algos.pdf
-
-    
-    La position d'admission est calculée de manière à être la plus
-    permissive possible, dans la limite des capacités des internats et de la barre
-    maximum d'admission. Elle est calculée itérativement, en partant de la position
-    maximum est en la diminuant en cas de surcapacité. On peut prouver mathématiquement
-    que ce calcul converge toujours vers le même résultat, quelque soit l'ordre
-    dans lequel on effectue les itérations sur les listes de formations et
-    d'internats. 
-
-    Le chargement des données depuis la base Oracle injecte les voeux dans
-    les groupes correspondants, a minima un GroupeAffectation 
+    Le chargement des données depuis la base Oracle injecte les voeux récupérés dans la table A_VOE,
+    dans les groupes correspondants, a minima un GroupeAffectation 
     voire en plus un GroupeInternat si 
         
         * I_RH_COD=1 (le voeu comprend une demande d'internat)
         * g_ti_cla_int_uni IN (0,1) l'internat correspondant n'est ni obligatoire ni non-sélectif,
             c'est un internat normal, typiquement un internat de CPGE.
 
-    Dans chaque groupe, les voeux sont triés par ordre de classement, 
-    pédagogique ou internat.
+**Formations sans internats**
 
-    L'algorithme itére la mise à jour des positions d'admission,
-    jusqu'à ce qu'aucun des internats ne soit en surcapacité.
+    Pour les formations sans internat il suffit simplement de descendre dans
+    l'ordre d'appel tant que la formation n'est pas en surcapacité ou que le rang
+    limite d'appel n'est pas atteint.
 
-    Deux détails qui ont leur importance.
-    Quand l'algorithme énumère les voeux
-    d'un GroupeAffectation dans l'ordre de classement pédagogique,
-    il prend garde aux doublons de candidats: deux voeux d'un même candidat pour
-    la formation, (un avec et un sans internat), peuvent se succéder.
-    Quand l'algorithme énumère les voeux
-    d'un GroupeInternat dans l'ordre de classement internat,
-    il prend garde aux candidatures multiples: plusieurs voeux d'un même candidat pour 
-    le même internat mais dans plusieurs formations distinctes (MPSI/PCSI/...)
-    peuvent se succéder dans la liste de voeux.
+**Gestion des internats**
 
-Hugo G. <hugo.gimbert@enseignement.gouv.fr>
+    Pour les formations avec internat, il faut en plus calculer la valeur de la
+    barre d'admission internat. Cette barre
+    d'admission internat, propre à chaque GroupeInternat, paramètre l'assiette 
+    des candidats éligibles à une place dans cet internat. 
+
+    Le calcul de la barre d'admission à l'internat réalise un 
+    compromis entre plusieurs contraintes:
+
+        * respecter les capacités des internats
+        * proposer les places d'internat dans l'ordre du classement internat
+        * avoir des internats remplis en fin de campagne.
+    
+    La position d'admission est inférieure à la position maximum
+    d'admission, ce qui permet de réserver des places d'internats aux candidats
+    les mieux classés à l'internat, comme expliqué dans la documentation
+    disponible dans doc/presentation_algorithmes_parcoursup_2019.pdf
+
+    La position d'admission est calculée de manière à être la plus
+    permissive possible, dans la limite des capacités des internats et de la barre
+    maximum d'admission. Elle est calculée itérativement, en partant de la position
+    maximum puis en la diminuant en cas de surcapacité. L'algorithme itére la mise 
+    à jour des positions d'admission, jusqu'à ce qu'aucun des internats ne soit en surcapacité.
+    On peut prouver mathématiquement que ce calcul converge toujours vers le même résultat, 
+    quelque soit l'ordre dans lequel on effectue les itérations sur les listes de formations et
+    d'internats. 
+
+**Dispositif "Meilleurs Bacheliers"**
+
+    Les lycéens ayant obtenu de bons résultats au Bac dans leur lycée sont appelés les
+    _meilleurs bacheliers_. Dans la plupart des formations, des places sont réservées aux MBC,
+    dans des proportions fixées par le recteur. L'algorithme attribue ces places aux meilleurs bacheliers,
+    en en faisant remonter le nombre correspondant dans l'ordre d'appel.
+
+    Le programme récupère dans la base de données:
+	* Le nombre de places éligibles au dispositif meilleurs bacheliers, dans chaque formation.
+          C'est le champ A_RC_PLA_MBC de la table A_REC
+	* Les propositions faites au titre du dispositif meilleurs bacheliers, et qui n'ont pas été refusées
+          C'est le champ A_AM_FLG_MBC de la table des admissions A_ADM qui indique cette propriété.
+        * La liste des meilleurs bacheliers et leurs notes de Bac. Dans la table G_CAN de tous les
+          candidats, les meilleurs bacheliers sont identifiés par le flag G_CN_FLG_MBC. Les moyennes au Bac
+          sont récupérées dans la table des notes de Bac, I_CAN_EPR_BAC, les moyennes sont fournies par les
+          entrées pour lesquelles I_EB_COD=20.
+      
+    Ensuite le programme appelle la méthode calculerNombrePlacesVacantes afin de fixer le nombre
+    de places vacantes pour les MBC, formation par formation, en soustrayant du nombre fixé 
+    par le recteur le nombre de propositons actuelles. Ces places vacantes sont ensuite ventilées
+    dans les groupes d'affectation de la formation et dans chacun de ces groupes d'affectation, le nombre
+    correspondant de MBC est remonté en haut de l'ordre d'appel. Ces trois opérations nécessitent
+    de comparer entre eux les MBC afin de prioriser l'attribution des places réservées. Cette comparaison
+    est effectuée par la méthode comparerVoeuxSelonCritereMB, selon les critères suivants:
+
+	1. la moyenne au Bac
+
+	2. le rang d'appel dans le groupe de classement, si les deux candidats font partie du même
+            groupe de classement.
+
+    Dans chaque formation, le programme sélectionne les MBC à remonter dans l'ordre d'appel
+    dans cet ordre de comparaison, jusqu'à épuisement des places vacantes. 
+    Si il ne reste qu'une place mais qu'il y a ex-aequo entre les meilleurs candidats non-sélectionnés 
+    (même moyenne et groupes différents), le programme les sélectionne tous.
+
+
+**Gestion du répondeur automatique**
+
+    Les candidats ayant activé leur répondeur automatique délèguent leurs réponses au programme
+    d'affectation. Ces candidats sont identifiés dans la table G_CAN des candidats par le flag
+    G_CN_FLG_RA. Ces candidats ont au plus une proposition à la fois. En cas de choix entre
+    plusieurs propositions, le programme utilise la méthode
+                        parcoursup.propositions.repondeur.reponsesAutomatiques
+    pour sélectionner la proposition qui a le plus haut rang dans le paramétrage
+    de leur répondeur automatique, donné par le champ A_VE_ORD de A_VOE.
+
+
+Vérification du résultat des calculs
+____________________________________
+
+     Après chaque calcul, les résultats sont vérifiés à l'aide du code du dossier parcoursup.verification.
+
+
+Hugo Gimbert <hugo.gimbert@enseignement.gouv.fr>
 
 Merci aux relecteurs du code:
 

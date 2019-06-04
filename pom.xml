@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>fr.gouv.education</groupId>
 	<artifactId>parcourssup-algo</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>2019</version>
 	<name>algorithmes-de-parcoursup</name>
 
 	<properties>
@@ -20,8 +20,8 @@
 			<dependencies>
 				<dependency>
 					<groupId>com.oracle</groupId>
-					<artifactId>ojdbc6</artifactId>
-					<version>12.1.0.1-atlassian-hosted</version>
+					<artifactId>ojdbc8</artifactId>
+					<version>12.2.0.1</version>
 				</dependency>
 			</dependencies>
 		</profile>
@@ -38,6 +38,7 @@
 						<configuration>
 							<excludes>
 								<exclude>**/*Oracle.java</exclude>
+								<exclude>**/*Prod.java</exclude>
 							</excludes>
 						</configuration>
 					</plugin>

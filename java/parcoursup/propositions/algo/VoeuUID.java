@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -18,9 +20,6 @@
 
  */
 package parcoursup.propositions.algo;
-
-import java.util.HashSet;
-import java.util.Set;
 
 
 /* Classe comprenant les caractéristiques 
@@ -45,16 +44,6 @@ public class VoeuUID {
         this.G_CN_COD = G_CN_COD;
         this.G_TA_COD = G_TA_COD;
         this.I_RH_COD = avecInternat;
-
-        /* vérification de l'unicité des voeux 
-        récupérés via deux requêtes distinctes */
-        if (verificationUnicite) {
-            if (voeuxCrees.contains(this)) {
-                throw new RuntimeException("Deux voeux créés avec le même id");
-            }
-            voeuxCrees.add(this);
-        }
-
     }
 
     @Override
@@ -78,12 +67,11 @@ public class VoeuUID {
         );
     }
 
-    /* Vérifie qu'un identifiant est créé au plus une fois */
-    public static void debuterVerificationUnicite() {
-        verificationUnicite = true;
-        voeuxCrees.clear();
+    @Override
+    public String toString() {
+        return "G_CN_COD=" + G_CN_COD 
+                + " AND G_TA_COD=" + G_TA_COD 
+                + " AND I_RH_COD=" + (I_RH_COD ? "1" : "0");
     }
-    private static boolean verificationUnicite = false;
-    private static final Set<VoeuUID> voeuxCrees = new HashSet<>();
 
 }

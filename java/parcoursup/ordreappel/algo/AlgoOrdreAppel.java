@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,10 +21,13 @@
  */
 package parcoursup.ordreappel.algo;
 
+import parcoursup.verification.VerificationsResultatsAlgoOrdreAppel;
+
 public class AlgoOrdreAppel {
 
-    /* la boucle principale de calcul des ordres d'appels */
-    public static AlgoOrdreAppelSortie calculeOrdresAppels(AlgoOrdreAppelEntree data) {
+    /* la boucle principale de calcul des ordres d'appels. 
+        Renvoit une exception en cas de problème. */
+    public static AlgoOrdreAppelSortie calculerOrdresAppels(AlgoOrdreAppelEntree data) throws Exception {
 
         AlgoOrdreAppelSortie resultat = new AlgoOrdreAppelSortie();
 
@@ -31,8 +36,16 @@ public class AlgoOrdreAppel {
             resultat.ordresAppel.put(ga.C_GP_COD, ga.calculerOrdreAppel());
         }
 
+        /* vérification avant retoru des resultats */
+        VerificationsResultatsAlgoOrdreAppel verif = new VerificationsResultatsAlgoOrdreAppel();
+        verif.verifier(data, resultat);
+        
+                
         return resultat;
 
+    }
+
+    private AlgoOrdreAppel() {
     }
 
 }

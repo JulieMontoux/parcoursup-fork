@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,45 +21,26 @@
  */
 package parcoursup.ordreappel.algo;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
-/**
- *
- * @author gimbert
- */
+
 public class OrdreAppel {
 
-    /* la liste des voeux, dans l'ordre d'appel */
-    public List<VoeuClasse> voeux = new LinkedList<>();
+    /* la liste des candidats, en ordre d'appel croissant */
+    public final List<CandidatClasse> candidats = new ArrayList<>();
 
-    /* calcule une mesure de la différence entre le classement original et l'ordre d'appel: 
-    le nombre d'inversions ramené au nombre maximal d'inversions.
-    Le nombre maximal d'inversions est obtenu si le classement est totalement inversé
-    (cas hypothétique), auquel cas il y a autant d'inversions que de paires non-ordonnées 
-    de candidat c'est-à-dire n * (n - 1) / 2.
-     */
-    public double coefficientDivergence() {
-
-        if (voeux.size() <= 1) {
-            return 0.0f;
+    /* construit l'ordre d'appel à partir de la liste des voeux classés dans l'ordre d'appel */
+    public OrdreAppel(List<VoeuClasse> voeux) {
+        
+        /* ajoute les candidats dans l'ordre d'appel */
+        for(VoeuClasse voe : voeux) {
+            candidats.add(new CandidatClasse(voe.G_CN_COD, voe.rangAppel));
         }
 
-        /* calcul du coefficient de divergence */
-        int nbInversions = 0;
-        for (VoeuClasse voe1 : voeux) {
-            for (VoeuClasse voe2 : voeux) {
-                if (voe2 == voe1) {
-                    break;
-                }
-                if (voe2.rang > voe1.rang) {
-                    nbInversions++;
-                }
-            }
-        }
-
-        return (2.0f * nbInversions)
-                / (voeux.size() * (voeux.size() - 1));
-
+        candidats.sort((CandidatClasse c1,CandidatClasse c2) -> c1.rangAppel - c2.rangAppel);
+        
     }
+        
+    
 }

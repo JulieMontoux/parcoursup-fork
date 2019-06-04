@@ -1,5 +1,6 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,45 +20,110 @@
  */
 package parcoursup.propositions.algo;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
-import parcoursup.propositions.test.VerificationsResultats;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import parcoursup.propositions.meilleursbacheliers.AlgoMeilleursBacheliers;
+import parcoursup.propositions.meilleursbacheliers.AlgoMeilleursBacheliersDonnees;
+import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
+import parcoursup.propositions.repondeur.RepondeurAutomatique;
+import static parcoursup.verification.VerificationEntreeAlgoPropositions.verifierIntegrite;
+import parcoursup.verification.VerificationResultatsAlgoMeilleurBachelier;
 
 public class AlgoPropositions {
 
-    private static final Logger LOGGER = Logger.getLogger(AlgoPropositions.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(AlgoPropositions.class.getSimpleName());
 
     /* la boucle principale du calcul des propositions à envoyer */
-    public static AlgoPropositionsSortie calculePropositions(AlgoPropositionsEntree entree) {
-
-        entree.verifierIntegrite();
+    public static AlgoPropositionsSortie calcule(AlgoPropositionsEntree entree) throws IOException, Exception {
 
         LOGGER.info("Début calcul propositions");
 
-        /* groupes à mettre à jour */
-        Set<GroupeAffectation> groupesAMettreAJour
-                = new HashSet<>();
-        groupesAMettreAJour.addAll(entree.groupesAffectations);
-
-        /* initialisation des positions maximales d'admission dans les internats */
-        for (GroupeInternat internat : entree.internats) {
-            internat.initialiserPositionAdmission();
+        LOGGER.info("Initialisation des infos Meilleurs Bacheliers");
+        Map<Integer, MeilleurBachelier> meilleursBacheliers = new HashMap<>();
+        for (MeilleurBachelier mb : entree.meilleursBacheliers) {
+            meilleursBacheliers.put(mb.G_CN_COD, mb);
+        }
+        for (Voeu v : entree.voeux) {
+            MeilleurBachelier mb = meilleursBacheliers.get(v.id.G_CN_COD);
+            if (mb != null) {
+                v.setMeilleurBachelier(mb);
+            }
         }
 
-        int compteurBoucle = 0;
-        while (groupesAMettreAJour.size() > 0) {
+        /* chaque passage dans cette boucle correspond à un calcul des propositions
+        à envoyer suivi d'une étape de réponse automatique par les candidats
+        ayant activé leur répondeur automatique */
+        while (true) {
 
-            /* calcul des propositions à effectuer,
-            étant données les positions actuelles d'admissions aux internats */
-            for (GroupeAffectation gc : groupesAMettreAJour) {
-                gc.mettreAJourPropositions();
+            preparerGroupes(entree);
+
+            entree.loggerEtatAdmission();
+
+            /* vérification de l'intégrité des données d'entrée */
+            LOGGER.info("Vérification de l'intégrité des données d'entrée");
+            verifierIntegrite(entree);
+
+            if (entree.nbPlacesMeilleursBacheliers.isEmpty()) {
+                LOGGER.info("Aucune place réservée aux meilleurs bacheliers");
+            } else if (entree.meilleursBacheliers.isEmpty()) {
+                LOGGER.info("Aucun candidat n'est meilleur bachelier");
+            } else {
+                /* Remontées des meilleurs bacheliers */
+                AlgoMeilleursBacheliersDonnees donneesMB = new AlgoMeilleursBacheliersDonnees();
+                donneesMB.meilleursBacheliers.addAll(entree.meilleursBacheliers);
+                donneesMB.nbPlacesMeilleursBacheliers.putAll(entree.nbPlacesMeilleursBacheliers);
+                donneesMB.propositionsMeilleursBacheliers.addAll(entree.propositionsMeilleursBacheliers);
+                for (Voeu v : entree.voeux) {
+                    if (v.eligibleDispositifMB && v.estProposition()) {
+                        donneesMB.propositionsMeilleursBacheliers.add(v.id);
+                    }
+                }
+                donneesMB.groupes.addAll(entree.groupesAffectations.values());
+                AlgoMeilleursBacheliers.appliquerDispositifMeilleursBacheliers(donneesMB);
+
+                LOGGER.info("Vérification des résultats de l'algo MB");
+                /* vérification de l'intégrité des données d'entrée après remontée MB */
+                VerificationResultatsAlgoMeilleurBachelier.verifier(donneesMB);
+
+                LOGGER.info("Vérification de l'intégrité des données d'entrée"
+                        + " après remontée MB");
+                verifierIntegrite(entree);
+
             }
 
-            /* Test de surcapacité des internats, avec
+            /* groupes à mettre à jour */
+            Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>();
+            groupesAMettreAJour.addAll(entree.groupesAffectations.values());
+
+            /* initialisation des positions maximales d'admission dans les internats */
+            for (GroupeInternat internat : entree.internats.values()) {
+                internat.initialiserPositionAdmission();
+            }
+
+            int compteurBoucle = 0;
+            while (groupesAMettreAJour.size() > 0) {
+
+                compteurBoucle++;
+
+                LOGGER.log(Level.INFO, "Itération " + compteurBoucle
+                        + ": mise à jour des propositions dans {0} groupes d'affectations",
+                        groupesAMettreAJour.size()
+                );
+
+                /* calcul des propositions à effectuer,
+                étant données les positions actuelles d'admissions aux internats */
+                for (GroupeAffectation gc : groupesAMettreAJour) {
+                    gc.mettreAJourPropositions();
+                }
+
+                /* Test de surcapacité des internats, avec
                mise à jour de la position d'admission si nécessaire.
 
             Baisser la position d'admission d'un internat ne diminue
@@ -85,102 +151,99 @@ public class AlgoPropositions {
             Une propriété de symétrie i.e. d'équité intéressante:
             le résultat ne dépend pas de l'ordre dans lequel on itère sur les internats et
             les formations.
-             */
+                 */
+                groupesAMettreAJour.clear();
 
-            groupesAMettreAJour.clear();
-
-            for (GroupeInternat internat : entree.internats) {
-                boolean maj = internat.mettreAJourPositionAdmission();
-                if (maj) {
-                    groupesAMettreAJour.addAll(internat.groupesConcernes);
+                for (GroupeInternat internat : entree.internats.values()) {
+                    boolean maj = internat.mettreAJourPositionAdmission();
+                    if (maj) {
+                        groupesAMettreAJour.addAll(internat.groupesConcernes);
+                    }
                 }
-            }
-            compteurBoucle++;
-        }
 
-        LOGGER.log(Level.INFO, "Calcul terminé après {0} itération(s).", compteurBoucle);
-
-        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions pour un des {0} groupes d''affectation",
-                entree.groupesAffectations.size());
-
-        int step = Integer.max(1, entree.groupesAffectations.size() / 100);
-        int count = 0;
-        afficherJauge();
-
-        for (GroupeAffectation groupe : entree.groupesAffectations) {
-
-            if (count++ % step == 0) {
-                System.out.print("-");
-                System.out.flush();
             }
 
-            VerificationsResultats.verifierRespectOrdreAppelVoeuxSansInternat(groupe);
-            VerificationsResultats.verifierVoeuxAvecInternat(groupe);
-            VerificationsResultats.verifierSurcapaciteEtRemplissage(groupe);
+            LOGGER.log(Level.INFO, "Calcul terminé après {0} itération(s).", compteurBoucle);
 
-        }
-        System.out.println();
+            /* remise à leur valeur initiale des ordres d'appels
+            potentiellement modifiés par le dispositif MB */
+            for (Voeu v : entree.voeux) {
+                v.ordreAppel = v.ordreAppelInitial;
+            }
 
-        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions d''un des {0} internats",
-                entree.internats.size());
+            int placesLibereesParRepAuto = 0;
 
-        step = Integer.max(1, entree.internats.size() / 100);
-        count = 0;
-        afficherJauge();
+            if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
+                LOGGER.log(Level.INFO, "Préparation des données du répondeur automatique,"
+                        + "{0} candidats l''ont activé",
+                        entree.candidatsAvecRepondeurAutomatique.size()
+                );
 
-        /* précalcul des rangs d'appel maximum dans chaque groupe parmi les nouveaux entrants */
-        Map<GroupeAffectation, Integer> rangsMaxNouvelArrivant = new HashMap<>();
-        for (GroupeAffectation groupe : entree.groupesAffectations) {
-            int rangMax = 0;
-            for (VoeuEnAttente v : groupe.voeuxTries()) {
-                if (v.estAProposer() && !v.formationDejaObtenue()) {
-                    rangMax = Integer.max(rangMax, v.ordreAppel);
+                Collection<Voeu> voeuxDesCandidatsAvecRepAuto = new ArrayList<>();
+                for (Voeu v : entree.voeux) {
+                    /* le répondeur automatique ne tient pas compte des voeuxEnAttente hors PP */
+                    if (v.estAffecteHorsPP()) {
+                        continue;
+                    }
+                    if (entree.candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD)) {
+                        voeuxDesCandidatsAvecRepAuto.add(v);
+                    }
                 }
-            }
-            rangsMaxNouvelArrivant.put(groupe, rangMax);
-        }
+                LOGGER.log(Level.INFO, "{0} voeux avec répondeur automatique", voeuxDesCandidatsAvecRepAuto.size());
 
-        for (GroupeInternat internat : entree.internats) {
-
-            if (count++ % step == 0) {
-                System.out.print("-");
-                System.out.flush();
+                placesLibereesParRepAuto
+                        = RepondeurAutomatique.reponsesAutomatiques(voeuxDesCandidatsAvecRepAuto);
+            } else {
+                LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
             }
 
-            VerificationsResultats.verifierRespectClassementInternat(internat);
-            VerificationsResultats.verifierSurcapaciteEtRemplissage(
-                    internat,
-                    rangsMaxNouvelArrivant);
+            /* si le répondeur ne libère pas de place, le calcul est terminé */
+            if (placesLibereesParRepAuto == 0) {
+                LOGGER.info("Aucune place libérée par le répondeur automatique");
+                break;
+            } else {
+                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
+                        placesLibereesParRepAuto);
+            }
 
         }
-        System.out.println();
 
-        LOGGER.info("Vérification ok");
-
-        LOGGER.info("Préparation données de sortie");
+        LOGGER.info(
+                "Préparation données de sortie");
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie();
+        sortie.voeux.addAll(entree.voeux);
+        sortie.internats.addAll(entree.internats.values());
+        sortie.groupes.addAll(entree.groupesAffectations.values());
 
-        for (GroupeAffectation gc : entree.groupesAffectations) {
-            for (VoeuEnAttente voe : gc.voeux) {
-                if (voe.estAProposer()) {
-                    sortie.propositions.add(voe);
-                } else {
-                    sortie.enAttente.add(voe);
-                }
-            }
-        }
-
-        sortie.internats.addAll(entree.internats);
+        LOGGER.log(Level.INFO, "Propositions {0}", sortie.propositionsDuJour().count());
+        LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.demissions().count());
 
         return sortie;
 
     }
 
-    private static void afficherJauge() {
-        for (int i = 0; i < 100; i++) {
-            System.out.print("-");
+    /* ventile les voeux encore en attente dans les groupes concernés */
+    private static void preparerGroupes(AlgoPropositionsEntree entree) {
+        /* réinitialisation des groupes */
+        for (GroupeAffectation groupe : entree.groupesAffectations.values()) {
+            groupe.reinitialiser();
         }
-        System.out.println();
+        for (GroupeInternat internat : entree.internats.values()) {
+            internat.reinitialiser();
+        }
+
+        /* ajout des voeux aux groupes  et remise à leurs valeurs initiales
+            des ordres d'appels (modifiables temporairement par dispositif MB) */
+        for (Voeu v : entree.voeux) {
+            v.ordreAppel = v.ordreAppelInitial;
+            v.repondeurActive = (v.rangRepondeur > 0)
+                    && entree.candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD);
+            v.ajouterAuxGroupes();
+        }
     }
+
+    private AlgoPropositions() {
+    }
+
 }

@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -27,23 +29,16 @@ public class DemoAlgoPropositions {
 
         Random random = new Random();
 
-        System.out.println("\n********** Exemple Aléatoire ************");
-        ExempleAleatoire exempleAleatoire = new ExempleAleatoire(random.nextInt(10000));
-        exempleAleatoire.execute();
-        /* peut produire des fichiers de sortie de taille conséquente
-            exempleAleatoire.executeAndLog();  */
+        /* peut produire des fichiers de sortie de taille conséquente */
+        boolean logFile = false;
 
-        System.out.println("********** Exemple B7, Jour 1 ************");
-        ExempleB7Jour1 exempleB7Jour1 = new ExempleB7Jour1();
-        exempleB7Jour1.executeAndLog();
-
-        System.out.println("\n********** Exemple B7, Jour 2 ************");
-        ExempleB7Jour2 exempleB7Jour2 = new ExempleB7Jour2();
-        exempleB7Jour2.executeAndLog();
-
-        System.out.println("\n********** Exemple B7, Jour 3 ************");
-        ExempleB7Jour3 exempleB7Jour3 = new ExempleB7Jour3();
-        exempleB7Jour3.executeAndLog();
+        int nbCandidats = 100_000;
+        
+        while (true) {
+            System.out.println("\n********** Exemple Aléatoire ************");
+            ExempleAleatoire exempleAleatoire = new ExempleAleatoire(random.nextInt(nbCandidats));
+            exempleAleatoire.execute(logFile);
+        }
 
     }
 }

@@ -1,4 +1,6 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -24,129 +26,54 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.annotation.*;
+import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AlgoPropositionsEntree {
 
-    /* La liste des groupes d'affectation, contenant leurs voeux respectifs */
-    public final Collection<GroupeAffectation> groupesAffectations
-            = new ArrayList<>();
+    private static final Logger LOGGER = Logger.getLogger(AlgoPropositionsEntree.class.getSimpleName());
 
-    /* La liste des internats, contenant leurs voeux respectifs */
-    public final Collection<GroupeInternat> internats
-            = new ArrayList<>();
+    /* la liste des voeuxEnAttente */
+    public final Collection<Voeu> voeux
+            = new HashSet<>();
 
-    /* vérifie l'intégrité des données d'entrée et lève une exception si nécessaire.
-    Propriétés:
-        a) tous les voeux sont en attente
-        b) pas deux voeux distincts avec la même id
-        c) pas deux candidats distincts avec le même classement, formation et internat
-        d) pas le même candidat avec deux classements distincts, formation et internat
-        e) classements positifs
-        f) chaque voeu avec internat se retrouve dans l'internat correspondant
-     */
-    public void verifierIntegrite() {
+    /* La liste des groupes d'affectation */
+    public final Map<GroupeAffectationUID, GroupeAffectation> groupesAffectations
+            = new HashMap<>();
 
-        for (GroupeAffectation g : groupesAffectations) {
+    /* La liste des internats */
+    public final Map<GroupeInternatUID, GroupeInternat> internats
+            = new HashMap<>();
 
-            /* intégrité des classements: un classement == un candidat */
-            Map<Integer, Integer> ordreVersCandidat
-                    = new HashMap<>();
-            Map<Integer, Integer> candidatVersOrdre
-                    = new HashMap<>();
-            Set<VoeuUID> voeuxVus = new HashSet<>();
+    /* liste des candidats (identifiés par leur G_CN_COD) dont le répondeur automatique est activé */
+    public final Set<Integer> candidatsAvecRepondeurAutomatique
+            = new HashSet<>();
 
-            for (VoeuEnAttente v : g.voeux) {
-                alerterSi(
-                        v.internatDejaObtenu() && v.formationDejaObtenue(),
-                        "a) ce voeu n'est pas en attente");
+    /* liste des meilleurs bacheliers */
+    public final List<MeilleurBachelier> meilleursBacheliers = new ArrayList<>();
 
-                alerterSi(
-                        voeuxVus.contains(v.id),
-                        "b) deux voeux avec la même id");
+    /* liste des propositions faites dans le cadre du dispositif meilleurs bacheliers */
+    public final Set<VoeuUID> propositionsMeilleursBacheliers = new HashSet<>();
 
-                voeuxVus.add(v.id);
-
-                if (ordreVersCandidat.containsKey(v.ordreAppel)) {
-                    alerterSi(
-                            ordreVersCandidat.get(v.ordreAppel) != v.id.G_CN_COD,
-                            "c) candidats distincts avec le même classement");
-                } else {
-                    ordreVersCandidat.put(v.ordreAppel, v.id.G_CN_COD);
-                }
-
-                if (candidatVersOrdre.containsKey(v.id.G_CN_COD)) {
-                    alerterSi(
-                            candidatVersOrdre.get(
-                                    v.id.G_CN_COD) != (v.ordreAppel),
-                            "d) candidats distincts avec le même classement");
-                } else {
-                    candidatVersOrdre.put(v.id.G_CN_COD, (v.ordreAppel));
-                }
-
-                alerterSi(v.ordreAppel <= 0,
-                        "e) ordre appel formation négatif");
-
-                /* remarque le voeu peut-être marqué "avecInternat"
-                et en même temps internat==null car c'est un internat sans classement
-                (obligatoire ou non-sélectif) */
-                if (v.avecClassementInternat()) {
-                    alerterSi(!v.internat.voeux.contains(v), "intégrité données");
-                }
-            }
-        }
-
-        for (GroupeInternat internat : internats) {
-
-            /* intégrité des classements: un classement == un candidat */
-            Map<Integer, Integer> ordreVersCandidat
-                    = new HashMap<>();
-            Map<Integer, Integer> candidatVersOrdre
-                    = new HashMap<>();
-
-            for (VoeuEnAttente v : internat.voeux) {
-
-                alerterSi(!v.avecInternat(), "intégrité données");
-
-                alerterSi(v.internat != internat, "intégrité données");
-
-                alerterSi(v.rangInternat <= 0,
-                        "e) classement internat négatif");
-
-                if (ordreVersCandidat.containsKey(v.rangInternat)) {
-                    alerterSi(
-                            ordreVersCandidat.get(v.rangInternat) != v.id.G_CN_COD,
-                            "c) candidats distincts avec le même classement");
-                } else {
-                    ordreVersCandidat.put(v.rangInternat, v.id.G_CN_COD);
-                }
-
-                if (candidatVersOrdre.containsKey(v.id.G_CN_COD)) {
-                    alerterSi(
-                            candidatVersOrdre.get(
-                                    v.id.G_CN_COD) != (v.rangInternat),
-                            "d) candidats distincts avec le même classement");
-                } else {
-                    candidatVersOrdre.put(v.id.G_CN_COD, (v.rangInternat));
-                }
-            }
-        }
-
-    }
+    /* pour chaque formation, identifiée par son G_TA_COD,
+    le nombre de places réservées pour les meilleurs bacheliers. */
+    public final Map<Integer, Integer> nbPlacesMeilleursBacheliers = new HashMap<>();
 
     /* Sauvegarde des données au format xml.
     Si le paramètre filename est null, un nom par défaut est utilisé,
     paramétré par la date et l'heure.
-    */
+     */
     public void serialiser(String filename) throws JAXBException {
-        if(filename == null) {
+        if (filename == null) {
             filename = "entree_" + LocalDateTime.now() + ".xml";
         }
         Marshaller m = JAXBContext.newInstance(AlgoPropositionsEntree.class).createMarshaller();
@@ -154,10 +81,32 @@ public class AlgoPropositionsEntree {
         m.marshal(this, new File(filename));
     }
 
-    private void alerterSi(boolean prop, String message) {
-        if (prop) {
-            throw new RuntimeException("Données d'entrée non intègres: " + message);
+    /* Deux helpers */
+    public void ajouter(GroupeAffectation g) {
+        groupesAffectations.put(g.id, g);
+    }
+
+    public void ajouter(GroupeInternat g) {
+        internats.put(g.id, g);
+    }
+
+    public void loggerEtatAdmission() {
+        
+        /* Bilan statuts voeux */
+        Map<Voeu.StatutVoeu, Integer> statutsVoeux = new HashMap<>();
+        for (Voeu.StatutVoeu s : Voeu.StatutVoeu.values()) {
+            statutsVoeux.put(s, 0);
         }
+        for (Voeu v : voeux) {
+            Voeu.StatutVoeu s = v.getStatut();
+            statutsVoeux.put(s, statutsVoeux.get(s) + 1);
+        }
+
+        LOGGER.info(
+                "Jour " + GroupeInternat.nbJoursCampagne + System.lineSeparator()
+                + "Voeux " + voeux.size() + System.lineSeparator()
+                + "Statuts " + statutsVoeux);
+
     }
 
 }

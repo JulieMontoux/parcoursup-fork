@@ -1,5 +1,6 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -50,6 +51,11 @@ public class GroupeInternatUID {
     public int hashCode() {
         return Integer.hashCode(
                 C_GI_COD ^ (G_TA_COD << 16));
+    }
+
+    @Override
+    public String toString() {
+        return "C_GI_COD=" + C_GI_COD +  ((G_TA_COD != 0) ? (" AND G_TA_COD=" + G_TA_COD) : "");
     }
 
 }

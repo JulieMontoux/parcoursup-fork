@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -23,6 +25,9 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Stream;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
@@ -32,24 +37,43 @@ import javax.xml.bind.annotation.*;
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AlgoPropositionsSortie {
 
-    /* liste des propositions à faire */
-    public final Collection<VoeuEnAttente> propositions
-            = new ArrayList<>();
-
-    /* liste des voeux restant en attente. */    
-    public final Collection<VoeuEnAttente> enAttente
+    /* liste des voeux, avec statut mis à jour */
+    public final Collection<Voeu> voeux
             = new ArrayList<>();
 
     /* liste des internats, permettant de récupérer les positions max d'admission */
     public final Collection<GroupeInternat> internats
             = new ArrayList<>();
 
+    /* liste des groupes */
+    public final Collection<GroupeAffectation> groupes
+            = new ArrayList<>();
+
+    /* signale que la vérification a déclenché une alerte
+    (groupes ignorés lors de l'export, intervention rapide nécessaire) */
+    public boolean alerte = false;
+
+    /* liste des groupes d'affectations ignorés par l'alerte */
+    public Set<GroupeAffectation> groupesNonExportes = new HashSet<>();
+
+    /* signale que la vérification a déclenché un avertissement
+    (pas de groupe ignoré donc pas d'intervention immédiate nécessaire)*/
+    public boolean avertissement = false;
+
+    public Stream<Voeu> propositionsDuJour() {
+        return voeux.stream().filter(v -> v.estPropositionDuJour());
+    }
+
+    public Stream<Voeu> demissions() {
+        return voeux.stream().filter(v -> v.estDemissionAutomatique());
+    }
+
     /* Sauvegarde des données au format xml.
     Si le paramètre filename est null, un nom par défaut est utilisé,
     paramétré par la date et l'heure.
-    */
+     */
     public void serialiser(String filename) throws JAXBException {
-        if(filename == null) {
+        if (filename == null) {
             filename = "sortie_" + LocalDateTime.now() + ".xml";
         }
         Marshaller m = JAXBContext.newInstance(AlgoPropositionsSortie.class).createMarshaller();

@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,6 +21,7 @@
  */
 package parcoursup.ordreappel.algo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,12 +40,12 @@ public class GroupeClassement {
         (nombre min de boursiers pour 100 candidats) */
     public final int tauxMinBoursiersPourcents;
 
-    /* le taux minimum de résidents dans ce groupe d'appel 
-        (nombre min de résidents pour 100 candidats) */
-    public final int tauxMinResidentsPourcents;
+    /* le taux minimum de candidats du secteur dans ce groupe d'appel 
+        (nombre min de candidats du secteur pour 100 candidats) */
+    public final int tauxMinDuSecteurPourcents;
 
-    /* la liste des voeux du groupe de classement */
-    public final List<VoeuClasse> voeuxClasses = new LinkedList<>();
+    /* la liste des candidats du groupe de classement */
+    public final List<VoeuClasse> voeuxClasses = new ArrayList<>();
 
     public GroupeClassement(
             int C_GP_COD,
@@ -50,7 +53,7 @@ public class GroupeClassement {
             int tauxMinResidentsPourcents) {
         this.C_GP_COD = C_GP_COD;
         this.tauxMinBoursiersPourcents = tauxMinBoursiersPourcents;
-        this.tauxMinResidentsPourcents = tauxMinResidentsPourcents;
+        this.tauxMinDuSecteurPourcents = tauxMinResidentsPourcents;
     }
 
     public void ajouterVoeu(VoeuClasse v) {
@@ -58,10 +61,10 @@ public class GroupeClassement {
     }
 
     /* calcule de l'ordre d'appel */
-    OrdreAppel calculerOrdreAppel() {
+    public OrdreAppel calculerOrdreAppel() {
 
 
-        /* on crée autant de listes de voeux que de types de candidats, 
+        /* on crée autant de listes de candidats que de types de candidats, 
             triées par ordre de classement */
         Map<VoeuClasse.TypeCandidat, Queue<VoeuClasse>> filesAttente
                 = new HashMap<>();
@@ -77,7 +80,8 @@ public class GroupeClassement {
         int nbBoursiersTotal = 0;
         int nbResidentsTotal = 0;
 
-        /* on trie les voeux par classement */
+        /* on trie les candidats par classement, 
+        les candidats les mieux classés en tête de liste  */
         voeuxClasses.sort((VoeuClasse v1, VoeuClasse v2) -> v1.rang - v2.rang);
 
         for (VoeuClasse voe : voeuxClasses) {
@@ -88,7 +92,7 @@ public class GroupeClassement {
             if (voe.estBoursier()) {
                 nbBoursiersTotal++;
             }
-            if (voe.estResident()) {
+            if (voe.estDuSecteur()) {
                 nbResidentsTotal++;
             }
         }
@@ -99,11 +103,11 @@ public class GroupeClassement {
 
         /* la boucle ajoute les candidats un par un à la liste suivante,
             dans l'ordre d'appel */
-        OrdreAppel ordreAppel = new OrdreAppel();
+        List<VoeuClasse> ordreAppel = new ArrayList<>();
 
-        while (ordreAppel.voeux.size() < voeuxClasses.size()) {
+        while (ordreAppel.size() < voeuxClasses.size()) {
 
-            /* on calcule lequel ou lesquels des critères boursiers et résidents 
+            /* on calcule lequel ou lesquels des critères boursiers et candidats du secteur 
                 contraignent le choix du prochain candidat dans l'ordre d'appel */
             boolean contrainteTauxBoursier
                     = (nbBoursiersAppeles < nbBoursiersTotal)
@@ -111,9 +115,9 @@ public class GroupeClassement {
 
             boolean contrainteTauxResident
                     = (nbResidentsAppeles < nbResidentsTotal)
-                    && (nbResidentsAppeles * 100 < tauxMinResidentsPourcents * (1 + nbAppeles));
+                    && (nbResidentsAppeles * 100 < tauxMinDuSecteurPourcents * (1 + nbAppeles));
 
-            /* on fait la liste des voeux satisfaisant
+            /* on fait la liste des candidats satisfaisant
                 les deux contraintes à la fois, ordonnée par rang de classement */
             PriorityQueue<VoeuClasse> eligibles = new PriorityQueue<>();
 
@@ -121,7 +125,7 @@ public class GroupeClassement {
                 if (!queue.isEmpty()) {
                     VoeuClasse voe = queue.peek();
                     if ((voe.estBoursier() || !contrainteTauxBoursier)
-                            && (voe.estResident() || !contrainteTauxResident)) {
+                            && (voe.estDuSecteur() || !contrainteTauxResident)) {
                         eligibles.add(voe);
                     }
                 }
@@ -139,14 +143,14 @@ public class GroupeClassement {
                 ne peuvent être satisfaites à la fois. 
                 Dans ce cas nécessairement il y a une contrainte sur chacun des deux taux 
                 (donc au moins un boursier non encore sélectionné) 
-                et il ne reste plus de boursier résident, 
-                donc il reste au moins un boursier non résident */
+                et il ne reste plus de boursier du secteur, 
+                donc il reste au moins un boursier hors-secteur */
                 assert contrainteTauxBoursier && contrainteTauxResident;
-                assert filesAttente.get(VoeuClasse.TypeCandidat.BoursierResident).isEmpty();
-                assert !filesAttente.get(VoeuClasse.TypeCandidat.BoursierNonResident).isEmpty();
+                assert filesAttente.get(VoeuClasse.TypeCandidat.BoursierDuSecteur).isEmpty();
+                assert !filesAttente.get(VoeuClasse.TypeCandidat.BoursierHorsSecteur).isEmpty();
 
                 Queue<VoeuClasse> CandidatsBoursierNonResident
-                        = filesAttente.get(VoeuClasse.TypeCandidat.BoursierNonResident);
+                        = filesAttente.get(VoeuClasse.TypeCandidat.BoursierHorsSecteur);
 
                 meilleur = CandidatsBoursierNonResident.peek();
             }
@@ -157,20 +161,29 @@ public class GroupeClassement {
             queue.poll();
 
             /* ajout du meilleur candidat à l'ordre d'appel*/
-            ordreAppel.voeux.add(meilleur);
+            ordreAppel.add(meilleur);
 
             /* mise à jour des compteurs */
-
             nbAppeles++;
 
             if (meilleur.estBoursier()) {
                 nbBoursiersAppeles++;
             }
-            if (meilleur.estResident()) {
+            if (meilleur.estDuSecteur()) {
                 nbResidentsAppeles++;
             }
         }
-        return ordreAppel;
+
+        /* mise à jour des ordres d'appel */
+        int rangAppel = 1;
+        for (VoeuClasse v : ordreAppel) {
+            v.rangAppel = rangAppel;
+            rangAppel++;
+        }
+
+        /* retourne les candidats classés dans l'ordre d'appel */
+        return new OrdreAppel(ordreAppel);
+
     }
-    
+
 }

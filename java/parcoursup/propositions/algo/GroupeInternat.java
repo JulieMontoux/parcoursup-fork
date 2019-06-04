@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -19,9 +21,12 @@
  */
 package parcoursup.propositions.algo;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlTransient;
 
@@ -32,10 +37,7 @@ public class GroupeInternat {
     public final GroupeInternatUID id;
 
     /* le nombre total de places */
-    final int capacite;
-
-    /* le pourcentage d'ouverture fixé par le chef d'établissement */
-    final int pourcentageOuverture;
+    public final int capacite;
 
     /* le nombre de places vacantes dans cet internat */
     public int nbPlacesVacantes() {
@@ -54,36 +56,58 @@ public class GroupeInternat {
     /* la position maximale d'admission dans cet internat, calculée par l'algorithme */
     public int positionMaximaleAdmission = 0;
 
+    /* affichages internat, groupe par groupe */
+    public final Map<GroupeAffectationUID, Integer> barresInternatAffichees = new HashMap<>();
+    public final Map<GroupeAffectationUID, Integer> barresAppelAffichees = new HashMap<>();
+
     /* le nombre de jours depuis l'ouverture de la campagne, 1 le premier jour */
     public static Integer nbJoursCampagne = null;
+
+    /* le nombre de jours de campagne (hors trêve du bac) au 3eme point de confirmation.
+    Cette date sert de pivot pour la régulation des places d'internat (cf doc)*/
+    public static Integer nbJoursCampagneDatePivotInternats = null;
 
     /* la liste des groupes de classement concernés par cet internat */
     @XmlTransient
     public final Set<GroupeAffectation> groupesConcernes
             = new HashSet<>();
 
-    /* la liste des voeux du groupe.
+    /* la liste des voeuxEnAttente du groupe.
     Après le calcul de la position initiale d'admission
     cette liste est triée par ordre de classement internat */
-    public final List<VoeuEnAttente> voeux = new LinkedList<>();
+    public final List<Voeu> voeuxEnAttente = new ArrayList<>();
+
+    /* true si et seulement si la position maximale d'admission a été calculée */
+    private boolean estInitialise = false;
+
+    /* les candidats déjà affectés dans le groupe */
+    private final Set<Integer> candidatsAffectes
+            = new HashSet<>();
+
+    /* les candidats en attente dans le groupe */
+    public final Set<Integer> candidatsEnAttente
+            = new HashSet<>();
 
     public GroupeInternat(
             GroupeInternatUID id,
-            int nbPlacesTotal,
-            int pourcentageOuverture
+            int nbPlacesTotal
     ) {
+        if (nbPlacesTotal < 0) {
+            throw new RuntimeException("Incohérence dans les paramètres du constructeur de GroupeInternat");
+        }
         this.id = id;
         this.capacite = nbPlacesTotal;
-        this.pourcentageOuverture = pourcentageOuverture;
     }
 
-    void ajouterVoeu(VoeuEnAttente voe, GroupeAffectation groupe) {
-        assert voe.avecInternat();
+    void ajouterVoeuEnAttenteDeProposition(Voeu voe) {
         if (estInitialise) {
             throw new RuntimeException("Groupe déjà initialisé");
         }
-        voeux.add(voe);
-        groupesConcernes.add(groupe);
+        if (voeuxEnAttente.contains(voe)) {
+            throw new RuntimeException("Voeu en doublon");
+        }
+        voeuxEnAttente.add(voe);
+        groupesConcernes.add(voe.groupe);
         if (!candidatsAffectes.contains(voe.id.G_CN_COD)) {
             candidatsEnAttente.add(voe.id.G_CN_COD);
         }
@@ -96,21 +120,50 @@ public class GroupeInternat {
         candidatsEnAttente.remove(G_CN_COD);
     }
 
+    public void reinitialiser() {
+        candidatsAffectes.clear();
+        candidatsEnAttente.clear();
+        groupesConcernes.clear();
+        voeuxEnAttente.clear();
+        barresInternatAffichees.clear();
+        barresAppelAffichees.clear();
+        estInitialise = false;
+    }
+
     public boolean estAffecte(int G_CN_COD) {
         return candidatsAffectes.contains(G_CN_COD);
     }
 
     /* initialise la position d'admission à son maximum
-    Bmax dans le document de référence */
+    Bmax dans le document de référence. A l'issu de cet appel,
+    les voeuxEnAttente sont triés par classement internat,
+    les meilleurs en premier. */
     public void initialiserPositionAdmission() {
 
-        /* on calcule le nombre de candidats éligibles à une admission
+        /* La position maximale d'admission fixe une borne supérieure
+        sur le rang à l'internat nécessaire pour obtenir une rpoposition à l'internat.
+        Cela permet de réguler la vitesse d'ouverture de l'internat.
+        
+        La première mesure consiste à ouvrir la liste internat
+        progressivement linéairement dans le temps:
+        le premier jour seul la liste principale est éligible,
+        à la date de pivot tous les candidats sont éligibles.
+
+        La seconde mesure se base sur une estimation du rang du dernier ppelé,
+        et réserve des places d'internat aux candidats les mieux classés à l'internat
+        parmi ceux dont dont le classement pédagogique est sous la barre estimée.
+        
+        NB: en 2018 les proviseurs pouvaient réguler cette vitesse d'ouverture mais
+        suite aux retours d'expérience, cette fonction a été supprimée.
+        
+        Plus de détails sont diponibles dans les documents décrivant les algorithmes.
+         */
+ /* on calcule le nombre de candidats éligibles à une admission
         dans l'internat aujourd'hui, stocké dans la variable assietteAdmission.
-        On colle aux notations du document de référence */
+        On utilise les notations du document de référence 2018 */
         int M = candidatsEnAttente.size() + candidatsAffectes.size();
         int L = capacite;
         int t = nbJoursCampagne;
-        int p = pourcentageOuverture;
 
         final int assietteAdmission;
 
@@ -119,16 +172,11 @@ public class GroupeInternat {
         } else if (t == 1) {
             /* le premier jour on s'en tient aux lits disponibles */
             assietteAdmission = L;
-        } else if (t <= 30) {
-            /* les 30 jours suivants, on élargit progressivement
-            l'assiette, en tenant compte de la correction du proviseur */
+        } else if (t <= nbJoursCampagneDatePivotInternats) {
+            /* jusqu'à la date pivot, on élargit progressivement
+            l'assiette */
             assietteAdmission
-                    = L + (M - L) * (t - 1) * p / 100 / 30;
-        } else if (t < 60) {
-            /* les 29 jours suivants, l'assiette est maximale,
-            possiblement réduite par la correction du proviseur */
-            assietteAdmission
-                    = L + (M - L) * p / 100;
+                    = L + (M - L) * (t - 1) / nbJoursCampagneDatePivotInternats;
         } else {
             /* finalement, l'assiette est maximale */
             assietteAdmission = M;
@@ -137,9 +185,6 @@ public class GroupeInternat {
         this.contingentAdmission = Integer.max(0, assietteAdmission - candidatsAffectes.size());
 
         if (t <= 0
-                || t > 120
-                || p < 0
-                || p > 100
                 || L < 0
                 || assietteAdmission > M
                 || contingentAdmission > candidatsEnAttente.size()
@@ -152,17 +197,14 @@ public class GroupeInternat {
             positionMaximaleAdmission = 0;
         } else {
 
-            /* tri des voeux par ordre de classement à l'internat */
-            voeux.sort((VoeuEnAttente v1, VoeuEnAttente v2) -> v1.rangInternat - v2.rangInternat);
-
             /* on itère les candidats en attente d'internat jusqu'à arriver
-            au contingent calculé. Remarque: il peut y avoir plusieurs voeux pour
-            le même candidat, et les voeux sont triés par rang internat,
-            donc les voeux d'un même candidat sont consécutifs */
+            au contingent calculé. Remarque: il peut y avoir plusieurs voeuxEnAttente pour
+            le même candidat, et les voeuxEnAttente sont triés par rang internat,
+            donc les voeuxEnAttente d'un même candidat sont consécutifs */
             int compteurCandidat = 0;
-            int dernierRangComptabilise = 0;
+            int dernierRangEligible = 0;
 
-            for (VoeuEnAttente voe : voeux) {
+            for (Voeu voe : voeuxTriesParClassementInternat()) {
 
                 /* sortie de boucle: le contingent est atteint */
                 if (compteurCandidat == contingentAdmission) {
@@ -171,23 +213,66 @@ public class GroupeInternat {
 
                 /* deux cas où le voeu ne change pas la valeur du dernier rang comptabilisé
                 et du nombre de candidat comptés dans le contingent.
-                 Premier cas: on a vu le même candidat au passage précédent dans la boucle */
-                if (voe.rangInternat == dernierRangComptabilise) {
-                    continue;
-                }
-
-                /* Second cas: l'internat est déjà obtenu par le candidat */
-                if (voe.internatDejaObtenu()) {
+                 Premier cas: on a vu le même candidat au passage précédent dans la boucle.
+                Second cas: l'internat est déjà obtenu par le candidat*/
+                if (voe.rangInternat == dernierRangEligible || voe.internatDejaObtenu()) {
                     continue;
                 }
 
                 /* Dans les cas restants, on met à jour.*/
-                dernierRangComptabilise = voe.rangInternat;
+                dernierRangEligible = voe.rangInternat;
                 compteurCandidat++;
 
             }
 
-            positionMaximaleAdmission = dernierRangComptabilise;
+            /* seconde limitation.
+            On itère les candidats en attente d'internat 
+            et qui sont sous la barre du dernier appelé dans leur groupe
+            jusqu'à arriver à la capacité résiduelle
+            Remarque: il peut y avoir plusieurs voeuxEnAttente pour
+            le même candidat, et les voeuxEnAttente sont triés par rang internat,
+            donc les voeuxEnAttente d'un même candidat sont consécutifs */
+            if (nbJoursCampagne >= nbJoursCampagneDatePivotInternats) {
+                positionMaximaleAdmission = dernierRangEligible;
+            } else {
+                int compteurCandidat2 = 0;
+                int dernierRangEligible2 = 0;
+
+                for (Voeu voe : voeuxTriesParClassementInternat()) {
+
+                    /* sortie de boucle: le nombre de places vacantes est atteint */
+                    if (compteurCandidat2 == nbPlacesVacantes()) {
+                        break;
+                    }
+
+                    /* on ignore les voeuxEnAttente qui ne sont pas sous la barre */
+                    if (voe.ordreAppel > voe.groupe.estimationRangDernierAppeleADatePivot) {
+                        continue;
+                    }
+
+                    /* deux cas où le voeu ne change pas la valeur du dernier rang comptabilisé
+                    et du nombre de candidat comptés dans le contingent.
+                    Premier cas: on a vu le même candidat au passage précédent dans la boucle */
+                    if (voe.rangInternat == dernierRangEligible2) {
+                        continue;
+                    }
+
+                    /* Second cas: l'internat est déjà obtenu par le candidat */
+                    if (voe.internatDejaObtenu()) {
+                        continue;
+                    }
+
+                    /* Dans les cas restants, on met à jour.*/
+                    dernierRangEligible2 = voe.rangInternat;
+                    compteurCandidat2++;
+
+                }
+
+                /* la position maximale d'admission est fixée au minimumm des deux barres */
+                positionMaximaleAdmission
+                        = Math.min(dernierRangEligible, dernierRangEligible2);
+
+            }
 
         }
 
@@ -204,15 +289,14 @@ public class GroupeInternat {
         if (!estInitialise) {
             throw new RuntimeException("La position doit être initialisée au préalable");
         }
-        /* L'initialisation implique que
-            la liste des voeux est triée par classement internat */
+
 
         /* on compte le nombre de propositions à faire.
         En cas de dépassement, on met à jour la position d'admission */
         int comptePlacesProposees = 0;
         int dernierCandidatComptabilise = -1;
-        
-        for (VoeuEnAttente voe : voeux) {
+
+        for (Voeu voe : voeuxTriesParClassementInternat()) {
 
             /* si on a dépassé la position d'admission, on arrête */
             if (voe.rangInternat > positionAdmission) {
@@ -232,29 +316,43 @@ public class GroupeInternat {
 
             /* si ok pour déclencher la proposition, on met à jour */
             if (voe.formationDejaObtenue()
-                    || voe.estAProposer()) {
+                    || voe.estProposition()) {
 
                 comptePlacesProposees++;
                 dernierCandidatComptabilise = voe.id.G_CN_COD;
 
                 if (comptePlacesProposees > nbPlacesVacantes()) {
+                    /* en cas de surcapacité, il faut diminuer la position d'admission */
                     positionAdmission = voe.rangInternat - 1;
+                    /* on renvoie true pour signaler la mise à jour de la posotion d'admission,
+                    ce qui entraîne une itération supplémentaire de la boucle principale
+                     */
                     return true;
                 }
             }
         }
         return false;
     }
+  
+    /* trie les voeuxEnAttente dans l'ordre d'appel */
+    public List<Voeu> voeuxTriesParClassementInternat() {
+        voeuxEnAttente.sort((Voeu v1, Voeu v2) -> v1.rangInternat - v2.rangInternat);
+        return Collections.unmodifiableList(voeuxEnAttente);
+    }
 
-    /* true si et seulement si la position maximale d'admission a été calculée,
-    ce qui implique que la liste des voeux est triée par ordre de classement internat.
-     */
-    private boolean estInitialise = false;
+    /* trie les voeuxEnAttente dans l'ordre d'appel */
+    public List<Voeu> voeuxTriesParOrdreAppel() {
+        voeuxEnAttente.sort((Voeu v1, Voeu v2) -> v1.ordreAppel - v2.ordreAppel);
+        return Collections.unmodifiableList(voeuxEnAttente);
+    }
 
-    private final Set<Integer> candidatsAffectes
-            = new HashSet<>();
+    public List<Voeu> voeux() {
+        return Collections.unmodifiableList(voeuxEnAttente);
+    }
 
-    public final Set<Integer> candidatsEnAttente
-            = new HashSet<>();
+    @Override
+    public String toString() {
+        return id.toString();
+    }
 
 }

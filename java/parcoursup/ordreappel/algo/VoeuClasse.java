@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -23,10 +25,10 @@ public class VoeuClasse implements Comparable<VoeuClasse> {
 
     /* les différents types de candidats */
     public enum TypeCandidat {
-        BoursierResident,
-        BoursierNonResident,
-        NonBoursierResident,
-        NonBoursierNonResident
+        BoursierDuSecteur,
+        BoursierHorsSecteur,
+        NonBoursierDuSecteur,
+        NonBoursierHorsSecteur
     };
 
     /* le type du candidat */
@@ -38,33 +40,36 @@ public class VoeuClasse implements Comparable<VoeuClasse> {
     /* le rang du voeu transmis par la commission de classement des voeux */
     public final int rang;
 
+    /* le rang du voeu dans l'ordre d'appel, caculé par l'algorithme */
+    public int rangAppel = 0;
+    
     public VoeuClasse(
             int G_CN_COD,
             int rang,
             boolean estBoursier,
-            boolean estResident) {
+            boolean estDuSecteur) {
         this.G_CN_COD = G_CN_COD;
         this.rang = rang;
         this.typeCandidat
                 = estBoursier
-                        ? (estResident ? TypeCandidat.BoursierResident : TypeCandidat.BoursierNonResident)
-                        : (estResident ? TypeCandidat.NonBoursierResident : TypeCandidat.NonBoursierNonResident);
+                        ? (estDuSecteur ? TypeCandidat.BoursierDuSecteur : TypeCandidat.BoursierHorsSecteur)
+                        : (estDuSecteur ? TypeCandidat.NonBoursierDuSecteur : TypeCandidat.NonBoursierHorsSecteur);
     }
 
     public boolean estBoursier() {
-        return typeCandidat == TypeCandidat.BoursierResident
-                || typeCandidat == TypeCandidat.BoursierNonResident;
+        return typeCandidat == TypeCandidat.BoursierDuSecteur
+                || typeCandidat == TypeCandidat.BoursierHorsSecteur;
     }
 
-    public boolean estResident() {
-        return typeCandidat == TypeCandidat.BoursierResident
-                || typeCandidat == TypeCandidat.NonBoursierResident;
+    public boolean estDuSecteur() {
+        return typeCandidat == TypeCandidat.BoursierDuSecteur
+                || typeCandidat == TypeCandidat.NonBoursierDuSecteur;
     }
 
-    /* comparateur permettant de trier les voeux par ordre du groupe de classement */
+    /* comparateur permettant de trier les voeux par ordre du groupe de classement */    
     @Override
-    public int compareTo(VoeuClasse voe) {
-        return rang - voe.rang;
+    public int compareTo(VoeuClasse o) {
+        return rang - o.rang;
     }
 
 }

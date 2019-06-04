@@ -1,4 +1,6 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -37,7 +39,7 @@ public class ExempleA3 extends ExempleOrdreAppel {
         for (int i = 1; i <= 900; i++) {
             groupe.ajouterVoeu(new VoeuClasse(i, i, false, false));
         }
-        for (int i = 901; i <= 1000; i++) {
+        for (int i = 901; i <= 1_000; i++) {
             groupe.ajouterVoeu(new VoeuClasse(i, i, true, false));
         }
 

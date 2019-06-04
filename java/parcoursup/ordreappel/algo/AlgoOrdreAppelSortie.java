@@ -1,5 +1,7 @@
 
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -29,8 +31,8 @@ import javax.xml.bind.annotation.*;
 public class AlgoOrdreAppelSortie {
     
     /* pour chaque groupe de classement, identifié par son C_GP_COD
-    la liste des voeux dans l'ordre d'appel */
-
+    l'ordre d'appel des candidats */
+    
     public final Map<Integer, OrdreAppel > ordresAppel = new HashMap<>();
         
 }

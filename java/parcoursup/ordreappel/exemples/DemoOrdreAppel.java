@@ -1,4 +1,6 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -18,27 +20,35 @@
  */
 package parcoursup.ordreappel.exemples;
 
+import java.util.Random;
+
 public class DemoOrdreAppel {
 
     public static void main(String[] args) throws Exception {
 
         ExempleA1 exempleA1 = new ExempleA1();
-        exempleA1.execute();
+        exempleA1.execute(true);
 
         ExempleA2 exempleA2 = new ExempleA2();
-        exempleA2.execute();
+        exempleA2.execute(true);
 
         ExempleA3 exempleA3 = new ExempleA3();
-        exempleA3.execute();
+        exempleA3.execute(true);
 
         ExempleA4 exempleA4 = new ExempleA4();
-        exempleA4.execute();
+        exempleA4.execute(true);
 
         ExempleA5 exempleA5 = new ExempleA5();
-        exempleA5.execute();
+        exempleA5.execute(true);
 
         ExempleA6 exempleA6 = new ExempleA6();
-        exempleA6.execute();
+        exempleA6.execute(true);
+        
+        while(true) {
+            Random r = new Random();
+            ExempleAleatoire e = new ExempleAleatoire(1 + r.nextInt(1000));
+            e.execute(false);
+        }
 
     }
 }

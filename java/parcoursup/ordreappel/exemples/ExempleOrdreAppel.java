@@ -1,4 +1,6 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -24,8 +26,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import parcoursup.ordreappel.algo.AlgoOrdreAppel;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
-import parcoursup.ordreappel.algo.GroupeClassement;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
+import parcoursup.ordreappel.algo.GroupeClassement;
 
 public abstract class ExempleOrdreAppel {
 
@@ -35,25 +37,26 @@ public abstract class ExempleOrdreAppel {
     /* crée un groupe de classement avec les données de l'exemple */
     abstract GroupeClassement initialise();
 
-    public void execute() throws JAXBException {
+    public void execute(boolean logFiles) throws JAXBException, Exception {
 
         GroupeClassement groupe = initialise();
 
         AlgoOrdreAppelEntree entree = new AlgoOrdreAppelEntree();
         entree.groupesClassements.add(groupe);
 
-        AlgoOrdreAppelSortie sortie = AlgoOrdreAppel.calculeOrdresAppels(entree);
+        AlgoOrdreAppelSortie sortie = AlgoOrdreAppel.calculerOrdresAppels(entree);
 
-        JAXBContext jc = JAXBContext.newInstance(AlgoOrdreAppelEntree.class);
-        Marshaller m = jc.createMarshaller();
-        m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        m.marshal(entree, new File(nom() + "_entree.xml"));
+        if (logFiles) {
+            JAXBContext jc = JAXBContext.newInstance(AlgoOrdreAppelEntree.class);
+            Marshaller m = jc.createMarshaller();
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            m.marshal(entree, new File(nom() + "_entree.xml"));
 
-        jc = JAXBContext.newInstance(AlgoOrdreAppelSortie.class);
-        m = jc.createMarshaller();
-        m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        m.marshal(sortie, new File(nom() + "_sortie.xml"));
-        
+            jc = JAXBContext.newInstance(AlgoOrdreAppelSortie.class);
+            m = jc.createMarshaller();
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+            m.marshal(sortie, new File(nom() + "_sortie.xml"));
+        }
     }
 
 }

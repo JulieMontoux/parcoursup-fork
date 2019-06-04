@@ -1,4 +1,6 @@
-/* Copyright 2018, 2018 Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+/* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -18,19 +20,21 @@
  */
 package parcoursup.propositions;
 
+import java.util.logging.Level;
 import java.util.logging.Logger;
-
 import parcoursup.propositions.algo.AlgoPropositions;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.AlgoPropositionsSortie;
+import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositions;
+import parcoursup.verification.VerificationsResultatsAlgoPropositions;
 
 /* Le calcul des propositions à envoyer est effectué par le code suivant.
 Ce code est exécuté de manière quotidienne.
  */
 public class EnvoiPropositions {
 
-    private static final Logger LOGGER = Logger.getLogger(EnvoiPropositions.class.getName());
+    private static final Logger LOGGER = Logger.getLogger(EnvoiPropositions.class.getSimpleName());
 
     private final ConnecteurDonneesPropositions acces;
 
@@ -38,22 +42,45 @@ public class EnvoiPropositions {
         this.acces = acces;
     }
 
-    public void execute() throws Exception {
+    public void execute(boolean logDonnees) throws Exception {
 
         LOGGER.info("Récupération des données");
         AlgoPropositionsEntree entree = acces.recupererDonnees();
 
-        LOGGER.info("Sauvegarde locale de l'entrée");
-        entree.serialiser(null);
+        if (logDonnees) {
+            LOGGER.info("Sauvegarde locale de l'entrée");
+            entree.serialiser(null);
+        }
 
         LOGGER.info("Calcul des propositions");
-        AlgoPropositionsSortie sortie = AlgoPropositions.calculePropositions(entree);
+        AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
 
-        LOGGER.info("Sauvegarde locale de la sortie");
-        sortie.serialiser(null);
+        LOGGER.info("Verification des resultat");
+        String logFile = "EnvoiPropositionsErrors.log";
+        VerificationsResultatsAlgoPropositions verificationsResultats
+                = new VerificationsResultatsAlgoPropositions(logFile, false);
+        verificationsResultats.verifier(entree, sortie);
+
+        if (sortie.alerte) {
+            LOGGER.info("La vérification a déclenché une alerte. Les groupes suivants seront ignorés lors de l'exportation: ");
+            for (GroupeAffectation grp : sortie.groupesNonExportes) {
+                LOGGER.info(grp.id.toString());
+            }
+            LOGGER.log(Level.INFO, "Veuillez consulter le fichier de log {0} pour plus de d\u00e9tails.", logFile);
+        }
+
+        if (sortie.avertissement) {
+            LOGGER.info("La vérification a déclenché un avertissement.");
+        }
+
+        if (logDonnees) {
+            LOGGER.info("Sauvegarde locale de la sortie");
+            sortie.serialiser(null);
+        }
 
         LOGGER.info("Export des données");
         acces.exporterDonnees(sortie);
 
     }
+
 }
