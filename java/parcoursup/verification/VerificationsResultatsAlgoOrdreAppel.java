@@ -21,6 +21,7 @@ l'Innovation,
  */
 package parcoursup.verification;
 
+import parcoursup.exceptions.VerificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -68,63 +69,56 @@ en attente.
 public class VerificationsResultatsAlgoOrdreAppel {
 
     /* Vérifie le résultat du calcul et renvoie une exception en cas de problème */
-    public void verifier(AlgoOrdreAppelEntree entree, AlgoOrdreAppelSortie sortie) throws Exception {
-        log("Vérification des propriétés attendues d'un des" + sortie.ordresAppel.size()
+    public void verifier(AlgoOrdreAppelEntree entree, AlgoOrdreAppelSortie sortie) throws VerificationException {
+        log("Vérification des propriétés attendues d'un des " + sortie.ordresAppel.size()
                 + " ordres d'appel");
 
         /* Vérification des propriétés 
-        P1: Pour tout k, au moins ⌈qB%×k⌉ des candidats C1,…,Ck sont boursiers ;
+        Propriete 1. Pour tout k, au moins qB pourcents des k premiers candidats sont boursiers ;
         ou sinon, aucun candidat parmi Ck+1,…,Cn n’est boursier. 
                 
-        P2: Un candidat à la fois boursier et du secteur
+        Propriete 2. Un candidat à la fois boursier et du secteur
         qui a le rang r dans le classement pédagogique 
         n’est jamais doublé par personne et aura donc un rang inférieur 
         ou égal à r dans l’ordre d’appel. 
         
-        P3: Un candidat du secteur
+        Propriete 3. Un candidat du secteur
         et non boursier qui a le rang r dans le classement pédagogique 
         ne peut-être doublé que par des boursiers et aura un rang compris 
         entre r et r + 1 + r * qB∕(100 - qB)) 
         dans l’ordre d’appel. 
         
-        P4: Un candidat hors-secteur boursier qui a le rang r 
+        Propriete 4. Un candidat hors-secteur boursier qui a le rang r 
         dans le classement pédagogique ne peut être doublé que par des candidats du secteur, 
         boursiers ou non, et aura donc un rang au plus r +  R * qR ∕ (100 - qR) dans l’ordre d’appel.
          */
-        int step = Integer.max(1, entree.groupesClassements.size() / 100);
-        int count = 0;
 
         for (GroupeClassement gc : entree.groupesClassements) {
-            int C_GP_COD = gc.C_GP_COD;
+            int cGpCod = gc.cGpCod;
 
-            if (count++ % step == 0) {
-                System.out.print("-");
-                System.out.flush();
-            }
-
-            OrdreAppel oa = sortie.ordresAppel.get(C_GP_COD);
+            OrdreAppel oa = sortie.ordresAppel.get(cGpCod);
             if (oa == null) {
-                throw new RuntimeException("Donnée de sortie manquante");
+                throw new VerificationException("Donnée de sortie manquante");
             }
 
-            /* mappe chaque candidat (G_CN_COD) vers son rang d'appel */
+            /* mappe chaque candidat (gCnCod) vers son rang d'appel */
             Map<Integer, Integer> rangsAppel = new HashMap<>();
             for (CandidatClasse cc : oa.candidats) {
-                int G_CN_COD = cc.G_CN_COD;
-                if (rangsAppel.containsKey(G_CN_COD)) {
-                    throw new RuntimeException("G_CN_COD dupliqué");
+                int gCnCod = cc.gCnCod;
+                if (rangsAppel.containsKey(gCnCod)) {
+                    throw new VerificationException("G_CN_COD dupliqué");
                 }
-                rangsAppel.put(cc.G_CN_COD, cc.rangAppel);
+                rangsAppel.put(cc.gCnCod, cc.rangAppel);
             }
 
             for (VoeuClasse v : gc.voeuxClasses) {
-                int G_CN_COD = v.G_CN_COD;
-                Integer rangAppel = rangsAppel.get(G_CN_COD);
+                int gCnCod = v.gCnCod;
+                Integer rangAppel = rangsAppel.get(gCnCod);
                 if (rangAppel == null) {
-                    throw new RuntimeException("G_CN_COD manquant");
+                    throw new VerificationException("G_CN_COD manquant");
                 }
-                if (v.rangAppel != rangAppel) {
-                    throw new RuntimeException("données inconsistentes");
+                if (v.getRangAppel() != rangAppel) {
+                    throw new VerificationException("données inconsistentes");
                 }
             }
 
@@ -137,23 +131,23 @@ public class VerificationsResultatsAlgoOrdreAppel {
 
     }
 
-    /* Verif de P1: P1: Pour tout k, au moins ⌈qB%×k⌉ des candidats C1,…,Ck sont boursiers ;
+    /* Verif de P1. Pour tout k, au moins qB pourcents des k premiers candidats sont boursiers ;
         ou sinon, aucun candidat parmi Ck+1,…,Cn n’est boursier. 
      */
-    void verifierP1(GroupeClassement g) {
+    void verifierP1(GroupeClassement g) throws VerificationException {
         /* on réordonne les voeux par ordre d'appel */
-        g.voeuxClasses.sort((VoeuClasse v1, VoeuClasse v2) -> v1.rangAppel - v2.rangAppel);
+        g.voeuxClasses.sort((VoeuClasse v1, VoeuClasse v2) -> v1.getRangAppel() - v2.getRangAppel());
 
         /* on vérifie P1 */
         Set<Integer> candidats = new HashSet<>();
         Set<Integer> boursiers = new HashSet<>();
         boolean seulementDesNonBoursiers = false;
         for (VoeuClasse v : g.voeuxClasses) {
-            candidats.add(v.G_CN_COD);
+            candidats.add(v.gCnCod);
             if (v.estBoursier()) {
-                boursiers.add(v.G_CN_COD);
+                boursiers.add(v.gCnCod);
                 if (seulementDesNonBoursiers) {
-                    throw new RuntimeException("Violation P1");
+                    throw new VerificationException("Violation P1");
                 }
             }
             int tauxEffectif = 100 * boursiers.size() / candidats.size();
@@ -169,22 +163,22 @@ public class VerificationsResultatsAlgoOrdreAppel {
         n’est jamais doublé par personne et aura donc un rang inférieur 
         ou égal à r dans l’ordre d’appel. 
      */
-    void verifierP2(GroupeClassement g) {
+    void verifierP2(GroupeClassement g) throws VerificationException {
         /* on vérifie P2 */
         for (VoeuClasse v1 : g.voeuxClasses) {
             if (v1.estBoursier()
                     && (g.tauxMinDuSecteurPourcents == 0 || v1.estDuSecteur())) {
-                if (v1.rangAppel > v1.rang) {
-                    throw new RuntimeException(
-                            "Boursier du secteur " + v1.G_CN_COD
-                            + "avec rang d'appel qui décroit dans le groupe " + g.C_GP_COD);
+                if (v1.getRangAppel() > v1.rang) {
+                    throw new VerificationException(
+                            "Boursier du secteur " + v1.gCnCod
+                            + "avec rang d'appel qui décroit dans " + g);
                 }
                 for (VoeuClasse v2 : g.voeuxClasses) {
-                    if (v2.rang > v1.rang && v2.rangAppel < v1.rangAppel) {
-                        throw new RuntimeException(
-                                "Boursier du secteur " + v1.G_CN_COD
-                                + " dépassé par le candidat" + v2.G_CN_COD
-                                + "dans le groupe " + g.C_GP_COD);
+                    if (v2.rang > v1.rang && v2.getRangAppel() < v1.getRangAppel()) {
+                        throw new VerificationException(
+                                "Boursier du secteur " + v1
+                                + " dépassé par " + v2
+                                + " dans " + g);
                     }
                 }
             }
@@ -197,7 +191,7 @@ public class VerificationsResultatsAlgoOrdreAppel {
         entre r et r + 1 + r * qB∕(100 - qB)) 
         dans l’ordre d’appel.  
      */
-    void verifierP3(GroupeClassement g) {
+    void verifierP3(GroupeClassement g) throws VerificationException {
         /* on vérifie P3 suelement si le taux min de non boursiers est contraignant */
 
         if (g.tauxMinBoursiersPourcents >= 100) {
@@ -209,17 +203,16 @@ public class VerificationsResultatsAlgoOrdreAppel {
             if (!v1.estBoursier()
                     && (v1.estDuSecteur() || g.tauxMinDuSecteurPourcents == 0)) {
                 int diminutionMax = 1 + v1.rang * g.tauxMinBoursiersPourcents / (100 - g.tauxMinBoursiersPourcents);
-                if (v1.rangAppel > v1.rang + diminutionMax) {
-                    throw new RuntimeException(
-                            "Non boursier du secteur " + v1.G_CN_COD
-                            + "avec rang  qui diminue trop dans le groupe " + g.C_GP_COD);
+                if (v1.getRangAppel() > v1.rang + diminutionMax) {
+                    throw new VerificationException(
+                            "Non boursier du secteur " + v1
+                            + "avec rang  qui diminue trop dans " + g);
                 }
                 for (VoeuClasse v2 : g.voeuxClasses) {
-                    if (!v2.estBoursier() && v2.rang > v1.rang && v2.rangAppel < v1.rangAppel) {
-                        throw new RuntimeException(
-                                "Non-boursier " + v2.G_CN_COD
-                                + " dépassant un candidat du secteur"
-                                + "dans le groupe " + g.C_GP_COD);
+                    if (!v2.estBoursier() && v2.rang > v1.rang && v2.getRangAppel() < v1.getRangAppel()) {
+                        throw new VerificationException(
+                                "Non-boursier " + v2
+                                + " dépassant un candidat du secteur dans  " + g);
                     }
                 }
             }
@@ -231,7 +224,7 @@ public class VerificationsResultatsAlgoOrdreAppel {
         boursiers ou non, et aura donc un rang au plus r +  R * qR ∕ (100 - qR) 
     dans l’ordre d’appel. 
      */
-    void verifierP4(GroupeClassement g) {
+    void verifierP4(GroupeClassement g) throws VerificationException {
         /* on vérifie P4 seulement si il y a des candidats hors-secteurs */
         if (g.tauxMinDuSecteurPourcents == 0) {
             return;
@@ -240,17 +233,17 @@ public class VerificationsResultatsAlgoOrdreAppel {
         for (VoeuClasse v1 : g.voeuxClasses) {
             if (v1.estBoursier() && !v1.estDuSecteur()) {
                 int diminutionMax = 1 + v1.rang * g.tauxMinDuSecteurPourcents / (100 - g.tauxMinDuSecteurPourcents);
-                if (v1.rangAppel > v1.rang + diminutionMax) {
-                    throw new RuntimeException(
-                            "Candidat hors-secteur boursier " + v1.G_CN_COD
-                            + " avec rang  qui diminue trop dans le groupe " + g.C_GP_COD);
+                if (v1.getRangAppel() > v1.rang + diminutionMax) {
+                    throw new VerificationException(
+                            "Candidat hors-secteur boursier " + v1.gCnCod
+                            + " avec rang  qui diminue trop dans le groupe " + g.cGpCod);
                 }
                 for (VoeuClasse v2 : g.voeuxClasses) {
-                    if (!v2.estDuSecteur() && v2.rang > v1.rang && v2.rangAppel < v1.rangAppel) {
-                        throw new RuntimeException(
-                                "Candidat hors-secteur " + v2.G_CN_COD
-                                + " dépassant le boursier hors-secteur " + v1.G_CN_COD
-                                + "dans le groupe " + g.C_GP_COD
+                    if (!v2.estDuSecteur() && v2.rang > v1.rang && v2.getRangAppel() < v1.getRangAppel()) {
+                        throw new VerificationException(
+                                "Candidat hors-secteur " + v2.gCnCod
+                                + " dépassant le boursier hors-secteur " + v1.gCnCod
+                                + "dans le groupe " + g.cGpCod
                         );
                     }
                 }

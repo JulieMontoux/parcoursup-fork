@@ -38,11 +38,11 @@ public class AlgoMeilleursBacheliersDonnees {
     /* liste des propositions faites dans le cadre du dispositif meilleurs bacheliers */
     public final Set<VoeuUID> propositionsMeilleursBacheliers = new HashSet<>();
 
-    /* pour chaque formation, identifiée par son G_TA_COD,
+    /* pour chaque formation, identifiée par son g_ta_cod,
     le nombre de places réservées pour les meilleurs bacheliers. */
     public final Map<Integer, Integer > nbPlacesMeilleursBacheliers = new HashMap<>();    
     
-    /* pour chaque formation, identifiée par son G_TA_COD,
+    /* pour chaque formation, identifiée par son g_ta_cod,
     le nombre de places vacantes pour le dispositif meilleurs bacheliers,
     apès soustraction des propositions actuelles.
     */

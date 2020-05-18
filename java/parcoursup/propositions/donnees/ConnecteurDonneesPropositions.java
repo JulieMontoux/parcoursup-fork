@@ -21,15 +21,17 @@ l'Innovation,
  */
 package parcoursup.propositions.donnees;
 
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.AlgoPropositionsSortie;
 
 public interface ConnecteurDonneesPropositions {
 
     /* utilisés pour le calcul des propositions */
-    AlgoPropositionsEntree recupererDonnees() throws Exception;
+    AlgoPropositionsEntree recupererDonnees() throws VerificationException, AccesDonneesException;
 
     /* export des données */
-    void exporterDonnees(AlgoPropositionsSortie sortie) throws Exception;
+    void exporterDonnees(AlgoPropositionsSortie sortie) throws VerificationException, AccesDonneesException;
 
 }

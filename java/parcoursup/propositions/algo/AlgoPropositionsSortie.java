@@ -21,22 +21,23 @@ l'Innovation,
  */
 package parcoursup.propositions.algo;
 
-import java.io.File;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Stream;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
 import javax.xml.bind.annotation.*;
 
 @XmlRootElement
 @XmlAccessorType(XmlAccessType.FIELD)
 public class AlgoPropositionsSortie {
 
+    /* les parametres de l'algorithme */
+    public final Parametres parametres;
+    
+    AlgoPropositionsSortie(Parametres parametres) {
+        this.parametres = parametres;
+    }
     /* liste des voeux, avec statut mis à jour */
     public final Collection<Voeu> voeux
             = new ArrayList<>();
@@ -51,34 +52,82 @@ public class AlgoPropositionsSortie {
 
     /* signale que la vérification a déclenché une alerte
     (groupes ignorés lors de l'export, intervention rapide nécessaire) */
-    public boolean alerte = false;
+    private boolean alerte = false;
 
+    public boolean getAlerte() {
+        return alerte;
+    }
+    
+    public String getAlerteMessage() {
+        StringBuilder out = new StringBuilder();
+        out.append("La vérification a déclenché une alerte. Les groupes suivants seront ignorés.");
+        groupesNonExportes.forEach(grp -> 
+            out.append(grp.toString())
+        );
+        return out.toString();
+    }
+
+    public void setAlerte() {
+        alerte = true;
+        avertissement = false;
+    }
+    
+    /* supprime de la sortie les données liées à ces groupes 
+    et renvoie la lise de spropositions annulées */
+    public Collection<Voeu> invaliderGroupes(Set<GroupeAffectation> groupesNonValides) {
+        
+            Collection<Voeu> resultat = new ArrayList<>();
+            
+            groupesNonExportes.clear();
+            for (Voeu v : voeux) {
+                if (!v.estPropositionDuJour()) {
+                    continue;
+                }
+                if (groupesNonValides.contains(v.groupe)) {
+                    groupesNonExportes.add(v.groupeUID);
+                    resultat.add(v);
+                }
+            }
+
+            /* suppression des propositions des groupes invalidés,
+                y compris par influence */
+            voeux.removeIf(v -> groupesNonExportes.contains(v.groupeUID));
+            groupes.removeIf(g -> groupesNonExportes.contains(g.id));
+            internats.removeIf(
+                    internat -> internat.groupesConcernes.stream().anyMatch(
+                            groupe -> groupesNonExportes.contains(groupe.id)));
+
+            return resultat;
+    }
+    
     /* liste des groupes d'affectations ignorés par l'alerte */
-    public Set<GroupeAffectation> groupesNonExportes = new HashSet<>();
+    final Set<GroupeAffectationUID> groupesNonExportes = new HashSet<>();
+        
 
     /* signale que la vérification a déclenché un avertissement
     (pas de groupe ignoré donc pas d'intervention immédiate nécessaire)*/
-    public boolean avertissement = false;
+    private boolean avertissement = false;
+    
+    public boolean getAvertissement() {
+        return avertissement;
+    }
+    
+    public void setAvertissement() {
+        if(!alerte) {
+            avertissement = true;
+        }
+    }
 
     public Stream<Voeu> propositionsDuJour() {
-        return voeux.stream().filter(v -> v.estPropositionDuJour());
+        return voeux.stream().filter(Voeu::estPropositionDuJour);
     }
 
     public Stream<Voeu> demissions() {
-        return voeux.stream().filter(v -> v.estDemissionAutomatique());
+        return voeux.stream().filter(Voeu::estDemissionAutomatique);
     }
-
-    /* Sauvegarde des données au format xml.
-    Si le paramètre filename est null, un nom par défaut est utilisé,
-    paramétré par la date et l'heure.
-     */
-    public void serialiser(String filename) throws JAXBException {
-        if (filename == null) {
-            filename = "sortie_" + LocalDateTime.now() + ".xml";
-        }
-        Marshaller m = JAXBContext.newInstance(AlgoPropositionsSortie.class).createMarshaller();
-        m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        m.marshal(this, new File(filename));
+    
+    private AlgoPropositionsSortie() {
+        parametres = null;
     }
 
 }

@@ -23,39 +23,43 @@ package parcoursup.propositions.algo;
 public class GroupeInternatUID {
 
     /*l'identifiant unique de l'internat dans la base de données */
-    public final int C_GI_COD;
+    public final int cGiCod;
 
     /*l'identifiant unique de la formation d'affectation dans la base de données.
         Positionné à 0 pour un internat commun à plusieurs formations.*/
-    public final int G_TA_COD;
+    public final int gTaCod;
 
     public GroupeInternatUID(
-            int C_GI_COD,
-            int G_TA_COD) {
-        this.C_GI_COD = C_GI_COD;
-        this.G_TA_COD = G_TA_COD;
+            int cGiCod,
+            int gTaCod) {
+        this.cGiCod = cGiCod;
+        this.gTaCod = gTaCod;
     }
 
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof GroupeInternatUID) {
             GroupeInternatUID ta = (GroupeInternatUID) obj;
-            return this.C_GI_COD == ta.C_GI_COD
-                    && this.G_TA_COD == ta.G_TA_COD;
+            return this.cGiCod == ta.cGiCod
+                    && this.gTaCod == ta.gTaCod;
         } else {
-            throw new RuntimeException("Test d'égalité imprévu");
+            throw new ClassCastException("Test d'égalité imprévu");
         }
     }
 
     @Override
     public int hashCode() {
-        return Integer.hashCode(
-                C_GI_COD ^ (G_TA_COD << 16));
+        return Integer.hashCode(cGiCod ^ (gTaCod << 16));
     }
 
     @Override
     public String toString() {
-        return "C_GI_COD=" + C_GI_COD +  ((G_TA_COD != 0) ? (" AND G_TA_COD=" + G_TA_COD) : "");
+        return "C_GI_COD=" + cGiCod + ((gTaCod != 0) ? (" AND g_ta_cod=" + gTaCod) : "");
+    }
+
+    private GroupeInternatUID() {
+        this.cGiCod = 0;
+        this.gTaCod = 0;
     }
 
 }

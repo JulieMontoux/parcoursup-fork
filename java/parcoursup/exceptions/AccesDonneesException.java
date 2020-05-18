@@ -1,5 +1,6 @@
-/* Copyright 2019 © Ministère de l'Enseignement Supérieur, de la Recherche et de l'Innovation,
-    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2020 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -17,24 +18,20 @@
     along with Algorithmes-de-parcoursup.  If not, see <http://www.gnu.org/licenses/>.
 
  */
-package parcoursup.propositions.meilleursbacheliers;
+package parcoursup.exceptions;
 
+/**
+ *
+ * @author gimbert
+ */
+public class AccesDonneesException extends Exception {
 
-public class MeilleurBachelier {
-
-    /* code candidat */
-    public final int gCnCod;
-    
-    /* moyenne au bac */
-    public final double moyenne;
-    
-    public MeilleurBachelier(int gCnCod, double moyenne) {
-        this.gCnCod = gCnCod;
-        this.moyenne = moyenne;
+    public AccesDonneesException(String message) {
+        super(message);
     }
- 
-    private MeilleurBachelier() {
-        gCnCod = 0;
-        moyenne = 0;
+
+    public AccesDonneesException(String message, Throwable cause) {
+        super(message, cause);
     }
+
 }

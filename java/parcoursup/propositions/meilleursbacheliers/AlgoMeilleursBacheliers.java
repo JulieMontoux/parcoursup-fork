@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.Voeu;
 import parcoursup.propositions.algo.VoeuUID;
@@ -53,24 +54,24 @@ public class AlgoMeilleursBacheliers {
     ) {
 
         if (v1.groupe != v2.groupe) {
-            throw new RuntimeException("Ce comparateur ne compare "
+            throw new IllegalArgumentException("Ce comparateur ne compare "
                     + "que les voeux d'un même groupe d'affectation");
         }
 
         /* Regle0: on compare deux non-MB sur la base de leur ordre d'appel */
-        if (!v1.eligibleDispositifMB && !v2.eligibleDispositifMB) {
+        if (!v1.getEligibleDispositifMB() && !v2.getEligibleDispositifMB()) {
             return v1.ordreAppelInitial - v2.ordreAppelInitial;
         }
 
         /* Regle1: les MB eligibles passent avant les autres */
-        if (v1.eligibleDispositifMB && !v2.eligibleDispositifMB) {
+        if (v1.getEligibleDispositifMB() && !v2.getEligibleDispositifMB()) {
             return -1;
-        } else if (!v1.eligibleDispositifMB && v2.eligibleDispositifMB) {
+        } else if (!v1.getEligibleDispositifMB() && v2.getEligibleDispositifMB()) {
             return 1;
         }
 
         if (!v1.estMeilleurBachelier() || !v2.estMeilleurBachelier()) {
-            throw new RuntimeException("Etat inconsistent de l'algo meilleur bachelier");
+            throw new IllegalArgumentException("Etat inconsistent de l'algo meilleur bachelier");
         }
         //a ce stade les deux voeux sont pour des MB éligibles
         /* Regle2: deux MB éligibles sont comparés par leurs moyenne au bac */
@@ -95,26 +96,24 @@ public class AlgoMeilleursBacheliers {
             GroupeAffectation groupe
     ) {
         /* réordonne les voeux selon le critère MB */
-        groupe.voeuxEnAttente.sort((Voeu v1, Voeu v2)
-                -> comparerVoeuxSelonCritereMB(v1, v2)
-        );
+        groupe.voeuxEnAttente.sort(AlgoMeilleursBacheliers::comparerVoeuxSelonCritereMB);
 
         /* on tient compte de la possibilité d'avoir deux voeux consécutifss pour le même candidat */
         int dernierCandidat = -1;
         int rang = 0;
         for (Voeu v : groupe.voeuxEnAttente) {
-            int G_CN_COD = v.id.G_CN_COD;
+            int gCnCod = v.id.gCnCod;
             /* on ne met à jour le rang que lorsque qu'on arrive sur un nouveau candidat */
-            if (G_CN_COD != dernierCandidat) {
+            if (gCnCod != dernierCandidat) {
                 rang++;
-                dernierCandidat = G_CN_COD;
+                dernierCandidat = gCnCod;
             }
-            v.ordreAppel = rang;
+            v.setOrdreAppel(rang);
         }
     }
 
     /* met à jour l'ordre d'appel dans chacun des groupes d'une formation */
-    static void appliquerDispositifMeilleursBacheliersDansFormation(
+    static void appliquerDispositifMeilleursBacheliersDansFormation (
             int nbPlacesVacantes,
             Set<GroupeAffectation> groupes
     ) {
@@ -129,17 +128,15 @@ public class AlgoMeilleursBacheliers {
             /* on fait un marquage qui remonte tous les MB en tête
             par ordre de moyenne au bac puis ordre appel */
             for (Voeu v : groupe.voeuxEnAttente) {
-                v.eligibleDispositifMB = v.estMeilleurBachelier();
+                v.setEligibleDispositifMB(v.estMeilleurBachelier());
             }
-            groupe.voeuxEnAttente.sort((Voeu v1, Voeu v2)
-                    -> comparerVoeuxSelonCritereMB(v1, v2)
-            );
+            groupe.voeuxEnAttente.sort(AlgoMeilleursBacheliers::comparerVoeuxSelonCritereMB);
         }
 
         /* on réinitialise les flags MB, qui seront mis à jour dans la prochaine boucle */
         for (GroupeAffectation groupe : groupes) {
             for (Voeu v : groupe.voeuxEnAttente) {
-                v.eligibleDispositifMB = false;
+                v.setEligibleDispositifMB(false);
             }
         }
 
@@ -152,8 +149,8 @@ public class AlgoMeilleursBacheliers {
             pointeurs.put(groupe, 0);
         }
 
-        Set<Integer> MBeligibles = new HashSet<>();
-        while (MBeligibles.size() < nbPlacesVacantes) {
+        Set<Integer> mbEligibles = new HashSet<>();
+        while (mbEligibles.size() < nbPlacesVacantes) {
 
             /* la meilleur moyenne des MB en tête de chaque groupe */
             double meilleureMoyenne = -1;
@@ -175,12 +172,13 @@ public class AlgoMeilleursBacheliers {
                         /* le pointeur est sur un MB. Est-il meilleur que
                         le meilleur MB des pointeurs précédents? */
                         double moyenne = v.moyenneBac();
-                        if (moyenne > meilleureMoyenne) {
+                        int comparaison = Double.compare(moyenne, meilleureMoyenne);
+                        if (comparaison > 0) {
                             /* oui, strictement, on oublie les précédents */
                             meilleureMoyenne = moyenne;
                             meilleursVoeux.clear();
                             meilleursVoeux.add(v);
-                        } else if (moyenne == meilleureMoyenne) {
+                        } else if ( comparaison == 0) {
                             /* ni mieux ni moins bien: les deux MB sont incomparables,
                             on les garde tous deux
                              */
@@ -201,8 +199,8 @@ public class AlgoMeilleursBacheliers {
             (qui donne le nombre de places MB actuellement utilisées sur le contingent */
             for (Voeu v : meilleursVoeux) {
 
-                v.eligibleDispositifMB = true;
-                MBeligibles.add(v.id.G_CN_COD);
+                v.setEligibleDispositifMB(true);
+                mbEligibles.add(v.id.gCnCod);
 
                 /* mise à jour du pointeur de la descente */
                 int pointeur = pointeurs.get(v.groupe) + 1;
@@ -213,8 +211,8 @@ public class AlgoMeilleursBacheliers {
                 si oui on descend d'un cran supplémentaire */
                 if (pointeur < v.groupe.voeuxEnAttente.size()) {
                     Voeu nextv = v.groupe.voeuxEnAttente.get(pointeur);
-                    if (nextv.id.G_CN_COD == v.id.G_CN_COD) {
-                        nextv.eligibleDispositifMB = true;
+                    if (nextv.id.gCnCod == v.id.gCnCod) {
+                        nextv.setEligibleDispositifMB(true);
                         pointeurs.put(v.groupe, pointeur + 1);
                     }
                 }
@@ -235,21 +233,21 @@ public class AlgoMeilleursBacheliers {
             AlgoMeilleursBacheliersDonnees entree
     ) {
 
-        /* Liste, indexée par formation (G_TA_COD) des meilleurs bacheliers
+        /* Liste, indexée par formation (gTaCod) des meilleurs bacheliers
         déjà affectés sur un voeu du dispositif meilleurs bacheliers.
         Le nombre de paces réservées ce jour est obtenu en déduisant
         du nombre fixé par le recteur le nombre de mb déjà affectés.
          */
-        Map<Integer, Set<Integer>> MBaffectes = new HashMap<>();
+        Map<Integer, Set<Integer>> mbAffectes = new HashMap<>();
         for (VoeuUID v : entree.propositionsMeilleursBacheliers) {
-            int G_TA_COD = v.G_TA_COD;
-            int G_CN_COD = v.G_CN_COD;
+            int gTaCod = v.gTaCod;
+            int gCnCod = v.gCnCod;
             /* création de la liste pour cette formaiton
                     si pas encore rencontrée */
-            if (!MBaffectes.containsKey(G_TA_COD)) {
-                MBaffectes.put(G_TA_COD, new HashSet<>());
+            if (!mbAffectes.containsKey(gTaCod)) {
+                mbAffectes.put(gTaCod, new HashSet<>());
             }
-            MBaffectes.get(G_TA_COD).add(G_CN_COD);
+            mbAffectes.get(gTaCod).add(gCnCod);
         }
 
 
@@ -259,16 +257,16 @@ public class AlgoMeilleursBacheliers {
         
         entree.nbPlacesMeilleursBacheliersVacantes.clear();
         for (Entry<Integer, Integer> entry : entree.nbPlacesMeilleursBacheliers.entrySet()) {
-            int G_TA_COD = entry.getKey();
+            int gTaCod = entry.getKey();
             int nbPlacesReservees = entry.getValue();
-            Set<Integer> affectes = MBaffectes.get(G_TA_COD);
+            Set<Integer> affectes = mbAffectes.get(gTaCod);
             int nbPlacesOccupees = (affectes == null) ? 0 : affectes.size();
             int nbPlacesVacantes = Math.max(0, nbPlacesReservees - nbPlacesOccupees);
             totalPlacesVacantes += nbPlacesVacantes;
             if(nbPlacesVacantes > 0) {
                 totalFormationsAvecPlacesVacantes++;
             }
-            entree.nbPlacesMeilleursBacheliersVacantes.put(G_TA_COD, nbPlacesVacantes);
+            entree.nbPlacesMeilleursBacheliersVacantes.put(gTaCod, nbPlacesVacantes);
         }
         
         LOGGER.log(Level.INFO, "{0} places vacantes MB dans {1} formations",
@@ -290,25 +288,25 @@ public class AlgoMeilleursBacheliers {
                 + " formations", entree.nbPlacesMeilleursBacheliers.size());
 
         /* Réinitialisation du flag eligibleDispositifMB pour les voeux en attente
-        et constitution de la liste des groupes d'affectation de chaque formation (G_TA_COD)
+        et constitution de la liste des groupes d'affectation de chaque formation (gTaCod)
         qui ont au moins un MB en attente */
         Map<Integer, Set<GroupeAffectation>> groupesFormation = new HashMap<>();
         for (GroupeAffectation groupe : entree.groupes) {
             for (Voeu v : groupe.voeuxEnAttente) {
 
-                v.eligibleDispositifMB = false;
+                v.setEligibleDispositifMB(false);
 
                 if (v.estMeilleurBachelier()) {
-                    int G_TA_COD = v.id.G_TA_COD;
-                    if (!groupesFormation.containsKey(G_TA_COD)) {
-                        groupesFormation.put(G_TA_COD, new HashSet<>());
+                    int gTaCod = v.id.gTaCod;
+                    if (!groupesFormation.containsKey(gTaCod)) {
+                        groupesFormation.put(gTaCod, new HashSet<>());
                     }
-                    groupesFormation.get(G_TA_COD).add(v.groupe);
+                    groupesFormation.get(gTaCod).add(v.groupe);
                 }
             }
         }
 
-        LOGGER.info("Calcul du nombre de places vacantes");
+        LOGGER.log(Level.INFO, "Calcul du nombre de places vacantes pour les MB dans les {0} formations concern\u00e9es.", entree.nbPlacesMeilleursBacheliers.size());
         /* calcul du nombre de places vacantes pour les MB dans
         chaque formation. Le calcul met à jour entree.nbPlacesMeilleursBacheliersVacantes */
         calculerNombrePlacesVacantes(entree);
@@ -318,10 +316,10 @@ public class AlgoMeilleursBacheliers {
          */
         for (Entry<Integer, Integer> entry
                 : entree.nbPlacesMeilleursBacheliersVacantes.entrySet()) {
-            int G_TA_COD = entry.getKey();
+            int gTaCod = entry.getKey();
             int nbPlacesVacantes = entry.getValue();
             if (nbPlacesVacantes > 0) {
-                Set<GroupeAffectation> groupes = groupesFormation.get(G_TA_COD);
+                Set<GroupeAffectation> groupes = groupesFormation.get(gTaCod);
                 if (groupes != null) {
                     appliquerDispositifMeilleursBacheliersDansFormation(
                             nbPlacesVacantes,

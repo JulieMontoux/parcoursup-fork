@@ -21,6 +21,8 @@ l'Innovation,
  */
 package parcoursup.ordreappel;
 
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.AlgoOrdreAppel;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
@@ -38,7 +40,7 @@ public class CalculOrdreAppel {
         this.acces = acces;
     }
 
-    public void execute() throws Exception {
+    public void execute() throws AccesDonneesException, VerificationException {
 
         AlgoOrdreAppelEntree entree = acces.recupererDonneesOrdreAppel();
 

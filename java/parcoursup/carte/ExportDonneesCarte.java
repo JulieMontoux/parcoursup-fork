@@ -27,10 +27,10 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -50,23 +50,31 @@ public class ExportDonneesCarte {
 
     private static final Logger LOGGER = Logger.getLogger(ExportDonneesCarte.class.getSimpleName());
 
-    public ExportDonneesCarte(ConnecteurOracle connecteur) {
+    public ExportDonneesCarte(ConnecteurOracle connecteur, String repOut) {
         this.connecteur = connecteur;
+
+        this.repOut = repOut;
+
+        if (!this.repOut.endsWith(File.separator)) {
+            this.repOut += File.separator;
+        }
     }
 
     /* nom du xml regroupant les noms des fichiers de données */
-    private static final String datasFilename = "files.xml";
+    private static final String DATAS_FILENAME = "files.xml";
 
     /* suffixe variable des noms de fichiers de données */
-    private final String suffix = LocalDateTime.now().toString().replace(":", "-");
+    private final String suffix = LocalDateTime.now().toString().replace(":", "-") + ".json";
 
     /* taille du buffer pour le zip */
     private static final int BUFFER_SIZE = 8192;
 
+    /* taille réperoire de génération des fichiers */
+    private String repOut = ".";
+
     public void exporterDonnees(
             boolean exporterCapacites,
-            boolean exporterPC,
-            boolean exporterDonneesCampagne
+            boolean exporterPC
     ) throws SQLException, IOException, JAXBException {
 
         LOGGER.info("Export des données de la carte");
@@ -74,42 +82,35 @@ public class ExportDonneesCarte {
         DonneesCarteFilenames filenames = new DonneesCarteFilenames();
 
         /* Récupération des anciens noms des fichiers de données */
-        if ((new File(datasFilename)).canRead()) {
+        if ((new File(this.repOut + DATAS_FILENAME)).canRead()) {
             JAXBContext jc = JAXBContext.newInstance(DonneesCarteFilenames.class);
             Unmarshaller um = jc.createUnmarshaller();
-            filenames = (DonneesCarteFilenames) um.unmarshal(new File(datasFilename));
+            filenames = (DonneesCarteFilenames) um.unmarshal(new File(this.repOut + DATAS_FILENAME));
         }
 
         if (exporterCapacites || filenames.capacitesFilename.isEmpty()) {
-            filenames.capacitesFilename = DonneesCarteFilenames.donneesCapacitePrefix + "-" + suffix + ".json";
-            exporterDonneesCapacite(filenames.capacitesFilename);
-            zipper(filenames.capacitesFilename);
+            filenames.capacitesFilename = DonneesCarteFilenames.DONNEES_CAPACITES_PREFIX + "-" + suffix;
+            exporterDonneesCapacite(this.repOut + filenames.capacitesFilename);
+            zipper(this.repOut + filenames.capacitesFilename);
         }
         if (exporterPC || filenames.disposFilename.isEmpty()) {
-            filenames.disposFilename = DonneesCarteFilenames.donneesPlacesDisposPrefix + "-" + suffix + ".json";
-            exporterDonneesPlacesDispos(filenames.disposFilename);
-            zipper(filenames.disposFilename);
-        }
-
-        if (exporterDonneesCampagne || filenames.campagneFilename.isEmpty()) {
-            filenames.campagneFilename = DonneesCarteFilenames.donneesCampagnePrefix + "-" + suffix + ".json";
-            throw new RuntimeException("L'export des données de campagne n'est pas encore implémenté");
-            //exporterDonneesCampagne(filenames.campagneFilename);
-            //zipper(filenames.campagneFilename);
+            filenames.disposFilename = DonneesCarteFilenames.DONNEES_PLACES_DISPOS_PREFIX + "-" + suffix;
+            exporterDonneesPlacesDispos(this.repOut + filenames.disposFilename);
+            zipper(this.repOut + filenames.disposFilename);
         }
 
         /* Mise à jour des noms des fichiers de données */
         JAXBContext jc = JAXBContext.newInstance(DonneesCarteFilenames.class);
         Marshaller m = jc.createMarshaller();
         m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-        m.marshal(filenames, new File(datasFilename));
+        m.marshal(filenames, new File(this.repOut + DATAS_FILENAME));
 
     }
 
     /* export des capacités */
-    void exporterDonneesCapacite(String filename) throws SQLException, FileNotFoundException, IOException {
+    void exporterDonneesCapacite(String filename) throws SQLException, IOException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(filename, true)))) {
+                new FileOutputStream(filename, true), StandardCharsets.UTF_8))) {
 
             LOGGER.log(Level.INFO, "Export des capacités dans le fichier {0}", filename);
 
@@ -143,10 +144,10 @@ public class ExportDonneesCarte {
                     boolean first = true;
                     while (result.next()) {
 
-                        int G_TA_COD = result.getInt(1);
+                        int gtacod = result.getInt(1);
                         int capacite = result.getInt(2);
                         writer.newLine();
-                        writer.write((first ? "" : ",") + "[" + G_TA_COD + "," + capacite + "]");
+                        writer.write((first ? "" : ",") + "[" + gtacod + "," + capacite + "]");
                         first = false;
                     }
                 }
@@ -160,7 +161,7 @@ public class ExportDonneesCarte {
     /* export des données de PC */
     void exporterDonneesPlacesDispos(String filename) throws IOException, SQLException {
         try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
-                new FileOutputStream(filename, true)))) {
+                new FileOutputStream(filename, true), StandardCharsets.UTF_8))) {
 
             LOGGER.log(Level.INFO, "Export des formations avec des places libres dans le fichier {0}", filename);
 
@@ -171,43 +172,7 @@ public class ExportDonneesCarte {
                 LOGGER.info("Récupération des formations avec places disponibles");
                 stmt.setFetchSize(1_000_000);
 
-                String sql
-                        = "with zero_voeu_attente as "
-                        + "( "
-                        + "SELECT arec.G_TA_COD,arec.A_RC_CAP capacite "
-                        + "FROM A_REC arec "
-                        + "WHERE NOT EXISTS( "
-                        + "SELECT 1 FROM  "
-                        + "A_VOE voe, A_SIT_VOE asv "
-                        + "WHERE "
-                        + "voe.g_ta_cod=arec.g_ta_cod "
-                        + "and "
-                        + "voe.a_sv_cod=asv.a_sv_cod "
-                        + "AND "
-                        + "asv.a_sv_flg_att=1) "
-                        + ") "
-                        + ", "
-                        + " "
-                        + "nb_affectes as "
-                        + "( "
-                        + "SELECT adm.g_ta_cod, COUNT(*) nb_aff "
-                        + "FROM "
-                        + "zero_voeu_attente, A_ADM adm, A_SIT_VOE asv "
-                        + "where "
-                        + "zero_voeu_attente.g_ta_cod=adm.g_ta_cod "
-                        + "AND "
-                        + "adm.a_sv_cod=asv.a_sv_cod "
-                        + "and "
-                        + "asv.a_sv_flg_aff=1 "
-                        + "GROUP BY adm.g_ta_cod "
-                        + ") "
-                        + " "
-                        + "SELECT zero_voeu_attente.g_ta_Cod FROM  "
-                        + "zero_voeu_attente, nb_affectes  "
-                        + "where  "
-                        + "zero_voeu_attente.g_ta_cod=nb_affectes.g_ta_cod "
-                        + "AND "
-                        + "nb_aff < capacite";
+                String sql = "select g_ta_cod, sc_flc_grp_bac_gen,sc_flc_grp_bac_tec, sc_flc_grp_bac_pro,sc_flc_grp_aut from v_carte_export_dispo";
 
                 LOGGER.info(sql);
 
@@ -216,9 +181,21 @@ public class ExportDonneesCarte {
                     boolean first = true;
                     while (result.next()) {
 
-                        int G_TA_COD = result.getInt(1);
+                        int gtacod = result.getInt(1);
+                        int scFlcGrpBacGen = result.getInt(2);
+                        int scFlcGrpBacTec = result.getInt(3);
+                        int scFlcGrpBacPro = result.getInt(4);
+                        int scFlcGrpAut = result.getInt(5);
+
                         writer.newLine();
-                        writer.write((first ? "" : ",") + "[" + G_TA_COD + "]");
+                        writer.write((first ? "" : ",") + "["
+                                + gtacod + ","
+                                + scFlcGrpBacGen + ","
+                                + scFlcGrpBacTec + ","
+                                + scFlcGrpBacPro + ","
+                                + scFlcGrpAut + ""
+                                + "]"
+                        );
                         first = false;
                     }
                 }
@@ -230,18 +207,13 @@ public class ExportDonneesCarte {
 
     }
 
-    /* export des données valables durant toute la campagne */
-    public void exporterDonneesCampagne(String filename) {
-        throw new RuntimeException("Unimplemented");
-    }
-
     private final ConnecteurOracle connecteur;
 
     private Connection connection() {
         return connecteur.connection();
     }
 
-    private void zipper(String filename) throws FileNotFoundException, IOException {
+    private void zipper(String filename) throws IOException {
         String output = filename + ".zip";
 
         try (
@@ -250,10 +222,12 @@ public class ExportDonneesCarte {
             out.setMethod(ZipOutputStream.DEFLATED);
             out.setLevel(9);
 
-            ZipEntry entry = new ZipEntry(filename);
+            File file = new File(filename);
+
+            ZipEntry entry = new ZipEntry(file.getName());
             out.putNextEntry(entry);
 
-            byte data[] = new byte[BUFFER_SIZE];
+            byte[] data = new byte[BUFFER_SIZE];
 
             while (true) {
                 int count = buffer.read(data, 0, BUFFER_SIZE);

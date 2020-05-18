@@ -19,18 +19,19 @@
  */
 package parcoursup.prod;
 
-import java.sql.SQLException;
 import java.util.logging.Logger;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.EnvoiPropositions;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositions;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositionsOracle;
 
 public class EnvoiPropositionsOracle {
 
-     private static final Logger LOGGER = Logger.getLogger(EnvoiPropositionsOracle.class.getSimpleName());
+    private static final Logger LOGGER = Logger.getLogger(EnvoiPropositionsOracle.class.getSimpleName());
 
-    public static void main(String[] args) throws SQLException, Exception {
-
+    public static void main(String[] args) throws AccesDonneesException, VerificationException {
+        
         if (args.length < 3) {
             LOGGER.info("Usage: envoiPropositions TNSAlias login password");
             System.exit(0);
@@ -45,7 +46,7 @@ public class EnvoiPropositionsOracle {
 
         EnvoiPropositions envoiPropositions = new EnvoiPropositions(conn);
 
-        boolean logDonnees = false;
+        boolean logDonnees = true;
         
         envoiPropositions.execute(logDonnees);
 

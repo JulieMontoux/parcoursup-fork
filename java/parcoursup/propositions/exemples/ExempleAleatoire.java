@@ -30,11 +30,13 @@ import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.GroupeAffectationUID;
 import parcoursup.propositions.algo.GroupeInternat;
 import parcoursup.propositions.algo.GroupeInternatUID;
+import parcoursup.propositions.algo.Parametres;
 import parcoursup.propositions.algo.Voeu;
 import static parcoursup.verification.VerificationEntreeAlgoPropositions.verifierIntegrite;
 
@@ -44,43 +46,43 @@ public class ExempleAleatoire extends ExemplePropositions {
 
     @Override
     String nom() {
-        return "ExempleAleatoire";// + dateCreation;
+        return "ExempleAleatoire";
     }
 
     final int nbCandidats;
 
-    final double proportionConcoursCommuns = 0.1;
-    final double proportionInternatsCommuns = 0.5;
-    final double proportionInternats = 0.5;
+    static final double PROPORTION_CONCOURS_COMMUN = 0.1;
+    static final double PROPORTION_INTERNATS_COMMUNS = 0.5;
+    static final double PROPORTION_INTERNATS = 0.5;
 
-    final int nbFormationsParConcours = 100;
-    final int maxNbVoeuxParConcoursCommun = 80;
+    static final int NB_FORMATIONS_PAR_CONCOURS = 100;
+    static final int MAX_NB_VOEUX_PAR_CONCOURS_COMMUN = 80;
 
-    final int nbFormationsParEtablissement = 5;
+    static final int NB_FORMATIONS_PAR_ETABLISSEMENT = 5;
 
-    final int maxNbVoeuxParCandidat = 10;
+    static final int MAX_NB_VOEUX_PAR_CANDIDAT = 10;
 
-    final int capaciteMaxFormationNormale = 500;
-    final int capaciteMaxFormationCC = 200;
+    static final int CAPACITE_MAX_FORMATION_NORMALE = 500;
+    static final int CAPACITE_MAX_FORMATION_CC = 200;
 
-    final int capaciteMaxInternat = 30;
+    static final int CAPACITE_MAX_INTERNAT = 30;
 
-    final int maxNbGroupesParFormation = 3;
+    static final int MAX_NB_GROUPES_PAR_FORMATION = 3;
 
     private final List<Etablissement> etablissements = new ArrayList<>();
 
     final Set<Voeu> voeux = new HashSet<>();
 
-    int last_G_TI_COD = 1;
-    int last_G_TA_COD = 1;
-    int last_C_GP_COD = 1;
-    int last_G_CN_COD = 1;
+    int lastGTiCod = 1;
+    int lastGTaCod = 1;
+    int lastCGpCod = 1;
+    int lastGCnCod = 1;
 
     final Random random = new Random();
 
     class Etablissement {
 
-        final int G_TI_COD;
+        final int gTiCod;
 
         final boolean isConcoursCommun;
 
@@ -94,9 +96,9 @@ public class ExempleAleatoire extends ExemplePropositions {
 
         final Map<GroupeClassement, GroupeInternat> internatsCommuns = new HashMap<>();
 
-        Etablissement() {
-            this.G_TI_COD = last_G_TI_COD++;
-            isConcoursCommun = (Math.random() < proportionConcoursCommuns);
+        Etablissement() throws VerificationException {
+            this.gTiCod = lastGTiCod++;
+            isConcoursCommun = (Math.random() < PROPORTION_CONCOURS_COMMUN);
 
             if (isConcoursCommun) {
 
@@ -105,7 +107,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                 jurys.add(g1);
                 jurys.add(g2);
 
-                int nbformations = 1 + random.nextInt(nbFormationsParConcours);
+                int nbformations = 1 + random.nextInt(NB_FORMATIONS_PAR_CONCOURS);
                 for (int i = 0; i < nbformations; i++) {
                     FormationAffectation f = new FormationAffectation();
                     formations.add(f);
@@ -119,33 +121,33 @@ public class ExempleAleatoire extends ExemplePropositions {
             } else {
 
                 isInternatCommun
-                        = (Math.random() < proportionInternatsCommuns);
+                        = (Math.random() < PROPORTION_INTERNATS_COMMUNS);
 
                 isInternatParFormation
-                        = !isInternatCommun && (Math.random() < proportionInternats);
+                        = !isInternatCommun && (Math.random() < PROPORTION_INTERNATS);
 
                 if (isInternatCommun) {
                     GroupeClassement ifilles = new GroupeClassement();
                     GroupeClassement igarcons = new GroupeClassement();
                     GroupeInternatUID ifillesid = new GroupeInternatUID(
-                            ifilles.C_G_COD,
+                            ifilles.cGCod,
                             0);
                     GroupeInternatUID igarconsid = new GroupeInternatUID(
-                            igarcons.C_G_COD,
+                            igarcons.cGCod,
                             0);
                     internatsCommuns.put(ifilles, new GroupeInternat(
                             ifillesid,
-                            1 + random.nextInt(capaciteMaxInternat)
+                            1 + random.nextInt(CAPACITE_MAX_INTERNAT)
                     )
                     );
                     internatsCommuns.put(igarcons, new GroupeInternat(
                             igarconsid,
-                            1 + random.nextInt(capaciteMaxInternat)
+                            1 + random.nextInt(CAPACITE_MAX_INTERNAT)
                     )
                     );
                 }
 
-                int nbFormations = 1 + random.nextInt(nbFormationsParEtablissement);
+                int nbFormations = 1 + random.nextInt(NB_FORMATIONS_PAR_ETABLISSEMENT);
 
                 for (int i = 0; i < nbFormations; i++) {
                     FormationAffectation f = new FormationAffectation();
@@ -154,16 +156,16 @@ public class ExempleAleatoire extends ExemplePropositions {
                     if (isInternatParFormation) {
                         GroupeClassement juryInternat = new GroupeClassement();
                         GroupeInternatUID iid = new GroupeInternatUID(
-                                juryInternat.C_G_COD,
-                                f.G_TA_COD);
+                                juryInternat.cGCod,
+                                f.gTaCod);
                         f.internat = new GroupeInternat(
                                 iid,
-                                1 + random.nextInt(capaciteMaxInternat)
+                                1 + random.nextInt(CAPACITE_MAX_INTERNAT)
                         );
                         f.juryInternat = juryInternat;
                     }
 
-                    int nbGroupes = 1 + random.nextInt(maxNbGroupesParFormation);
+                    int nbGroupes = 1 + random.nextInt(MAX_NB_GROUPES_PAR_FORMATION);
 
                     for (int j = 0; j < nbGroupes; j++) {
                         GroupeClassement g = new GroupeClassement();
@@ -182,9 +184,9 @@ public class ExempleAleatoire extends ExemplePropositions {
             return result;
         }
 
-        int ajouterVoeux(Candidat candidat) {
+        int ajouterVoeux(Candidat candidat) throws VerificationException {
             int nbVoeux = isConcoursCommun
-                    ? 1 + random.nextInt(maxNbVoeuxParConcoursCommun)
+                    ? 1 + random.nextInt(MAX_NB_VOEUX_PAR_CONCOURS_COMMUN)
                     : 1;
 
             /* ordre dans le répondeur automatique */
@@ -207,40 +209,41 @@ public class ExempleAleatoire extends ExemplePropositions {
 
         class FormationAffectation {
 
-            final int G_TA_COD;
+            final int gTaCod;
 
             GroupeInternat internat = null;
             GroupeClassement juryInternat = null;
             
             FormationAffectation() {
-                this.G_TA_COD = last_G_TA_COD++;
+                this.gTaCod = lastGTaCod++;
             }
-
-            void ajouterGroupe(GroupeClassement c) {
+            
+            void ajouterGroupe(GroupeClassement c) throws VerificationException {
 
                 GroupeAffectationUID gui
                         = new GroupeAffectationUID(
-                                c.C_G_COD,
-                                G_TI_COD,
-                                G_TA_COD);
+                                c.cGCod,
+                                gTiCod,
+                                gTaCod);
 
-                int capaciteMax = isConcoursCommun ? capaciteMaxFormationCC : capaciteMaxFormationNormale;
-                int capacite = random.nextInt(capaciteMax + 1);
-                int rangLimite = (int) ((1 + Math.random()) * capacite);
-                int nbPropositions = (int) ((1 + Math.random()) * capacite);
+                int capaciteMax = isConcoursCommun ? CAPACITE_MAX_FORMATION_CC : CAPACITE_MAX_FORMATION_NORMALE;
+                int capacite = 1 + random.nextInt(capaciteMax);
+                int rangLimite = 1 + random.nextInt(capacite);
+                int nbPropositions = 1 + random.nextInt(capacite);
                 GroupeAffectation ga
                         = new GroupeAffectation(
                                 capacite,
                                 gui,
                                 rangLimite,
-                                nbPropositions
+                                nbPropositions,
+                                parametres
                         );
 
                 this.classements.put(ga, c);
                 groupes.add(ga);
             }
 
-            void ajouterVoeu(Candidat candidat, boolean avecInternat, int rangRepondeurAutomatique) {
+            void ajouterVoeu(Candidat candidat, boolean avecInternat, int rangRepondeurAutomatique) throws VerificationException {
 
                 /* pas deux fois le même voeu */
                 if(vus.contains(candidat)) {
@@ -259,18 +262,19 @@ public class ExempleAleatoire extends ExemplePropositions {
                 boolean horsPP = (random.nextInt(100) == 0);
                 Voeu.StatutVoeu statut
                         = horsPP
-                                ? Voeu.StatutVoeu.affecteJoursPrecedents
-                                : Voeu.StatutVoeu.enAttenteDeProposition;
+                                ? Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS
+                                : Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
 
                 if (!avecInternat || (internat == null && internatsCommuns.isEmpty())) {
                     if (rang <= cl.plusHautRangAffecte) {
-                        statut = Voeu.StatutVoeu.affecteJoursPrecedents;
+                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
                     }
                     voeux.add(
                             new Voeu(
-                                    candidat.G_CN_COD,
+                                    candidat.gCnCod,
                                     avecInternat,
                                     ga,
+                                    rang,
                                     rang,
                                     rangRepondeurAutomatique,
                                     statut,
@@ -301,13 +305,14 @@ public class ExempleAleatoire extends ExemplePropositions {
 
                     if ((rang <= cl.plusHautRangAffecte 
                             && rangInternat <= j.plusHautRangAffecte)) {
-                        statut = Voeu.StatutVoeu.affecteJoursPrecedents;
+                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
                     }
                     
                     voeux.add(
                             new Voeu(
-                                    candidat.G_CN_COD,
+                                    candidat.gCnCod,
                                     ga,
+                                    rang,
                                     rang,
                                     g,
                                     rangInternat,
@@ -320,9 +325,10 @@ public class ExempleAleatoire extends ExemplePropositions {
                     if (random.nextBoolean()) {
                         voeux.add(
                                 new Voeu(
-                                        candidat.G_CN_COD,
+                                        candidat.gCnCod,
                                         false,
                                         ga,
+                                        rang,
                                         rang,
                                         rangRepondeurAutomatique,
                                         statut,
@@ -352,13 +358,13 @@ public class ExempleAleatoire extends ExemplePropositions {
 
         class GroupeClassement {
 
-            final int C_G_COD;
+            final int cGCod;
 
             /* le rang le plus haut dans l'ordre d'appel d'un candidat recruté */
-            int plusHautRangAffecte = random.nextInt(nbCandidats / 4);
+            int plusHautRangAffecte = 1 + random.nextInt(1 + nbCandidats / 4);
 
             GroupeClassement() {
-                this.C_G_COD = last_C_GP_COD++;
+                this.cGCod = lastCGpCod++;
             }
 
             final Map<Candidat, Integer> rangs = new HashMap<>();
@@ -382,43 +388,46 @@ public class ExempleAleatoire extends ExemplePropositions {
 
     }
 
-    class Candidat {
+    static class Candidat {
 
-        final int G_CN_COD;
+        final int gCnCod;
 
         final boolean repondeurAutomatiqueActive;
 
-        Candidat(boolean repondeurAutomatiqueActive) {
-            this.G_CN_COD = last_G_CN_COD++;
+        Candidat(boolean repondeurAutomatiqueActive, int gCnCod) {
+            this.gCnCod = gCnCod;
             /* deux candidats sur 3 avec répondeur automatique */
             this.repondeurAutomatiqueActive = repondeurAutomatiqueActive;
         }
 
     }
 
+    Parametres parametres;
+    
     public ExempleAleatoire(int nbCandidats) {
 
         this.nbCandidats = Math.max(100, nbCandidats);
-        GroupeInternat.nbJoursCampagneDatePivotInternats = 60;
-        GroupeInternat.nbJoursCampagne = 1;
+        parametres = new Parametres(1,30);
     }
 
+    private static final Random r = new Random();
+        
     @Override
-    AlgoPropositionsEntree donneesEntree() throws Exception {
+    AlgoPropositionsEntree donneesEntree() throws VerificationException {
 
-        int capacite_totale = 0;
+        int capaciteTotale = 0;
 
         LOGGER.info("Génération aléatoire des établissements et formations");
-        while (capacite_totale < nbCandidats) {
+        while (capaciteTotale < nbCandidats) {
             Etablissement e = new Etablissement();
             etablissements.add(e);
-            capacite_totale += e.capacite();
+            capaciteTotale += e.capacite();
         }
 
         LOGGER.info("Génération aléatoire des voeux et classements");
         for (int i = 0; i < nbCandidats; i++) {
-            Candidat c = new Candidat(random.nextBoolean());
-            int nbVoeux = (int) (Math.random() * maxNbVoeuxParCandidat);
+            Candidat c = new Candidat(random.nextBoolean(),lastGCnCod++);
+            int nbVoeux = r.nextInt(MAX_NB_VOEUX_PAR_CANDIDAT);
             while (nbVoeux > 0) {
                 Etablissement e
                         = etablissements.get(random.nextInt(etablissements.size()));
@@ -431,7 +440,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
         LOGGER.info("Génération données entrée algorithme");
 
-        AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
+        entree = new AlgoPropositionsEntree(parametres);
 
         entree.voeux.addAll(voeux);
 
@@ -452,16 +461,16 @@ public class ExempleAleatoire extends ExemplePropositions {
         /* On force la vérification de P7.2 */
         Map<Integer, Voeu> propositionsAuxCandidatsAvecRepAuto = new HashMap<>();
         for (Voeu v : entree.voeux) {
-            int G_CN_COD = v.id.G_CN_COD;
-            if(!entree.candidatsAvecRepondeurAutomatique.contains(G_CN_COD) 
+            int gCnCod = v.id.gCnCod;
+            if(!entree.candidatsAvecRepondeurAutomatique.contains(gCnCod) 
                     || v.estAffecteHorsPP()) {
                 continue;
             }
             if (v.estAcceptationAutomatique() || v.estAffecteJoursPrecedents()) {
-                if (propositionsAuxCandidatsAvecRepAuto.containsKey(G_CN_COD)) {
+                if (propositionsAuxCandidatsAvecRepAuto.containsKey(gCnCod)) {
                     v.refuserAutomatiquement();
                 }
-                propositionsAuxCandidatsAvecRepAuto.put(G_CN_COD, v);
+                propositionsAuxCandidatsAvecRepAuto.put(gCnCod, v);
             }
         }
         

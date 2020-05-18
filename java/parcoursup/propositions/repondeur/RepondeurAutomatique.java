@@ -26,12 +26,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.Voeu;
 
 public class RepondeurAutomatique {
-
-    private static final Logger LOGGER = Logger.getLogger(RepondeurAutomatique.class.getSimpleName());
 
     /* Comparateur de voeu, basé sur le principe suivant.
     
@@ -54,11 +52,13 @@ public class RepondeurAutomatique {
             return 1;
         }
         if (v1.estAffecteJoursPrecedents() && v2.estAffecteJoursPrecedents()) {
-            throw new RuntimeException("Un candidat ayant activé le répondeut automatique"
-                    + "ne peut avoir qu'une proposition active.");
+            throw new IllegalStateException("Un candidat ayant activé le répondeut automatique "
+                    + " ne peut avoir qu'une proposition active, problème avec les voeux "
+                    + v1 + " et " + v2);
         }
         if (v1.rangRepondeur <= 0 || v2.rangRepondeur <= 0) {
-            throw new RuntimeException("Impossible de comparer les voeux dand l'ordre du rep auto.");
+            throw new IllegalStateException("Impossible de comparer les voeux "
+                    + v1 + " et " + v2 + " dans l'ordre du rep auto.");
         }
         return v1.rangRepondeur - v2.rangRepondeur;
     }
@@ -66,15 +66,16 @@ public class RepondeurAutomatique {
     /* effectue les réponses automatiques des candidats
     ayant activé le répondeur automatique. 
     Retourne le nombre de places libérées par l'application du RA.*/
-    public static int reponsesAutomatiques(Collection<Voeu> entree) {
+    public static int reponsesAutomatiques(Collection<Voeu> entree) throws VerificationException {
 
         /* L'entrée ne contient que des voeux de candidats
-        ayant activé le répondeur automatique */
+        ayant activé le répondeur automatique. Cette vérification reprend 7.4.
+         */
         for (Voeu v : entree) {
-            if ((v.estEnAttenteDeProposition() && !v.repondeurActive) || v.estAffecteHorsPP()) {
-                throw new RuntimeException("L'algorithme du répondeur "
-                        + "ne traite que les voeux de candidats de la procédure principale"
-                        + "et ayant activé leur répondeur automatique");
+            if ((v.estEnAttenteDeProposition() && !v.getRepondeurActive()) || v.estAffecteHorsPP()) {
+                throw new VerificationException("Problème intégrité données:"
+                        + "voeu en attente de proposition d'un candidat"
+                        + "ayant activé son RA mais qui n'a pas de rang dans le RA: " + v);
             }
         }
 
@@ -83,25 +84,25 @@ public class RepondeurAutomatique {
         final Map<Integer, List<Voeu>> voeux = new HashMap<>();
 
         for (Voeu v : entree) {
-            int G_CN_COD = v.id.G_CN_COD;
+            int gCnCod = v.id.gCnCod;
             if (v.estEnAttenteDeProposition()
                     || v.estProposition()) {
                 /* on crée la liste si le candidat n'a pas encore été rencontré */
-                if (!voeux.containsKey(G_CN_COD)) {
-                    voeux.put(G_CN_COD, new ArrayList<>());
+                if (!voeux.containsKey(gCnCod)) {
+                    voeux.put(gCnCod, new ArrayList<>());
                 }
-                List<Voeu> voeuxCandidat = voeux.get(G_CN_COD);
+                List<Voeu> voeuxCandidat = voeux.get(gCnCod);
                 voeuxCandidat.add(v);
             }
         }
 
         Set<Voeu> placesLiberees = new HashSet<>();
-        
+
         /* candidat par candidat, on applique le répondeur automatique */
         for (List<Voeu> voeuxCandidat : voeux.values()) {
-            
+
             /* on trie les voeux selon les préférences du candidat */
-            voeuxCandidat.sort((Voeu v1, Voeu v2) -> RepondeurAutomatique.comparerVoeux(v1, v2));
+            voeuxCandidat.sort(RepondeurAutomatique::comparerVoeux);
 
             /* on parcourt les voeux par ordre de préférence du candidat
             et le candidat refuse automatiquement tous ceux qui viennent

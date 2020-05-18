@@ -1,5 +1,6 @@
-/* Copyright 2019 © Ministère de l'Enseignement Supérieur, de la Recherche et de l'Innovation,
-    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2019 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -17,24 +18,18 @@
     along with Algorithmes-de-parcoursup.  If not, see <http://www.gnu.org/licenses/>.
 
  */
-package parcoursup.propositions.meilleursbacheliers;
+package parcoursup.carte.algo;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 
-public class MeilleurBachelier {
-
-    /* code candidat */
-    public final int gCnCod;
+public class AlgoCarteEntree {
     
-    /* moyenne au bac */
-    public final double moyenne;
+    /* les filières de Parcoursup */
+    public final Collection<Filiere> filieres = new ArrayList<>();
     
-    public MeilleurBachelier(int gCnCod, double moyenne) {
-        this.gCnCod = gCnCod;
-        this.moyenne = moyenne;
-    }
- 
-    private MeilleurBachelier() {
-        gCnCod = 0;
-        moyenne = 0;
-    }
+    /* les domaines Onisep */
+    public final Collection<DomaineOnisep> domaines = new ArrayList<>();
+    
 }

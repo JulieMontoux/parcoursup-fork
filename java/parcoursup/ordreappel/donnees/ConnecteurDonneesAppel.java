@@ -21,6 +21,7 @@ l'Innovation,
  */
 package parcoursup.ordreappel.donnees;
 
+import parcoursup.exceptions.AccesDonneesException;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
 import parcoursup.ordreappel.algo.GroupeClassement;
@@ -28,19 +29,19 @@ import parcoursup.ordreappel.algo.GroupeClassement;
 public interface ConnecteurDonneesAppel {
 
     /* utilisés pour le calcul de l'ordre d'appel */
-    AlgoOrdreAppelEntree recupererDonneesOrdreAppel() throws Exception;
+    AlgoOrdreAppelEntree recupererDonneesOrdreAppel() throws AccesDonneesException;
 
     /* récupère les données d'appel d'un gorupe unique */
-    public GroupeClassement recupererDonneesOrdreAppelGroupe(int G_TA_COD) throws Exception;
+    public GroupeClassement recupererDonneesOrdreAppelGroupe(int gTaCod) throws AccesDonneesException;
     
     /* vérifie si un candidat est Boursier */
-    public boolean estBoursier(int G_CN_COD) throws Exception;
+    public boolean estBoursier(int gCnCod) throws AccesDonneesException;
 
     /* vérifie si un candidat est considéré du secteur dans un groupe */
-    public boolean estDuSecteur(int G_CN_COD, int C_GP_COD) throws Exception;
+    public boolean estDuSecteur(int gCnCod, int cGpCod) throws AccesDonneesException;
 
     
     /* export des données */    
-    public void exporterDonneesOrdresAppel(AlgoOrdreAppelSortie donnees) throws Exception;
+    public void exporterDonneesOrdresAppel(AlgoOrdreAppelSortie donnees) throws AccesDonneesException;
 
 }

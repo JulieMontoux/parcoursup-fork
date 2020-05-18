@@ -21,9 +21,10 @@ l'Innovation,
  */
 package parcoursup.ordreappel.modifications;
 
-import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.CandidatClasse;
 import parcoursup.ordreappel.algo.GroupeClassement;
 import parcoursup.ordreappel.algo.OrdreAppel;
@@ -40,16 +41,16 @@ public class ModifClassement {
     /* renvoie le nouveau rang dans l'ordre d'appel */
     public static int calculeNouveauRangOrdreAppel(
             ConnecteurDonneesAppel acces, /* acces données */
-            int G_CN_COD /* code candidat à insérer*/,
+            int cGnCod /* code candidat à insérer*/,
             int nouveauRang /* nouveau rang */,
             boolean estBoursier /* est-il boursier */,
             boolean estDuSecteur /* est-il résident du secteur */,
-            int C_GP_COD /* groupe concerné */
-    ) throws SQLException, Exception {
+            int cGpCod /* groupe concerné */
+    ) throws VerificationException, AccesDonneesException {
 
-        GroupeClassement groupe = acces.recupererDonneesOrdreAppelGroupe(C_GP_COD);
+        GroupeClassement groupe = acces.recupererDonneesOrdreAppelGroupe(cGpCod);
 
-        LOGGER.log(Level.INFO, "Calcul du nouveau rang dans l''ordre d''appel du candidat{0}dans le groupe {1}", new Object[]{G_CN_COD, C_GP_COD});
+        LOGGER.log(Level.INFO, "Calcul du nouveau rang dans l''ordre d''appel du candidat{0}dans le groupe {1}", new Object[]{cGnCod, cGpCod});
         
         LOGGER.log(Level.INFO, "Le candidat est {0}", estBoursier ? "boursier" : "non-boursier");
         LOGGER.log(Level.INFO, "Le candidat est {0}", estDuSecteur ? "du secteur" : "hors-secteur");
@@ -57,55 +58,55 @@ public class ModifClassement {
 
         GroupeClassement nouveauGroupe
                 = new GroupeClassement(
-                        groupe.C_GP_COD,
+                        groupe.cGpCod,
                         groupe.tauxMinBoursiersPourcents,
                         groupe.tauxMinDuSecteurPourcents);
 
         for (VoeuClasse v : groupe.voeuxClasses) {
-            if (v.G_CN_COD == G_CN_COD) {
+            if (v.gCnCod == cGnCod) {
                 continue;
             }
 
             int rang = (v.rang >= nouveauRang) ? (v.rang + 1) : v.rang;
 
             nouveauGroupe.ajouterVoeu(
-                    new VoeuClasse(v.G_CN_COD, rang, v.estBoursier(), v.estDuSecteur())
+                    new VoeuClasse(v.gCnCod, rang, v.estBoursier(), v.estDuSecteur())
             );
         }
 
         nouveauGroupe.ajouterVoeu(
-                new VoeuClasse(G_CN_COD, nouveauRang, estBoursier, estDuSecteur)
+                new VoeuClasse(cGnCod, nouveauRang, estBoursier, estDuSecteur)
         );
 
         OrdreAppel ordreAppel = nouveauGroupe.calculerOrdreAppel();
 
         for (CandidatClasse v : ordreAppel.candidats) {
-            if (v.G_CN_COD == G_CN_COD) {
+            if (v.gCnCod == cGnCod) {
                 return v.rangAppel;
             }
         }
 
-        throw new RuntimeException("Inconsistence logique");
+        throw new VerificationException("Incohérence logique");
 
     }
 
     public static int calculeNouveauRangOrdreAppel(
             ConnecteurDonneesAppel acces /* acces données */,
-            int G_CN_COD /* code candidat à insérer*/,
-            int C_GP_COD /* groupe concerné */,
+            int gCnCod /* code candidat à insérer*/,
+            int cGpCod /* groupe concerné */,
             int nouveauRang /* nouveau rang */
-    ) throws SQLException, Exception {
+    ) throws AccesDonneesException, VerificationException {
 
-        boolean estBoursier = acces.estBoursier(G_CN_COD);
-        boolean estDuSecteur = acces.estDuSecteur(G_CN_COD, C_GP_COD);
+        boolean estBoursier = acces.estBoursier(gCnCod);
+        boolean estDuSecteur = acces.estDuSecteur(gCnCod, cGpCod);
       
         return calculeNouveauRangOrdreAppel(
                 acces,
-                G_CN_COD,
+                gCnCod,
                 nouveauRang,
                 estBoursier,
                 estDuSecteur,
-                C_GP_COD
+                cGpCod
         );
     }
  

@@ -21,9 +21,13 @@ l'Innovation,
  */
 package parcoursup.propositions.algo;
 
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlTransient;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
 
+@XmlAccessorType(XmlAccessType.FIELD)
 public class Voeu {
 
     /* caractéristiques identifiant de manière unique le voeu dans la base de données */
@@ -31,13 +35,37 @@ public class Voeu {
 
     /* groupe d'affectation du voeu */
     @XmlTransient
-    public final GroupeAffectation groupe;
+    public GroupeAffectation groupe;
+
+    public final GroupeAffectationUID groupeUID;
 
     /* rang initial du voeu dans l'ordre d'appel, avant remontée des meilleurs bacheliers */
     public final int ordreAppelInitial;
 
     /* rang du voeu dans l'ordre d'appel, après remontée des meilleurs bacheliers */
-    public int ordreAppel;
+    int ordreAppel;
+
+    /* rang du voeu dans l'ordre d'appel, tel qu'affiché dans l'interface.
+    Il y a quelques rares cas d'erreurs de classement par les formations 
+    (de l'ordre de la centaine par an). Dans ce cas un candidat peut être
+    remonté dans l'ordre d'appel, ce qui crée deux candidats avec le
+    même ordre d'appel, avec priorité au candidat
+    remonté. Dans ce cas le champ C_CG_ORD_APP utilisé par l'algorithme
+    est incrémenté pour tous les candidats suivants, afin de maintenir 
+    la propriété d'unicité du candidat pour un ordre d'appel donnée. Le champ
+    C_CG_ORD_APP_AFF reste, lui égal à sa valeur initiale, 
+    sauf pour le candidat qui a bénéficié de la remontée dans le classement. 
+    C'est le champ C_CG_ORD_APP_AFF qui est affiché au candidat surle site de
+    Parcoursup, et utilisé pour la mise à jour des affichages. */
+    public final int ordreAppelAffiche;
+
+    public int getOrdreAppel() {
+        return ordreAppel;
+    }
+
+    public void setOrdreAppel(int oa) {
+        ordreAppel = oa;
+    }
 
     /* le rang du candidat au classement internat */
     public final int rangInternat;
@@ -46,10 +74,22 @@ public class Voeu {
     public final int rangRepondeur;
 
     /* est-ce que le répondeur automatique est activé */
-    public boolean repondeurActive = false;
+    boolean repondeurActive = false;
+
+    public boolean getRepondeurActive() {
+        return repondeurActive;
+    }
 
     /* le rang du voeu sur liste d'attente, si en attente */
-    public int rangListeAttente = 0;
+    int rangListeAttente = 0;
+
+    public int getRangListeAttente() {
+        return rangListeAttente;
+    }
+
+    public void setRangListeAttente(int rang) {
+        rangListeAttente = rang;
+    }
 
     /* y a t il une demande d'internat avec classement sur ce voeu ? */
     public boolean avecInternatAClassementPropre() {
@@ -58,17 +98,18 @@ public class Voeu {
 
     /* le candidat a-t'il déjà une offre dans cet internat (pour une autre formation) ?*/
     public boolean internatDejaObtenu() {
-        return internat != null && internat.estAffecte(id.G_CN_COD);
+        return internat != null && internat.estAffecte(id.gCnCod);
     }
 
     /* le candidat a-t'il déjà une offre dans cette formation (sans internat)? */
     public boolean formationDejaObtenue() {
-        return groupe != null && groupe.estAffecte(id.G_CN_COD);
+        return groupe != null && groupe.estAffecte(id.gCnCod);
     }
 
     /* le groupe de classement internat. */
     @XmlTransient
-    public final GroupeInternat internat;
+    public GroupeInternat internat;
+    public final GroupeInternatUID internatUID;
 
     public GroupeInternatUID internatID() {
         return internat == null ? null : internat.id;
@@ -76,84 +117,84 @@ public class Voeu {
 
     /* les différents statuts d'un voeu */
     public enum StatutVoeu {
-        enAttenteDeProposition,
-        enAttenteDeReponseDuCandidat,
-        demissionAutoVoeuAttente,
-        acceptationAutomatique,
-        affecteJoursPrecedents,
-        demissionAutoProposition,
-        refusSimule                 //utilisé par le simulateur
-    };
+        EN_ATTENTE_DE_PROPOSITION,
+        PROPOSITION_DU_JOUR,
+        REP_AUTO_DEMISSION_ATTENTE, //démision auto d'un voeu en attente par le répondeur auitomatique
+        REP_AUTO_ACCEPTE,
+        AFFECTE_JOURS_PRECEDENTS,
+        REP_AUTO_REFUS_PROPOSITION, //refus automatique d'une proposition via le répondeur automatique
+        REFUS_OU_DEMISSION              //refus proposition ou demission voeu en attente
+    }
 
     StatutVoeu statut;
 
     /* getters de statut */
     public boolean estDemissionAutomatique() {
-        return statut == StatutVoeu.demissionAutoVoeuAttente
-                || statut == StatutVoeu.demissionAutoProposition;
+        return statut == StatutVoeu.REP_AUTO_DEMISSION_ATTENTE
+                || statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION;
     }
 
     public boolean estDemissionAutomatiqueVoeuAttente() {
-        return statut == StatutVoeu.demissionAutoVoeuAttente;
+        return statut == StatutVoeu.REP_AUTO_DEMISSION_ATTENTE;
     }
 
     public boolean estDemissionAutomatiqueProposition() {
-        return statut == StatutVoeu.demissionAutoProposition;
+        return statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION;
     }
 
     public boolean estAcceptationAutomatique() {
-        return statut == StatutVoeu.acceptationAutomatique;
+        return statut == StatutVoeu.REP_AUTO_ACCEPTE;
     }
 
     public boolean estProposition() {
-        return statut == StatutVoeu.acceptationAutomatique
-                || statut == StatutVoeu.enAttenteDeReponseDuCandidat
-                || statut == StatutVoeu.affecteJoursPrecedents;
+        return statut == StatutVoeu.REP_AUTO_ACCEPTE
+                || statut == StatutVoeu.PROPOSITION_DU_JOUR
+                || statut == StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
     }
 
     public boolean estPropositionDuJour() {
-        return statut == StatutVoeu.acceptationAutomatique
-                || statut == StatutVoeu.enAttenteDeReponseDuCandidat;
+        return statut == StatutVoeu.REP_AUTO_ACCEPTE
+                || statut == StatutVoeu.PROPOSITION_DU_JOUR;
     }
 
     public boolean estEnAttenteDeProposition() {
-        return statut == StatutVoeu.enAttenteDeProposition;
+        return statut == StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
     }
 
     public boolean estAffecteJoursPrecedents() {
-        return statut == StatutVoeu.affecteJoursPrecedents;
+        return statut == StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
     }
 
-    public void refuserAutomatiquement() {
+    public void refuserAutomatiquement() throws VerificationException {
         if (estAffecteHorsPP()) {
-            throw new RuntimeException("Le voeu affecté hors PP " + this + " ne peut être refusé automatiquement");
+            throw new VerificationException("Le voeu affecté hors PP " + this + " ne peut être refusé automatiquement");
         }
-        if (statut == StatutVoeu.affecteJoursPrecedents) {
-            statut = StatutVoeu.demissionAutoProposition;
+        if (statut == StatutVoeu.AFFECTE_JOURS_PRECEDENTS) {
+            statut = StatutVoeu.REP_AUTO_REFUS_PROPOSITION;
         } else if (!repondeurActive) {
-            throw new RuntimeException("Le statut du voeu " + this + " ne permet pas le refus automatique");
-        } else if (statut != StatutVoeu.acceptationAutomatique
-                && statut != StatutVoeu.enAttenteDeProposition) {
-            throw new RuntimeException("Le statut du voeu " + this + " ne permet pas le refus automatique");
+            throw new VerificationException("Le statut du voeu " + this + " ne permet pas le refus automatique");
+        } else if (statut != StatutVoeu.REP_AUTO_ACCEPTE
+                && statut != StatutVoeu.EN_ATTENTE_DE_PROPOSITION) {
+            throw new VerificationException("Le statut du voeu " + this + " ne permet pas le refus automatique");
         } else {
-            statut = StatutVoeu.demissionAutoVoeuAttente;
+            statut = StatutVoeu.REP_AUTO_DEMISSION_ATTENTE;
         }
     }
 
-    public void proposer() {
-        if (statut != StatutVoeu.enAttenteDeProposition) {
-            throw new RuntimeException("Le statut du voeu " + this + " ne permet pas une proposition");
+    public void proposer() throws VerificationException {
+        if (statut != StatutVoeu.EN_ATTENTE_DE_PROPOSITION) {
+            throw new VerificationException("Le statut du voeu " + this + " ne permet pas une proposition");
         }
 
         if (repondeurActive) {
-            statut = StatutVoeu.acceptationAutomatique;
+            statut = StatutVoeu.REP_AUTO_ACCEPTE;
         } else {
-            statut = StatutVoeu.enAttenteDeReponseDuCandidat;
+            statut = StatutVoeu.PROPOSITION_DU_JOUR;
         }
     }
 
     public void nePasProposer() {
-        statut = StatutVoeu.enAttenteDeProposition;
+        statut = StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
     }
 
     /* vérifie si le voeu est désactivé du fait d'une demande d'internat */
@@ -163,36 +204,40 @@ public class Voeu {
             d'admission, alors on en fait pas de proposition */
         return ((internat != null)
                 && !internatDejaObtenu()
-                && rangInternat > internat.positionAdmission);
+                && rangInternat > internat.getPositionAdmission());
     }
 
     /* constructeur d'un voeu sans internat ou avec internat sans classement propre 
     (obligatoire ou non-sélectif) */
     public Voeu(
-            int G_CN_COD,
+            int gCnCod,
             boolean avecInternat,
             GroupeAffectation groupe,
             int ordreAppel,
+            int ordreAppelAffiche,
             int rangRepondeur,
             StatutVoeu statut,
             boolean affecteHorsPP
-    ) {
-        if (affecteHorsPP && (statut != StatutVoeu.affecteJoursPrecedents)) {
-            throw new RuntimeException("Inconsistence logique: un voeu hors PP doit avoir"
+    ) throws VerificationException {
+        if (affecteHorsPP && (statut != StatutVoeu.AFFECTE_JOURS_PRECEDENTS)) {
+            throw new VerificationException("Inconsistence logique: un voeu hors PP doit avoir"
                     + "le statut affecteJoursPrecedents");
         }
         if (ordreAppel < 0 || rangRepondeur < 0) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de Voeu");
+            throw new VerificationException("Rangs négatifs");
         }
-        if (ordreAppel == 0 && statut != StatutVoeu.affecteJoursPrecedents) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de Voeu");
+        if (ordreAppel == 0 && statut != StatutVoeu.AFFECTE_JOURS_PRECEDENTS) {
+            throw new VerificationException("Ordre appel manquant");
         }
 
-        this.id = new VoeuUID(G_CN_COD, groupe.id.G_TA_COD, avecInternat);
+        this.id = new VoeuUID(gCnCod, groupe.id.gTaCod, avecInternat);
         this.groupe = groupe;
+        this.groupeUID = groupe.id;
         this.ordreAppelInitial = ordreAppel;
         this.ordreAppel = ordreAppel;
+        this.ordreAppelAffiche = ordreAppelAffiche;
         this.internat = null;
+        this.internatUID = null;
         this.rangInternat = 0;
         this.rangRepondeur = rangRepondeur;
         this.statut = statut;
@@ -201,38 +246,57 @@ public class Voeu {
 
     /* constructeur d'un voeu avec internat à classement propre */
     public Voeu(
-            int G_CN_COD,
+            int gCnCod,
             GroupeAffectation groupe,
             int ordreAppel,
+            int ordreAppelAffiche,
             GroupeInternat internat,
             int rangInternat,
             int rangRepondeur,
             StatutVoeu statut,
             boolean affecteHorsPP
-    ) {
-        if (affecteHorsPP && (statut != StatutVoeu.affecteJoursPrecedents)) {
-            throw new RuntimeException("Inconsistence logique: un voeu hors PP doit avoir"
+    ) throws VerificationException {
+        if (affecteHorsPP && (statut != StatutVoeu.AFFECTE_JOURS_PRECEDENTS)) {
+            throw new VerificationException("Inconsistence logique: un voeu hors PP doit avoir"
                     + "le statut affecteJoursPrecedents");
         }
         if (ordreAppel < 0 || rangRepondeur < 0 || rangInternat < 0) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de Voeu");
+            throw new VerificationException("Incohérence dans les paramètres du constructeur de Voeu");
         }
-        if (ordreAppel == 0 && statut != StatutVoeu.affecteJoursPrecedents) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de Voeu");
+        if (ordreAppel == 0 && statut != StatutVoeu.AFFECTE_JOURS_PRECEDENTS) {
+            throw new VerificationException("Incohérence dans les paramètres du constructeur de Voeu");
         }
 
-        this.id = new VoeuUID(G_CN_COD, groupe.id.G_TA_COD, true);
+        this.id = new VoeuUID(gCnCod, groupe.id.gTaCod, true);
         this.groupe = groupe;
+        this.groupeUID = groupe.id;
         this.ordreAppelInitial = ordreAppel;
         this.ordreAppel = ordreAppel;
+        this.ordreAppelAffiche = ordreAppelAffiche;
         this.internat = internat;
+        this.internatUID = internat.id;
         this.rangInternat = rangInternat;
         this.rangRepondeur = rangRepondeur;
         this.statut = statut;
         this.affecteHorsPP = affecteHorsPP;
     }
 
-    public void ajouterAuxGroupes() {
+    public Voeu(Voeu o) {
+        this.id = o.id;
+        this.groupeUID = new GroupeAffectationUID(o.groupeUID);
+        this.groupe = null;
+        this.internat = null;
+        this.ordreAppelInitial = o.ordreAppelInitial;
+        this.ordreAppel = o.ordreAppel;
+        this.ordreAppelAffiche = o.ordreAppelAffiche;
+        this.rangInternat = o.rangInternat;
+        this.rangRepondeur = o.rangRepondeur;
+        this.statut = o.statut;
+        this.affecteHorsPP = o.affecteHorsPP;
+        this.internatUID = o.internatUID;
+    }
+
+    public void ajouterAuxGroupes() throws VerificationException {
         if (estEnAttenteDeProposition()) {
             groupe.ajouterVoeuEnAttenteDeProposition(this);
             if (internat != null) {
@@ -240,9 +304,9 @@ public class Voeu {
             }
         }
         if (estProposition()) {
-            groupe.ajouterCandidatAffecte(id.G_CN_COD);
+            groupe.ajouterCandidatAffecte(id.gCnCod);
             if (internat != null) {
-                internat.ajouterCandidatAffecte(id.G_CN_COD);
+                internat.ajouterCandidatAffecte(id.gCnCod);
             }
         }
     }
@@ -278,7 +342,15 @@ public class Voeu {
     private final boolean affecteHorsPP;
 
     /* proposition faite au titre du dispositif meilleurs bacheliers */
-    public boolean eligibleDispositifMB = false;
+    boolean eligibleDispositifMB = false;
+
+    public boolean getEligibleDispositifMB() {
+        return eligibleDispositifMB;
+    }
+
+    public void setEligibleDispositifMB(boolean eligible) {
+        eligibleDispositifMB = eligible;
+    }
 
     /* le candidat est-il meilleur bachelier dans son lycée,
     si oui on conseve sa moyenne */
@@ -294,7 +366,7 @@ public class Voeu {
 
     public double moyenneBac() {
         if (mb == null) {
-            throw new RuntimeException("Donnée indisponible");
+            throw new IllegalStateException("Donnée indisponible");
         }
         return mb.moyenne;
     }
@@ -311,17 +383,58 @@ public class Voeu {
     /* utilisé par le simulateur */
     public void simulerEtape() {
         if (estPropositionDuJour()) {
-            statut = StatutVoeu.affecteJoursPrecedents;
+            statut = StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
         }
     }
 
     /* utilisé par le simulateur */
     public void simulerRefus() {
-        statut = StatutVoeu.refusSimule;
+        statut = StatutVoeu.REFUS_OU_DEMISSION;
+    }
+
+    /* utilisé par le simulateur */
+    public void simulerAcceptation() {
+        statut = StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
+    }
+
+    /* utilisé par le simulateur */
+    public void simulerEnAttente() {
+        if (ordreAppel > 0 && (internat == null || rangInternat > 0)) {
+            statut = StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+        } else {
+            statut = StatutVoeu.REFUS_OU_DEMISSION;
+        }
     }
 
     public StatutVoeu getStatut() {
         return statut;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Voeu) {
+            return id.equals(((Voeu) obj).id);
+        } else {
+            throw new ClassCastException("Test d'égalité imprévu");
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return id.hashCode();
+    }
+
+    private Voeu() {
+        id = null;
+        groupe = null;
+        groupeUID = null;
+        ordreAppelInitial = 0;
+        ordreAppelAffiche = 0;
+        rangInternat = 0;
+        rangRepondeur = 0;
+        internat = null;
+        internatUID = null;
+        affecteHorsPP = false;
     }
 
 }

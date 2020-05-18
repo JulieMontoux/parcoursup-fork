@@ -21,6 +21,7 @@ l'Innovation,
 package parcoursup.ordreappel.exemples;
 
 import java.util.Random;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.GroupeClassement;
 import parcoursup.ordreappel.algo.VoeuClasse;
 
@@ -36,12 +37,12 @@ public class ExempleAleatoire extends ExempleOrdreAppel {
     String nom() {
         return "exemple_aleatoire";
     }
-
+    
+    private static final Random r = new Random();
+    
     @Override
-    GroupeClassement initialise() {
-
-        Random r = new Random();
-
+    GroupeClassement initialise() throws VerificationException {
+       
         int tauxMinBoursier = r.nextInt(50);
 
         boolean seulementTauxBoursiers = r.nextBoolean();

@@ -19,38 +19,38 @@
  */
 package parcoursup.prod;
 
-import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.xml.bind.JAXBException;
+import oracle.jdbc.pool.OracleDataSource;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.AlgoOrdreAppel;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
 import parcoursup.ordreappel.donnees.ConnecteurDonneesAppelOracle;
+import static parcoursup.prod.EnvoiPropositionsProd.log;
 
 public class CalculOrdreAppelProd {
 
     /**
      * @param args the command line arguments
-     * @throws javax.xml.bind.JAXBException
+     * @throws parcoursup.exceptions.AccesDonneesException
      * @throws java.sql.SQLException
-     * @throws java.io.IOException
+     * @throws parcoursup.exceptions.VerificationException
      */
-    public static void main(String[] args) throws JAXBException, SQLException, IOException, Exception {
+    public static void main(String[] args) throws AccesDonneesException, SQLException, VerificationException {
 
         if (args.length < 4) {
             LOGGER.info("Usage: envoiPropositions TNSAlias login password logfile [--no-interactive]");
             System.exit(1);
         }
 
-        String TNSAlias = args[0];
+        String tnsAlias = args[0];
         String login = args[1];
         String password = args[2];
         boolean interactif = args.length < 5 || !args[4].contentEquals("--no-interactive");
-
-        String logFile = args[3];
 
         if (interactif) {
             LOGGER.info("Mode interactif activé");
@@ -62,7 +62,24 @@ public class CalculOrdreAppelProd {
 
         LOGGER.info("Connection à la BD");
 
-        try (ConnecteurDonneesAppelOracle acces = new ConnecteurDonneesAppelOracle(TNSAlias, login, password, true)) {
+        /* utilisé pour renseigner le chemin vers le fichier de config  tnsnames.ora
+        "When using TNSNames with the JDBC Thin driver,
+        you must set the oracle.net.tns_admin property
+        to the directory that contains your tnsnames.ora file."        
+         */
+        String tnsAdmin = System.getenv("TNS_ADMIN");
+        if (tnsAdmin == null) {
+            throw new AccesDonneesException("La variable d'environnement TNS_ADMIN n'est pas positionnée.");
+        }
+
+        log("Connexion à la base Oracle en utilisant les paramètres de connexion du dossier TNS " + tnsAdmin);
+        System.setProperty("oracle.net.tns_admin", tnsAdmin);
+        OracleDataSource ods = new OracleDataSource();
+        ods.setURL("jdbc:oracle:thin:@" + tnsAlias);
+        ods.setUser(login);
+        ods.setPassword(password);
+
+        try (ConnecteurDonneesAppelOracle acces = new ConnecteurDonneesAppelOracle(ods.getConnection())) {
 
             LOGGER.info("Récupération des données");
             AlgoOrdreAppelEntree entree = acces.recupererDonneesOrdreAppel();
@@ -83,10 +100,9 @@ public class CalculOrdreAppelProd {
                     System.exit(0);
                 }
             }
-
+            
             LOGGER.info("Export des données");
             acces.exporterDonneesOrdresAppel(sortie);
-            
         }
 
         System.exit(0);
@@ -95,7 +111,7 @@ public class CalculOrdreAppelProd {
 
     /* renvoie true si l'utilisateur a demandé à quitter  */
     static boolean attendreMot(String mot, String but) {
-        Scanner reader = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in, "utf-8");
         boolean ok = true;
         while (ok) {
             LOGGER.log(Level.INFO, "Veuillez taper ''{0}'' pour {1} ou ''quitter'' pour quitter le programme.", new Object[]{mot, but});

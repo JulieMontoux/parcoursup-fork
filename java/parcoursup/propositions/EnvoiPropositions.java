@@ -20,12 +20,13 @@ l'Innovation,
  */
 package parcoursup.propositions;
 
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import parcoursup.donnees.Serialisation;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.AlgoPropositions;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.AlgoPropositionsSortie;
-import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositions;
 import parcoursup.verification.VerificationsResultatsAlgoPropositions;
 
@@ -42,40 +43,39 @@ public class EnvoiPropositions {
         this.acces = acces;
     }
 
-    public void execute(boolean logDonnees) throws Exception {
+    public void execute(boolean logDonnees) throws VerificationException, AccesDonneesException {
 
         LOGGER.info("Récupération des données");
         AlgoPropositionsEntree entree = acces.recupererDonnees();
 
         if (logDonnees) {
             LOGGER.info("Sauvegarde locale de l'entrée");
-            entree.serialiser(null);
+            new Serialisation<AlgoPropositionsEntree>().serialiserEtCompresser(
+                    entree,
+                    AlgoPropositionsEntree.class);
         }
 
         LOGGER.info("Calcul des propositions");
         AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
 
         LOGGER.info("Verification des resultat");
-        String logFile = "EnvoiPropositionsErrors.log";
         VerificationsResultatsAlgoPropositions verificationsResultats
-                = new VerificationsResultatsAlgoPropositions(logFile, false);
+                = new VerificationsResultatsAlgoPropositions();
         verificationsResultats.verifier(entree, sortie);
 
-        if (sortie.alerte) {
-            LOGGER.info("La vérification a déclenché une alerte. Les groupes suivants seront ignorés lors de l'exportation: ");
-            for (GroupeAffectation grp : sortie.groupesNonExportes) {
-                LOGGER.info(grp.id.toString());
-            }
-            LOGGER.log(Level.INFO, "Veuillez consulter le fichier de log {0} pour plus de d\u00e9tails.", logFile);
+        if (sortie.getAlerte()) {
+            LOGGER.info(sortie.getAlerteMessage());
         }
 
-        if (sortie.avertissement) {
+        if (sortie.getAvertissement()) {
             LOGGER.info("La vérification a déclenché un avertissement.");
         }
 
         if (logDonnees) {
             LOGGER.info("Sauvegarde locale de la sortie");
-            sortie.serialiser(null);
+            new Serialisation<AlgoPropositionsSortie>().serialiserEtCompresser(
+                    sortie,
+                    AlgoPropositionsSortie.class);
         }
 
         LOGGER.info("Export des données");

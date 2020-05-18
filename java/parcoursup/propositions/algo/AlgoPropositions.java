@@ -20,7 +20,6 @@ l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
  */
 package parcoursup.propositions.algo;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -34,6 +33,7 @@ import parcoursup.propositions.meilleursbacheliers.AlgoMeilleursBacheliersDonnee
 import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
 import parcoursup.propositions.repondeur.RepondeurAutomatique;
 import static parcoursup.verification.VerificationEntreeAlgoPropositions.verifierIntegrite;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.verification.VerificationResultatsAlgoMeilleurBachelier;
 
 public class AlgoPropositions {
@@ -41,20 +41,29 @@ public class AlgoPropositions {
     private static final Logger LOGGER = Logger.getLogger(AlgoPropositions.class.getSimpleName());
 
     /* la boucle principale du calcul des propositions à envoyer */
-    public static AlgoPropositionsSortie calcule(AlgoPropositionsEntree entree) throws IOException, Exception {
+    public static AlgoPropositionsSortie calcule(
+            AlgoPropositionsEntree entree) throws VerificationException {
+        return calcule(entree, true);
+    }
+
+    public static AlgoPropositionsSortie calcule(
+            AlgoPropositionsEntree entree,
+            boolean verifier) throws VerificationException {
 
         LOGGER.info("Début calcul propositions");
 
-        LOGGER.info("Initialisation des infos Meilleurs Bacheliers");
-        Map<Integer, MeilleurBachelier> meilleursBacheliers = new HashMap<>();
-        for (MeilleurBachelier mb : entree.meilleursBacheliers) {
-            meilleursBacheliers.put(mb.G_CN_COD, mb);
-        }
-        for (Voeu v : entree.voeux) {
-            MeilleurBachelier mb = meilleursBacheliers.get(v.id.G_CN_COD);
-            if (mb != null) {
-                v.setMeilleurBachelier(mb);
-            }
+        if (!entree.meilleursBacheliers.isEmpty()) {
+            LOGGER.info("Initialisation des infos Meilleurs Bacheliers");
+            Map<Integer, MeilleurBachelier> meilleursBacheliers = new HashMap<>();
+            entree.meilleursBacheliers.forEach(mb
+                    -> meilleursBacheliers.put(mb.gCnCod, mb)
+            );
+            entree.voeux.forEach(v -> {
+                MeilleurBachelier mb = meilleursBacheliers.get(v.id.gCnCod);
+                if (mb != null) {
+                    v.setMeilleurBachelier(mb);
+                }
+            });
         }
 
         /* chaque passage dans cette boucle correspond à un calcul des propositions
@@ -62,13 +71,16 @@ public class AlgoPropositions {
         ayant activé leur répondeur automatique */
         while (true) {
 
+            LOGGER.info("Préparation des groupes");
             preparerGroupes(entree);
 
             entree.loggerEtatAdmission();
 
             /* vérification de l'intégrité des données d'entrée */
-            LOGGER.info("Vérification de l'intégrité des données d'entrée");
-            verifierIntegrite(entree);
+            if (verifier) {
+                LOGGER.info("Vérification de l'intégrité des données d'entrée");
+                verifierIntegrite(entree);
+            }
 
             if (entree.nbPlacesMeilleursBacheliers.isEmpty()) {
                 LOGGER.info("Aucune place réservée aux meilleurs bacheliers");
@@ -88,13 +100,15 @@ public class AlgoPropositions {
                 donneesMB.groupes.addAll(entree.groupesAffectations.values());
                 AlgoMeilleursBacheliers.appliquerDispositifMeilleursBacheliers(donneesMB);
 
-                LOGGER.info("Vérification des résultats de l'algo MB");
-                /* vérification de l'intégrité des données d'entrée après remontée MB */
-                VerificationResultatsAlgoMeilleurBachelier.verifier(donneesMB);
+                if (verifier) {
+                    LOGGER.info("Vérification des résultats de l'algo MB");
+                    /* vérification de l'intégrité des données d'entrée après remontée MB */
+                    VerificationResultatsAlgoMeilleurBachelier.verifier(donneesMB);
 
-                LOGGER.info("Vérification de l'intégrité des données d'entrée"
-                        + " après remontée MB");
-                verifierIntegrite(entree);
+                    LOGGER.info("Vérification de l'intégrité des données d'entrée"
+                            + " après remontée MB");
+                    verifierIntegrite(entree);
+                }
 
             }
 
@@ -104,23 +118,22 @@ public class AlgoPropositions {
 
             /* initialisation des positions maximales d'admission dans les internats */
             for (GroupeInternat internat : entree.internats.values()) {
-                internat.initialiserPositionAdmission();
+                internat.initialiserPositionAdmission(entree.getParametres());
             }
 
             int compteurBoucle = 0;
-            while (groupesAMettreAJour.size() > 0) {
+            while (!groupesAMettreAJour.isEmpty()) {
 
                 compteurBoucle++;
 
-                LOGGER.log(Level.INFO, "Itération " + compteurBoucle
-                        + ": mise à jour des propositions dans {0} groupes d'affectations",
-                        groupesAMettreAJour.size()
-                );
+                LOGGER.log(Level.INFO, "It\u00e9ration {0}: "
+                        + "mise \u00e0 jour des propositions dans {1} groupes d''affectations",
+                        new Object[]{compteurBoucle, groupesAMettreAJour.size()});
 
                 /* calcul des propositions à effectuer,
                 étant données les positions actuelles d'admissions aux internats */
-                for (GroupeAffectation gc : groupesAMettreAJour) {
-                    gc.mettreAJourPropositions();
+                for(GroupeAffectation gc : groupesAMettreAJour) {
+                        gc.mettreAJourPropositions();
                 }
 
                 /* Test de surcapacité des internats, avec
@@ -185,7 +198,7 @@ public class AlgoPropositions {
                     if (v.estAffecteHorsPP()) {
                         continue;
                     }
-                    if (entree.candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD)) {
+                    if (entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)) {
                         voeuxDesCandidatsAvecRepAuto.add(v);
                     }
                 }
@@ -193,17 +206,18 @@ public class AlgoPropositions {
 
                 placesLibereesParRepAuto
                         = RepondeurAutomatique.reponsesAutomatiques(voeuxDesCandidatsAvecRepAuto);
+                /* si le répondeur ne libère pas de place, le calcul est terminé */
+                if (placesLibereesParRepAuto == 0) {
+                    LOGGER.info("Aucune place libérée par le répondeur automatique");
+                    break;
+                } else {
+                    LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
+                            placesLibereesParRepAuto);
+                }
+                
             } else {
                 LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
-            }
-
-            /* si le répondeur ne libère pas de place, le calcul est terminé */
-            if (placesLibereesParRepAuto == 0) {
-                LOGGER.info("Aucune place libérée par le répondeur automatique");
                 break;
-            } else {
-                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
-                        placesLibereesParRepAuto);
             }
 
         }
@@ -211,7 +225,7 @@ public class AlgoPropositions {
         LOGGER.info(
                 "Préparation données de sortie");
 
-        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie();
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(entree.getParametres());
         sortie.voeux.addAll(entree.voeux);
         sortie.internats.addAll(entree.internats.values());
         sortie.groupes.addAll(entree.groupesAffectations.values());
@@ -224,21 +238,21 @@ public class AlgoPropositions {
     }
 
     /* ventile les voeux encore en attente dans les groupes concernés */
-    private static void preparerGroupes(AlgoPropositionsEntree entree) {
+    public static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
         /* réinitialisation des groupes */
-        for (GroupeAffectation groupe : entree.groupesAffectations.values()) {
-            groupe.reinitialiser();
-        }
-        for (GroupeInternat internat : entree.internats.values()) {
-            internat.reinitialiser();
-        }
+        entree.groupesAffectations.values().stream().parallel().forEach(
+                GroupeAffectation::reinitialiser
+        );
+        entree.internats.values().stream().parallel().forEach(
+                GroupeInternat::reinitialiser
+        );
 
         /* ajout des voeux aux groupes  et remise à leurs valeurs initiales
             des ordres d'appels (modifiables temporairement par dispositif MB) */
         for (Voeu v : entree.voeux) {
             v.ordreAppel = v.ordreAppelInitial;
             v.repondeurActive = (v.rangRepondeur > 0)
-                    && entree.candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD);
+                    && entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod);
             v.ajouterAuxGroupes();
         }
     }

@@ -22,19 +22,19 @@ l'Innovation,
 package parcoursup.ordreappel.algo;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import parcoursup.exceptions.VerificationException;
 
 public class GroupeClassement {
 
     /*le code identifiant le groupe de classement dans la base de données 
         Remarque: un même groupe de classement peut être commun à plusieurs formations
      */
-    public final int C_GP_COD;
+    public final int cGpCod;
 
     /* le taux minimum de boursiers dans ce groupe d'appel 
         (nombre min de boursiers pour 100 candidats) */
@@ -48,10 +48,18 @@ public class GroupeClassement {
     public final List<VoeuClasse> voeuxClasses = new ArrayList<>();
 
     public GroupeClassement(
-            int C_GP_COD,
+            int cGpCod,
             int tauxMinBoursiersPourcents,
-            int tauxMinResidentsPourcents) {
-        this.C_GP_COD = C_GP_COD;
+            int tauxMinResidentsPourcents) throws VerificationException {
+        
+        if (tauxMinBoursiersPourcents < 0
+                || tauxMinBoursiersPourcents > 100
+                || tauxMinResidentsPourcents < 0
+                || tauxMinResidentsPourcents > 100) {
+            throw new VerificationException("Taux incohérents");
+        }
+
+        this.cGpCod = cGpCod;
         this.tauxMinBoursiersPourcents = tauxMinBoursiersPourcents;
         this.tauxMinDuSecteurPourcents = tauxMinResidentsPourcents;
     }
@@ -61,13 +69,18 @@ public class GroupeClassement {
     }
 
     /* calcule de l'ordre d'appel */
-    public OrdreAppel calculerOrdreAppel() {
+    public OrdreAppel calculerOrdreAppel() throws VerificationException {
 
 
+        /* prévention d'un depassement arithmétique possible théoriquement */
+        if(voeuxClasses.size()  >= Integer.MAX_VALUE) {
+            throw new VerificationException("Possibilité de capacité arithmetique");
+        }
+        
         /* on crée autant de listes de candidats que de types de candidats, 
             triées par ordre de classement */
-        Map<VoeuClasse.TypeCandidat, Queue<VoeuClasse>> filesAttente
-                = new HashMap<>();
+        EnumMap<VoeuClasse.TypeCandidat, Queue<VoeuClasse>> filesAttente
+                = new EnumMap<>(VoeuClasse.TypeCandidat.class);
 
         for (VoeuClasse.TypeCandidat type : VoeuClasse.TypeCandidat.values()) {
             filesAttente.put(type, new LinkedList<>());
@@ -77,8 +90,8 @@ public class GroupeClassement {
         en fonction du type du candidat. 
         Les quatre listes obtenues sont ordonnées par rang de classement, 
         comme l'est la liste voeuxClasses. */
-        int nbBoursiersTotal = 0;
-        int nbResidentsTotal = 0;
+        long nbBoursiersTotal = 0;
+        long nbResidentsTotal = 0;
 
         /* on trie les candidats par classement, 
         les candidats les mieux classés en tête de liste  */
@@ -97,9 +110,9 @@ public class GroupeClassement {
             }
         }
 
-        int nbAppeles = 0;
-        int nbBoursiersAppeles = 0;
-        int nbResidentsAppeles = 0;
+        long nbAppeles = 0;
+        long nbBoursiersAppeles = 0;
+        long nbResidentsAppeles = 0;
 
         /* la boucle ajoute les candidats un par un à la liste suivante,
             dans l'ordre d'appel */
@@ -134,7 +147,7 @@ public class GroupeClassement {
             /* stocke le meilleur candidat à appeler tout en respectant
             les deux contraintes si possible 
             ou à défaut seulement la contrainte sur le taux boursier */
-            VoeuClasse meilleur = null;
+            VoeuClasse meilleur;
 
             if (!eligibles.isEmpty()) {
                 meilleur = eligibles.peek();
@@ -146,22 +159,24 @@ public class GroupeClassement {
                 et il ne reste plus de boursier du secteur, 
                 donc il reste au moins un boursier hors-secteur */
                 assert contrainteTauxBoursier && contrainteTauxResident;
-                assert filesAttente.get(VoeuClasse.TypeCandidat.BoursierDuSecteur).isEmpty();
-                assert !filesAttente.get(VoeuClasse.TypeCandidat.BoursierHorsSecteur).isEmpty();
+                assert filesAttente.get(VoeuClasse.TypeCandidat.BOURSIER_DU_SECTEUR).isEmpty();
+                assert !filesAttente.get(VoeuClasse.TypeCandidat.BOURSIER_HORS_SECTEUR).isEmpty();
 
-                Queue<VoeuClasse> CandidatsBoursierNonResident
-                        = filesAttente.get(VoeuClasse.TypeCandidat.BoursierHorsSecteur);
+                Queue<VoeuClasse> candidatsBoursierNonResident
+                        = filesAttente.get(VoeuClasse.TypeCandidat.BOURSIER_HORS_SECTEUR);
 
-                meilleur = CandidatsBoursierNonResident.peek();
+                meilleur = candidatsBoursierNonResident.peek();
             }
 
             /* suppression du candidat choisi de sa file d'attente */
             Queue<VoeuClasse> queue = filesAttente.get(meilleur.typeCandidat);
-            assert meilleur == queue.peek();
-            queue.poll();
+            VoeuClasse poll = queue.poll();
+            if(poll != meilleur) {
+                throw new AssertionError("Le meilleur est toujours en tête de la file à dépiler");
+            }
 
             /* ajout du meilleur candidat à l'ordre d'appel*/
-            ordreAppel.add(meilleur);
+            ordreAppel.add(poll);
 
             /* mise à jour des compteurs */
             nbAppeles++;
@@ -177,7 +192,7 @@ public class GroupeClassement {
         /* mise à jour des ordres d'appel */
         int rangAppel = 1;
         for (VoeuClasse v : ordreAppel) {
-            v.rangAppel = rangAppel;
+            v.setRangAppel(rangAppel);
             rangAppel++;
         }
 
@@ -186,4 +201,8 @@ public class GroupeClassement {
 
     }
 
+    @Override
+    public String toString() {
+        return "cGpCod=" +cGpCod;
+    }
 }

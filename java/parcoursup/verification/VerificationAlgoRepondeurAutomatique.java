@@ -21,6 +21,7 @@ l'Innovation,
  */
 package parcoursup.verification;
 
+import parcoursup.exceptions.VerificationException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -42,47 +43,67 @@ public class VerificationAlgoRepondeurAutomatique {
     P7.3 Si un candidat a renoncé automatiquement à une proposition ou un voeu en attente
     alors le même jour il a reçu une nouvelle proposition sur un voeu mieux classé 
     et l'a acceptée automatiquement.
-     */
-    public static void verifier(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws Exception {
+
+    P7.4 Si un candidat a activé son RA alors tous ses voeux sont classés dans le RA,
+    excepté éventuellement les propositions des jours précédents.
+    */
+    
+    public static void verifier(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws VerificationException {
 
         /* Vérification P7.1 */
         for (Voeu v : voeux) {
             if ((v.estDemissionAutomatique() || v.estAcceptationAutomatique())
-                    && !candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD)) {
-                throw new RuntimeException("Inconsistence logique: invaidation de P7.1");
+                    && !candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)) {
+                throw new VerificationException("RepAuto violation P7.1: "
+                        + "'Si un candidat a accepté automatiquement une proposition "
+                        + "ou renoncé automatiquement à un voeu " 
+                        + " alors son répondeur automatique est activé'. Voeu en cause: "
+                        + v);
+            }
+            if(candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)
+                    && (v.rangRepondeur <=0) 
+                    && !v.estAffecteJoursPrecedents()
+                    && !v.estDemissionAutomatiqueProposition()
+                    ) {
+                throw new VerificationException("RepAuto violation P7.4: "
+                        + "'Si un candidat a activé son RA alors tous ses voeux sont classés dans le RA,"
+                        + " excepté éventuellement les propositions des jours précédents'. Voeu en cause: "
+                        + v);                
             }
         }
 
         /* Vérification P7.2 */
         Map<Integer, Voeu> propositionsAuxCandidatsAvecRepAuto = new HashMap<>();
         for (Voeu v : voeux) {
-            if(!candidatsAvecRepondeurAutomatique.contains(v.id.G_CN_COD) 
+            if (!candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)
                     || v.estAffecteHorsPP()) {
                 continue;
             }
-            int G_CN_COD = v.id.G_CN_COD;
+            int gCnCod = v.id.gCnCod;
             if (v.estAcceptationAutomatique() || v.estAffecteJoursPrecedents()) {
-                if (propositionsAuxCandidatsAvecRepAuto.containsKey(G_CN_COD)) {
-                    throw new RuntimeException("RepAuto Violation P7.2");
+                if (propositionsAuxCandidatsAvecRepAuto.containsKey(gCnCod)) {
+                    throw new VerificationException("RepAuto Violation P7.2"
+                            + "'Si un candidat a activé son répondeur automatique "
+                            + " alors il a au plus une proposition en PP,"
+                            + " et cette proposition est acceptée'. Candidat en cause " + gCnCod);
                 }
-                propositionsAuxCandidatsAvecRepAuto.put(G_CN_COD, v);
+                propositionsAuxCandidatsAvecRepAuto.put(gCnCod, v);
             }
         }
 
         /* Vérification P7.3 */
         for (Voeu v : voeux) {
-            int G_CN_COD = v.id.G_CN_COD;
+            int gCnCod = v.id.gCnCod;
             if (v.estDemissionAutomatique()) {
-                Voeu proposition = propositionsAuxCandidatsAvecRepAuto.getOrDefault(G_CN_COD, null);
-                if (proposition == null) {
-                    throw new RuntimeException("Inconsistence logique: invaidation  P7.3");
-                }
-                if (!proposition.estAcceptationAutomatique() || proposition.rangRepondeur <= 0) {
-                    throw new RuntimeException("Inconsistence logique: invaidation  P7.3");
-                }
-                if (v.estDemissionAutomatiqueVoeuAttente() 
-                        && proposition.rangRepondeur > v.rangRepondeur) {
-                    throw new RuntimeException("Inconsistence logique: invalidation  P7.3");
+                Voeu proposition = propositionsAuxCandidatsAvecRepAuto.getOrDefault(gCnCod, null);
+                if (proposition == null
+                        || (!proposition.estAcceptationAutomatique() || proposition.rangRepondeur <= 0)
+                        || (v.estDemissionAutomatiqueVoeuAttente() && proposition.rangRepondeur > v.rangRepondeur)) {
+                    throw new VerificationException("Viloation propriété  P7.3"
+                            + "'Si un candidat a renoncé automatiquement à une proposition "
+                            + "ou un voeu en attente alors il a reçu une nouvelle proposition"
+                            + " sur un voeu mieux classé et l'a acceptée automatiquement'."
+                            + "Voeu en cause " + v);
                 }
             }
         }

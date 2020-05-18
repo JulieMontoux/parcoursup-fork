@@ -24,43 +24,55 @@ package parcoursup.propositions.algo;
 public class GroupeAffectationUID {
 
     /*l'identifiant unique du groupe de classement pédagogique dans la base de données */
-    public final int C_GP_COD;
+    public final int cGpCod;
 
     /*l'identifiant unique de la formation d'inscription dans la base de données.*/
-    public final int G_TI_COD;
+    public final int gTiCod;
 
     /*l'identifiant unique de la formation d'affectation dans la base de données.*/
-    public final int G_TA_COD;
+    public final int gTaCod;
 
     public GroupeAffectationUID(
-            int C_GP_COD,
-            int G_TI_COD,
-            int G_TA_COD) {
-        this.C_GP_COD = C_GP_COD;
-        this.G_TI_COD = G_TI_COD;
-        this.G_TA_COD = G_TA_COD;
+            int cGpCod,
+            int gTiCod,
+            int gTacod) {
+        this.cGpCod = cGpCod;
+        this.gTiCod = gTiCod;
+        this.gTaCod = gTacod;
+    }
+
+    public GroupeAffectationUID(GroupeAffectationUID o) {
+        this(o.cGpCod, o.gTiCod, o.gTaCod);
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof GroupeAffectationUID) {
+        if (obj == null) {
+            return false;
+        } else if (obj instanceof GroupeAffectationUID) {
             GroupeAffectationUID ta = (GroupeAffectationUID) obj;
-            return this.C_GP_COD == ta.C_GP_COD
-                    && this.G_TI_COD == ta.G_TI_COD
-                    && this.G_TA_COD == ta.G_TA_COD;
+            return this.cGpCod == ta.cGpCod
+                    && this.gTiCod == ta.gTiCod
+                    && this.gTaCod == ta.gTaCod;
         } else {
-            throw new RuntimeException("Test d'égalité imprévu");
+            throw new ClassCastException("Test d'égalité imprévu");
         }
     }
 
     @Override
     public int hashCode() {
-        return Integer.hashCode(C_GP_COD ^ (G_TI_COD << 10) ^ (G_TA_COD << 20));
+        return Integer.hashCode(cGpCod ^ (gTiCod << 10) ^ (gTaCod << 20));
     }
-    
+
     @Override
     public String toString() {
-        return "C_GP_COD=" + C_GP_COD + " AND G_TI_COD=" + G_TI_COD + " AND G_TA_COD=" + G_TA_COD;
+        return "C_GP_COD=" + cGpCod + " AND G_TI_COD=" + gTiCod + " AND g_ta_cod=" + gTaCod;
+    }
+
+    private GroupeAffectationUID() {
+        this.cGpCod = 0;
+        this.gTiCod = 0;
+        this.gTaCod = 0;
     }
 
 }

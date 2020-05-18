@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.xml.bind.annotation.XmlTransient;
+import parcoursup.exceptions.VerificationException;
 
 public class GroupeAffectation {
 
@@ -36,35 +38,52 @@ public class GroupeAffectation {
 
     /* le rang limite des candidats (dans l'ordre d'appel): 
     tous les candidats de rang inférieur reçoivent une proposition */
-    public final int rangLimite;
+    private int rangLimite;
+    
+    public int getRangLimite() {
+        return rangLimite;
+    }
+
+    public void setRangLimite(int rang) {
+        rangLimite = rang;
+    }
 
     /* évaluation du rang du dernier appelé à la date pivot.
     Utilisée pour la gestion des places d'internats */
     public final int estimationRangDernierAppeleADatePivot;
 
     /* le rang du dernier appelé, affiché dans les formations avec internat */
-    public int rangDernierAppeleAffiche = 0;
+    private int rangDernierAppeleAffiche = 0;
+    
+    public int getRangDernierAppeleAffiche() {
+        return rangDernierAppeleAffiche;
+    }
+    
+    public void setRangDernierAppeleAffiche(int rang) {
+        rangDernierAppeleAffiche = rang;
+    }
 
     /* constructeur */
     public GroupeAffectation(
             int nbRecrutementsSouhaite,
             GroupeAffectationUID id,
             int rangLimite,
-            int rangDernierAppele) {
+            int rangDernierAppele,
+            Parametres parametres) throws VerificationException {
         if (nbRecrutementsSouhaite < 0 || rangLimite < 0 || rangDernierAppele < 0) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de GroupeAffectation");
+            throw new VerificationException("Incohérence dans les paramètres du constructeur de GroupeAffectation");
         }
         this.id = id;
         this.nbRecrutementsSouhaite = nbRecrutementsSouhaite;
         this.rangLimite = rangLimite;
-        if (rangDernierAppele == 0 || GroupeInternat.nbJoursCampagne <= 1) {
+        if (rangDernierAppele == 0 || parametres.nbJoursCampagne <= 1) {
             this.estimationRangDernierAppeleADatePivot = Integer.MAX_VALUE;
-        } else if (GroupeInternat.nbJoursCampagne < GroupeInternat.nbJoursCampagneDatePivotInternats) {
+        } else if (parametres.nbJoursCampagne < parametres.nbJoursCampagneDatePivotInternats) {
             this.estimationRangDernierAppeleADatePivot
                     = Math.max(rangLimite,
                             rangDernierAppele
-                            * GroupeInternat.nbJoursCampagneDatePivotInternats
-                            / (GroupeInternat.nbJoursCampagne - 1)
+                            * parametres.nbJoursCampagneDatePivotInternats
+                            / (parametres.nbJoursCampagne - 1)
                     );
         } else {
             this.estimationRangDernierAppeleADatePivot
@@ -72,14 +91,23 @@ public class GroupeAffectation {
         }
     }
 
+    public GroupeAffectation(GroupeAffectation o, Parametres p) throws VerificationException {
+        this(
+                o.nbRecrutementsSouhaite, 
+                o.id, 
+                o.rangLimite, 
+                o.rangDernierAppeleAffiche, 
+                p);
+    }
+    
     /* ajoute un voeu dans le groupe */
     void ajouterVoeuEnAttenteDeProposition(Voeu voe) {
         voeuxEnAttente.add(voe);
     }
 
     /* ajoute un candidat affecté */
-    public void ajouterCandidatAffecte(int G_CN_COD) {
-        candidatsAffectes.add(G_CN_COD);
+    public void ajouterCandidatAffecte(int gCnCod) {
+        candidatsAffectes.add(gCnCod);
     }
 
     public void reinitialiser() {
@@ -87,18 +115,16 @@ public class GroupeAffectation {
         candidatsAffectes.clear();
     }
 
-    public boolean estAffecte(int G_CN_COD) {
-        return candidatsAffectes.contains(G_CN_COD);
+    public boolean estAffecte(int gCnCod) {
+        return candidatsAffectes.contains(gCnCod);
     }
 
     /* met a jour le statut aProposer, pour chaque voeu du groupe */
-    void mettreAJourPropositions() {
+    void mettreAJourPropositions() throws VerificationException {
 
         int aPourvoir = nbPlacesVacantes();
 
-        voeuxEnAttente.forEach((v) -> {
-            v.nePasProposer();
-        });
+        voeuxEnAttente.forEach(Voeu::nePasProposer);
 
         /* on calcule le nombre de propositions dues au rang limite.
            Les voeuxEnAttente désactivés pour cause de demande d'internat impossible à satisfaire
@@ -130,17 +156,17 @@ public class GroupeAffectation {
             if (aPourvoir > 0
                     || v.ordreAppelInitial <= rangLimite
                     || v.formationDejaObtenue() /* variante permet d'éviter les sous-capacités internat */
-                    || dernierCandidatAvecProposition == v.id.G_CN_COD) {
+                    || dernierCandidatAvecProposition == v.id.gCnCod) {
 
                 v.proposer();
 
                 /* on décroit la capacité résiduelle si il y a lieu de le faire */
                 if (!v.formationDejaObtenue()
-                        && dernierCandidatAvecProposition != v.id.G_CN_COD) {
+                        && dernierCandidatAvecProposition != v.id.gCnCod) {
                     aPourvoir--;
                 }
 
-                dernierCandidatAvecProposition = v.id.G_CN_COD;
+                dernierCandidatAvecProposition = v.id.gCnCod;
 
             }
         }
@@ -156,6 +182,7 @@ public class GroupeAffectation {
     /* la liste initiale des voeuxEnAttente du groupe, triée dans l'ordre d'appel du candidat.
     Remarque: c'est un ordre partiel car il peut y avoir deux voeuxEnAttente du même candidat,
     un avec internat et l'autre sans. */
+    @XmlTransient
     public final List<Voeu> voeuxEnAttente = new ArrayList<>();
 
     /* trie les voeuxEnAttente dans l'ordre d'appel */
@@ -164,6 +191,7 @@ public class GroupeAffectation {
         return Collections.unmodifiableList(voeuxEnAttente);
     }
 
+    @XmlTransient
     private final Set<Integer> candidatsAffectes = new HashSet<>();
 
     @Override
@@ -171,4 +199,11 @@ public class GroupeAffectation {
         return id.toString();
     }
 
+    private GroupeAffectation() {
+        this.id = null;
+        this.nbRecrutementsSouhaite = 0;
+        this.estimationRangDernierAppeleADatePivot = 0;
+    }
+    
+    
 }

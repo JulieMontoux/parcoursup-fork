@@ -24,6 +24,7 @@ import java.io.File;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.AlgoOrdreAppel;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
@@ -35,9 +36,9 @@ public abstract class ExempleOrdreAppel {
     abstract String nom();
 
     /* crée un groupe de classement avec les données de l'exemple */
-    abstract GroupeClassement initialise();
+    abstract GroupeClassement initialise() throws VerificationException ;
 
-    public void execute(boolean logFiles) throws JAXBException, Exception {
+    public void execute(boolean logFiles) throws JAXBException, VerificationException {
 
         GroupeClassement groupe = initialise();
 
@@ -57,6 +58,7 @@ public abstract class ExempleOrdreAppel {
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             m.marshal(sortie, new File(nom() + "_sortie.xml"));
         }
+        
     }
 
 }

@@ -19,42 +19,44 @@
  */
 package parcoursup.prod;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.Scanner;
-import javax.xml.bind.JAXBException;
 import oracle.jdbc.pool.OracleDataSource;
+import parcoursup.exceptions.AccesDonneesException;
 import parcoursup.propositions.algo.AlgoPropositions;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.AlgoPropositionsSortie;
 import parcoursup.propositions.donnees.ConnecteurDonneesPropositionsOracle;
 import parcoursup.verification.VerificationsResultatsAlgoPropositions;
 
+import java.time.LocalDateTime;
+import java.util.Scanner;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import parcoursup.donnees.Serialisation;
+
 public class EnvoiPropositionsProd {
+
+    private static final Logger LOGGER = Logger.getLogger(EnvoiPropositionsProd.class.getSimpleName());
 
     /**
      * @param args the command line arguments
-     * @throws javax.xml.bind.JAXBException
-     * @throws java.sql.SQLException
-     * @throws java.io.IOException
+     * @throws parcoursup.exceptions.AccesDonneesException
      */
-    public static void main(String[] args) throws JAXBException, SQLException, IOException, Exception {
+    public static void main(String[] args) throws AccesDonneesException {
 
         try {
-
             if (args.length < 4) {
-                log("Usage: envoiPropositions TNSAlias login password logfile [--no-interactive]");
+                log("Usage: envoiPropositions TNSAlias login password output_dir [--no-interactive]");
                 System.exit(1);
             }
 
-            String TNSAlias = args[0];
+            String tnsAlias = args[0];
             String login = args[1];
             String password = args[2];
             boolean interactif = args.length < 5 || !args[4].contentEquals("--no-interactive");
 
-            String logFile = args[3];
+            String outputDir = args[3];
+            String fileSuffix = LocalDateTime.now().toString();
 
             if (interactif) {
                 log("Mode interactif activé");
@@ -69,91 +71,95 @@ public class EnvoiPropositionsProd {
         you must set the oracle.net.tns_admin property
         to the directory that contains your tnsnames.ora file."        
              */
-            String TNS_ADMIN = System.getenv("TNS_ADMIN");
-            if (TNS_ADMIN == null) {
-                throw new RuntimeException("La variable d'environnement TNS_ADMIN n'est pas positionnée.");
+            String tnsAdmin = System.getenv("TNS_ADMIN");
+            if (tnsAdmin == null) {
+                throw new AccesDonneesException("La variable d'environnement TNS_ADMIN n'est pas positionnée.");
             }
-            log("Connexion à la base Oracle en utilisant les paramètres de connexion du dossier TNS " + TNS_ADMIN);
-            System.setProperty("oracle.net.tns_admin", TNS_ADMIN);
-
+            log("Connexion à la base Oracle en utilisant les paramètres de connexion du dossier TNS " + tnsAdmin);
+            System.setProperty("oracle.net.tns_admin", tnsAdmin);
             OracleDataSource ods = new OracleDataSource();
-
-            ods.setURL("jdbc:oracle:thin:@" + TNSAlias);
+            ods.setURL("jdbc:oracle:thin:@" + tnsAlias);
             ods.setUser(login);
             ods.setPassword(password);
-            Connection conn = ods.getConnection();
 
-            log("Création de l'accès à la BD");
-            ConnecteurDonneesPropositionsOracle acces
-                    = new ConnecteurDonneesPropositionsOracle(conn);
+            try (
+                    ConnecteurDonneesPropositionsOracle acces
+                    = new ConnecteurDonneesPropositionsOracle(
+                            ods.getConnection())) {
 
-            log("Récupération des données");
-            AlgoPropositionsEntree entree = acces.recupererDonnees();
+                log("Récupération des données");
+                AlgoPropositionsEntree entree = acces.recupererDonnees();
 
-            log("Sauvegarde locale de l'entrée");
-            entree.serialiser(null);
+                log("Sauvegarde locale de l'entrée");
+                new Serialisation<AlgoPropositionsEntree>().serialiserEtCompresser(
+                        outputDir + "/" + "entree_" + fileSuffix + ".xml",
+                        entree,
+                        AlgoPropositionsEntree.class
+                );
 
-            if (interactif) {
-                boolean quitter = attendreMot("calculer", "calculer les propositions");
-                if (quitter) {
+                if (interactif) {
+                    boolean quitter = attendreMot("calculer", "calculer les propositions");
+                    if (quitter) {
+                        System.exit(0);
+                    }
+                }
+
+                log("Calcul des propositions");
+                AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
+
+                log("Vérification des " + sortie.propositionsDuJour().count() + " propositions");
+                VerificationsResultatsAlgoPropositions verificationsResultats
+                        = new VerificationsResultatsAlgoPropositions();
+                verificationsResultats.verifier(entree, sortie);
+
+                if (sortie.getAlerte()) {
+                    log(sortie.getAlerteMessage());
+                }
+
+                if (sortie.getAvertissement()) {
+                    log("La vérification a déclenché un avertissement.");
+                }
+
+                if (interactif) {
+                    boolean quitter = attendreMot("exporter", "exporter les propositions");
+                    if (quitter) {
+                        System.exit(0);
+                    }
+                }
+
+                log("Sauvegarde locale de la sortie");
+                new Serialisation<AlgoPropositionsSortie>().serialiserEtCompresser(
+                        outputDir + "/" + "sortie_" + fileSuffix + ".xml",
+                        sortie,
+                        AlgoPropositionsSortie.class
+                );
+
+                log("Export des données");
+                acces.exporterDonnees(sortie);
+
+                if (sortie.getAlerte()) {
+                    System.exit(1);
+                } else if (sortie.getAvertissement()) {
+                    System.exit(2);
+                } else {
                     System.exit(0);
                 }
             }
 
-            log("Calcul des propositions");
-            AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
-
-            log("Vérification des " + sortie.propositionsDuJour().count() + " propositions");
-            VerificationsResultatsAlgoPropositions verificationsResultats
-                    = new VerificationsResultatsAlgoPropositions(logFile, false);
-            verificationsResultats.verifier(entree, sortie);
-
-            if (sortie.alerte) {
-                log("La vérification a déclenché une alerte. Les groupes suivants "
-                        + " seront ignorés lors de l'exportation: " + sortie.groupesNonExportes);
-                log("Veuillez consulter le fichier de log " + logFile
-                        + " pour plus de détails.");
-            }
-
-            if (sortie.avertissement) {
-                log("La vérification a déclenché un avertissement.");
-            }
-
-            if (interactif) {
-                boolean quitter = attendreMot("exporter", "exporter les propositions");
-                if (quitter) {
-                    System.exit(0);
-                }
-            }
-
-            log("Sauvegarde locale de la sortie");
-            sortie.serialiser(null);
-
-            log("Export des données");
-            acces.exporterDonnees(sortie);
-
-            if (sortie.alerte) {
-                System.exit(1);
-            } else if (sortie.avertissement) {
-                System.exit(2);
-            } else {
-                System.exit(0);
-            }
         } catch (Exception e) {
-            System.out.println("envoiPropositions a échoué suite à l'erreur suivante.");
-            System.out.println(e.getMessage());
-            e.printStackTrace(System.out);
+            log("envoiPropositions a échoué suite à l'erreur suivante.");
+            LOGGER.log(Level.SEVERE, e.getMessage(), e);
             System.exit(1);
         }
     }
 
     static void log(String msg) {
-        System.out.println(LocalDateTime.now().toLocalTime() + ": " + msg);
+        LOGGER.info(msg);
     }
 
     /* renvoie true si l'utilisateur a demandé à quitter  */
     static boolean attendreMot(String mot, String but) {
-        Scanner reader = new Scanner(System.in);
+        Scanner reader = new Scanner(System.in, "utf-8");
         boolean ok = true;
         while (ok) {
             log("Veuillez taper '" + mot + "' pour " + but

@@ -35,6 +35,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import static java.util.stream.Collectors.joining;
 import parcoursup.donnees.ConnecteurOracle;
+import static parcoursup.donnees.SQLStringsConstants.SELECT;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelEntree;
 import parcoursup.ordreappel.algo.AlgoOrdreAppelSortie;
 import parcoursup.ordreappel.algo.CandidatClasse;
@@ -44,16 +47,14 @@ import parcoursup.ordreappel.algo.VoeuClasse;
 
 public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, java.lang.AutoCloseable {
 
-     
     public ConnecteurDonneesAppelOracle(
             String url,
             String user,
-            String password,
-            boolean useTNSNames) throws SQLException {
-        co = new ConnecteurOracle(url, user, password, false);
+            String password) throws AccesDonneesException {
+        co = new ConnecteurOracle(url, user, password);
     }
 
-    public ConnecteurDonneesAppelOracle(Connection connection) {
+    public ConnecteurDonneesAppelOracle(Connection connection) throws AccesDonneesException {
         co = new ConnecteurOracle(connection);
     }
 
@@ -66,23 +67,24 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
 
     /* chargement des classements depuis la base de données */
     @Override
-    public AlgoOrdreAppelEntree recupererDonneesOrdreAppel() throws SQLException {
+    public AlgoOrdreAppelEntree recupererDonneesOrdreAppel() throws AccesDonneesException {
         return recupererDonnees(null);
     }
 
     @Override
-    public GroupeClassement recupererDonneesOrdreAppelGroupe(int GroupeUniqueCGPCOD) throws SQLException {
-        AlgoOrdreAppelEntree entree = recupererDonnees(GroupeUniqueCGPCOD);
+    public GroupeClassement recupererDonneesOrdreAppelGroupe(int groupeUniqueCGPCOD) throws AccesDonneesException {
+        AlgoOrdreAppelEntree entree;
+        entree = recupererDonnees(groupeUniqueCGPCOD);
         for (GroupeClassement groupe : entree.groupesClassements) {
-            if (groupe.C_GP_COD == GroupeUniqueCGPCOD) {
+            if (groupe.cGpCod == groupeUniqueCGPCOD) {
                 return groupe;
             }
         }
-        throw new RuntimeException("Pas de groupe avec le C_GP_COD " + GroupeUniqueCGPCOD);
+        throw new AccesDonneesException("Pas de groupe avec le C_GP_COD " + groupeUniqueCGPCOD);
     }
 
     /* l'argument peut être null, dans ce cas toutes les données d'appel sont récupérées */
-    private AlgoOrdreAppelEntree recupererDonnees(Integer GroupeUniqueCGPCOD) throws SQLException {
+    private AlgoOrdreAppelEntree recupererDonnees(Integer groupeUniqueCGPCOD) throws AccesDonneesException {
         Map<Integer, GroupeClassement> groupesClassements
                 = new HashMap<>();
 
@@ -119,11 +121,10 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                     + " AND   rg.c_gp_cod=g.c_gp_cod "
                     + " AND   g.c_gp_eta_cla=2 " //classement finalisé
                     + " AND   ti.g_ti_flg_par_eff > 0 "//paramétrage effectué
-                    + " AND   ti.g_ti_eta_cla=2 " //classement finalisé
                     + " AND   NVL(g.c_gp_flg_pas_cla, 0)!=1";
 
-            if (GroupeUniqueCGPCOD != null) {
-                sql += " AND rg.C_GP_COD=" + GroupeUniqueCGPCOD;
+            if (groupeUniqueCGPCOD != null) {
+                sql += " AND rg.C_GP_COD=" + groupeUniqueCGPCOD;
             }
 
             LOGGER.info(sql);
@@ -132,10 +133,13 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
 
                 while (result.next()) {
 
-                    int C_GP_COD = result.getInt(1);
+                    int cGpCod = result.getInt(1);
 
-                    if (groupesClassements.containsKey(C_GP_COD)) {
-                        throw new RuntimeException("Groupe dupliqué " + C_GP_COD);
+                    if (groupesClassements.containsKey(cGpCod)) {
+                        throw new VerificationException(
+                                "Groupe dupliqué " + cGpCod + " lors"
+                                        + "de l'énumération des résultats de la requete"
+                                        + "\r\n" + sql);
                     }
 
                     /* un ou deux taux selon le type de formation */
@@ -145,23 +149,21 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                     int tauxMaxNonResident = tauxResDisponible ? result.getInt(5) : 100;
                     int tauxMinResident = 100 - tauxMaxNonResident;
 
-                    if (tauxMinBoursier < 0
-                            || tauxMinBoursier > 100
-                            || tauxMinResident < 0
-                            || tauxMinResident > 100) {
-                        throw new RuntimeException("Taux incohérents");
-                    }
-
-                    groupesClassements.put(C_GP_COD,
+                    groupesClassements.put(cGpCod,
                             new GroupeClassement(
-                                    C_GP_COD,
+                                    cGpCod,
                                     tauxMinBoursier,
                                     tauxMinResident
                             ));
 
                 }
             }
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Erreur SQL lors de la récupération des données d'appel", ex);
+        } catch (VerificationException ex) {
+            throw new AccesDonneesException("Problème d'intégrité des données d'appel", ex);
         }
+
         try (Statement stmt = conn().createStatement()) {
 
             Set<Integer> groupesManquants = new HashSet<>();
@@ -169,7 +171,7 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
             /* récupère la liste des candidats depuis la base de données */
             LOGGER.info("Récupération des voeux");
             stmt.setFetchSize(1_000_000);
-            String sql = "SELECT "
+            String sql = SELECT
                     //id du groupe de classement
                     + "cg.C_GP_COD, "
                     //id du candidat
@@ -202,8 +204,8 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                     //seulement les formations qui classent
                     + " AND   NVL(gp.c_gp_flg_pas_cla, 0)!=1 ";
 
-            if (GroupeUniqueCGPCOD != null) {
-                sql += " AND cg.C_GP_COD=" + GroupeUniqueCGPCOD;
+            if (groupeUniqueCGPCOD != null) {
+                sql += " AND cg.C_GP_COD=" + groupeUniqueCGPCOD;
             }
 
             LOGGER.info(sql);
@@ -214,8 +216,8 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
             non-sélectives qui ne réalisent pas de classement. */
                 while (result.next()) {
 
-                    int C_GP_COD = result.getInt(1);
-                    int G_CN_COD = result.getInt(2);
+                    int cGpCod = result.getInt(1);
+                    int gCnCod = result.getInt(2);
                     int rang = result.getInt(3);
 
                     boolean estDeclareBoursierLycee = (result.getInt(4) == 1);
@@ -225,24 +227,21 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                             && (confirmationBoursier == 1 || confirmationBoursier == 2);
                     boolean estConsidereDuSecteur = result.getBoolean(6);
 
-                    if (!groupesClassements.containsKey(C_GP_COD)) {
+                    if (!groupesClassements.containsKey(cGpCod)) {
                         //peut arriver si les classements ne sont pas encore remontés
-                        groupesManquants.add(C_GP_COD);
+                        groupesManquants.add(cGpCod);
                         continue;
                     }
 
-                    GroupeClassement ga = groupesClassements.get(C_GP_COD);
+                    GroupeClassement ga = groupesClassements.get(cGpCod);
                     ga.ajouterVoeu(
                             new VoeuClasse(
-                                    G_CN_COD,
+                                    gCnCod,
                                     rang,
                                     estConsidereBoursier,
                                     estConsidereDuSecteur)
                     );
                 }
-
-                result.close();
-                stmt.close();
 
                 if (!groupesManquants.isEmpty()) {
                     LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
@@ -250,45 +249,22 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                             .map(String::valueOf)
                             .collect(joining(",", "(", ")"));
                     LOGGER.severe(list);
-                    //throw new RuntimeException(groupesManquants.size() + " groupes manquants.");
                 }
 
                 AlgoOrdreAppelEntree entree = new AlgoOrdreAppelEntree();
                 entree.groupesClassements.addAll(groupesClassements.values());
                 return entree;
 
-            } catch (SQLException ex) {
-                throw new RuntimeException("Erreur de chargement des données", ex);
             }
 
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Erreur SQL lors de la récupération des données d'appel", ex);
         }
 
     }
-    
+
     /* exportation des classements vers la base de données */
     private void exporterOrdresAppel(Map<Integer, OrdreAppel> ordresAppel) throws SQLException {
-
-        /*
-        conn().setAutoCommit(true);
-
-         pour optimiser le temps d'exportation,
-            les ordres d'appel sont stockées dans une table temporaire J_ORD_APPEL_TMP
-            avant la mise a jour de la table C_CAN_GRP 
-        try {
-            conn().createStatement().execute("DROP TABLE J_ORD_APPEL_TMP");
-        } catch (SQLException e) {
-            // peut arriver si la table n'existait pas 
-        }
-
-        conn().createStatement().execute(
-                "CREATE GLOBAL TEMPORARY TABLE J_ORD_APPEL_TMP ("
-                + "C_GP_COD NUMBER(6,0),"
-                + "G_CN_COD NUMBER(8,0),"
-                + "C_CG_ORD_APP NUMBER(6,0),"
-                + "PRIMARY KEY (C_GP_COD,G_CN_COD)"
-                + ") ON COMMIT PRESERVE ROWS"
-        );
-        */
 
         conn().setAutoCommit(false);
 
@@ -299,16 +275,16 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
             for (Entry<Integer, OrdreAppel> paire
                     : ordresAppel.entrySet()) {
 
-                Integer C_GP_COD = paire.getKey();
+                Integer cGpCod = paire.getKey();
                 OrdreAppel ordre = paire.getValue();
 
                 for (CandidatClasse candidat : ordre.candidats) {
-                    ps.setInt(1, C_GP_COD);
-                    ps.setInt(2, candidat.G_CN_COD);
+                    ps.setInt(1, cGpCod);
+                    ps.setInt(2, candidat.gCnCod);
                     ps.setInt(3, candidat.rangAppel);
                     ps.addBatch();
                     if (++count % 500_000 == 0) {
-                        LOGGER.log(Level.INFO, "Exportation des ordres d'appel des voeux {0} a {1}", new Object[]{count - 499_999, count});
+                        LOGGER.log(Level.INFO, "Exportation des ordres d appel des voeux {0} a {1}", new Object[]{count - 499_999, count});
                         ps.executeBatch();
                         ps.clearBatch();
                         LOGGER.info("Fait");
@@ -317,18 +293,18 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
             }
             ps.executeBatch();
         }
-        //conn().commit();
-        //conn().commit();
 
         LOGGER.info("Mise à jour de la table C_CAN_GRP");
-        conn().createStatement().execute("UPDATE "
-                + "(SELECT  a.C_CG_ORD_APP cible, b.C_CG_ORD_APP source FROM C_CAN_GRP a,"
-                + "J_ORD_APPEL_TMP b WHERE a.G_CN_COD=b.G_CN_COD AND a.C_GP_COD=b.C_GP_COD)"
-                + "SET cible=source");
+        try (Statement ps = conn().createStatement()) {
+            ps.execute("UPDATE "
+                    + "(SELECT  a.C_CG_ORD_APP cible, b.C_CG_ORD_APP source FROM C_CAN_GRP a,"
+                    + "J_ORD_APPEL_TMP b WHERE a.G_CN_COD=b.G_CN_COD AND a.C_GP_COD=b.C_GP_COD)"
+                    + "SET cible=source");
+        }
     }
 
     @Override
-    public void exporterDonneesOrdresAppel(AlgoOrdreAppelSortie donnees) {
+    public void exporterDonneesOrdresAppel(AlgoOrdreAppelSortie donnees) throws AccesDonneesException {
 
         try {
 
@@ -340,32 +316,32 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
 
         } catch (SQLException ex) {
             LOGGER.severe("Erreur d'exportation des données");
-            throw new RuntimeException("Erreur d'exportation des données", ex);
+            throw new AccesDonneesException("Erreur SQL lors de l'exportation des données", ex);
         }
     }
 
     /* vérifie si un candidat est boursier */
     @Override
-    public boolean estBoursier(int G_CN_COD) throws Exception {
+    public boolean estBoursier(int gCnCod) throws AccesDonneesException {
 
         Boolean estConsidereBoursier = null;
 
-        try (Statement stmt = conn().createStatement()) {
+        try (PreparedStatement stmt = conn().prepareStatement(
+                SELECT
+                //le candidat a-t'il déclaré être boursier? non 0 lycée 1 dusup 2
+                + "g_cn_brs, "
+                //cette déclaration a-t'elle été confirmée 
+                //via les remontées de base SIECLE (1)
+                //ou directement par le chef d'établissement (2)
+                + "g_cn_flg_brs_cer,"
+                //le candidat est-il du secteur sur les candidats
+                //passés par ce groupe
+                + " FROM g_can c"
+                //groupe de classement
+                + " WHERE c.g_cn_cod=?")) {
 
-            String sql = "SELECT "
-                    //le candidat a-t'il déclaré être boursier? non 0 lycée 1 dusup 2
-                    + "g_cn_brs, "
-                    //cette déclaration a-t'elle été confirmée 
-                    //via les remontées de base SIECLE (1)
-                    //ou directement par le chef d'établissement (2)
-                    + "g_cn_flg_brs_cer,"
-                    //le candidat est-il du secteur sur les candidats
-                    //passés par ce groupe
-                    + " FROM g_can c"
-                    //groupe de classement
-                    + " WHERE c.g_cn_cod=" + G_CN_COD;
-
-            try (ResultSet result = stmt.executeQuery(sql)) {
+            stmt.setInt(1, gCnCod);
+            try (ResultSet result = stmt.executeQuery()) {
 
                 /* Remarque: le rangAppel est à null / 0 pour celles des formations 
                 non-sélectives qui ne réalisent pas de classement. */
@@ -377,10 +353,12 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                             && (confirmationBoursier == 1 || confirmationBoursier == 2);
                 }
             }
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Erreur acces données", ex);
         }
 
         if (estConsidereBoursier == null) {
-            throw new RuntimeException("Impossible de récupérer les informations du candidat");
+            throw new AccesDonneesException("Impossible de récupérer les informations du candidat");
         }
 
         return estConsidereBoursier;
@@ -388,21 +366,21 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
 
     /* vérifie si un candidat est considéré du secteur dans un groupe */
     @Override
-    public boolean estDuSecteur(int G_CN_COD, int C_GP_COD) throws Exception {
+    public boolean estDuSecteur(int gCnCod, int cGpCod) throws AccesDonneesException {
 
         Boolean estConsidereDuSecteur = null;
 
         try (Statement stmt = conn().createStatement()) {
 
-            String sql = "SELECT "
+            String sql = SELECT
                     //le candidat est-il du secteur sur les candidats
                     //passés par ce groupe
                     + "I_IS_FLC_SEC "
                     + " FROM a_rec_grp ar, i_ins i"
                     //groupe de classement
-                    + " WHERE ar.c_gp_cod=" + C_GP_COD
+                    + " WHERE ar.c_gp_cod=" + cGpCod
                     + " AND   ar.g_ti_cod=i.g_ti_cod"
-                    + " AND   i.g_cn_cod=" + G_CN_COD;
+                    + " AND   i.g_cn_cod=" + gCnCod;
 
             try (ResultSet result = stmt.executeQuery(sql)) {
 
@@ -413,21 +391,22 @@ public class ConnecteurDonneesAppelOracle implements ConnecteurDonneesAppel, jav
                     break;
                 }
             }
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Erreur SQL lors de l'accès aux données", ex);
         }
 
         if (estConsidereDuSecteur == null) {
-            throw new RuntimeException("Impossible de récupérer les informations du candidat");
+            throw new AccesDonneesException("Impossible de récupérer les informations du candidat");
         }
 
         return estConsidereDuSecteur;
     }
 
-    
     @Override
-    public void close() throws Exception {
+    public void close() throws SQLException {
         co.close();
     }
-  
+
     private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesAppelOracle.class.getSimpleName());
 
 }

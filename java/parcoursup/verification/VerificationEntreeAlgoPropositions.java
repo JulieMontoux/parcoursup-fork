@@ -21,11 +21,14 @@ l'Innovation,
  */
 package parcoursup.verification;
 
+import parcoursup.exceptions.VerificationException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.GroupeInternat;
@@ -37,8 +40,8 @@ public class VerificationEntreeAlgoPropositions {
 
     /* vérifie l'intégrité des données d'entrée et lève une exception si nécessaire.
     Propriétés:
-        a) tous les voeuxEnAttente dans les groupes sont en attente
-        b) pas deux voeuxEnAttente distincts avec la même id
+        a) tous les voeux dans les groupes sont en attente
+        b) pas deux voeux distincts avec la même id
         c) pas deux candidats distincts avec le même classement, formation et internat
         d) pas le même candidat avec deux classements distincts, formation et internat
         e) classements strictement positifs
@@ -48,35 +51,39 @@ public class VerificationEntreeAlgoPropositions {
         i) nb de places meilleurs bacheliers < 0
         j) pas de duplication de meilleurs bacheliers
      */
-    public static void verifierIntegrite(AlgoPropositionsEntree entree) throws Exception {
+    public static void verifierIntegrite(AlgoPropositionsEntree entree) throws VerificationException {
 
+        LOGGER.info("Vérification: tous les voeux des internats sdans la file de voeux");
         for (GroupeInternat internat : entree.internats.values()) {
             for (Voeu v : internat.voeux()) {
                 if (!entree.voeux.contains(v)) {
-                    throw new RuntimeException();
+                    throw new VerificationException("Voeu non recensé en entrée");
                 }
             }
         }
 
+        LOGGER.info("Vérification: tous les voeux des groupes dans la file de voeux");
         for (GroupeAffectation g : entree.groupesAffectations.values()) {
             for (Voeu v : g.voeuxEnAttente) {
                 if (!entree.voeux.contains(v)) {
-                    throw new RuntimeException();
+                    throw new VerificationException("Voeu non recensé en entrée");
                 }
             }
         }
 
+        LOGGER.info("Vérification: tous les voeux avec groupe non nul, "
+                + " id cohérent et id internat cohérent");
         for (Voeu v : entree.voeux) {
             if (v.groupe == null) {
-                alerter("Voeu " + v + " avec groupe nul");
+                alerter(v + " avec groupe nul");
             }
-            if (v.groupe.id.G_TA_COD != v.id.G_TA_COD) {
-                alerter("Voeu " + v + " avec id inconsistent");
+            if (v.groupe.id.gTaCod != v.id.gTaCod) {
+                alerter(v + " avec id inconsistent");
             }
             if (v.internat != null
-                    && v.internat.id.G_TA_COD != 0
-                    && v.internat.id.G_TA_COD != v.id.G_TA_COD) {
-                alerter("Voeu " + v + " avec id inconsistent");
+                    && v.internat.id.gTaCod != 0
+                    && v.internat.id.gTaCod != v.id.gTaCod) {
+                alerter(v + " avec id inconsistent");
             }
         }
 
@@ -88,6 +95,7 @@ public class VerificationEntreeAlgoPropositions {
         Map<Integer, Integer> candidatVersOrdre
                 = new HashMap<>();
 
+        LOGGER.log(Level.INFO, "V\u00e9rification des {0} groupes d''affectation", entree.groupesAffectations.size());
         for (GroupeAffectation g : entree.groupesAffectations.values()) {
 
             ordreVersCandidat.clear();
@@ -102,29 +110,22 @@ public class VerificationEntreeAlgoPropositions {
 
                 voeuxVus.add(v.id);
 
-                if (v.internatDejaObtenu() 
-                        && v.formationDejaObtenue()
-                        && !v.estAnnulationDemission()) {
-                    //alerter("a) le voeu "  + v + " a le flag attente mais l'internat et la formation"
-                   //         + " sont déjà obtenus par le canddat");
-                }
-
-                Integer G_CN_COD = ordreVersCandidat.get(v.ordreAppel);
-                if (G_CN_COD == null) {
-                    ordreVersCandidat.put(v.ordreAppel, v.id.G_CN_COD);
-                } else if (G_CN_COD != v.id.G_CN_COD) {
+                Integer gCnCod = ordreVersCandidat.get(v.getOrdreAppel());
+                if (gCnCod == null) {
+                    ordreVersCandidat.put(v.getOrdreAppel(), v.id.gCnCod);
+                } else if (gCnCod != v.id.gCnCod) {
                     alerter("c) candidats distincts avec le même classement dans le groupe " + g);
                 }
 
-                Integer ordre = candidatVersOrdre.get(v.id.G_CN_COD);
+                Integer ordre = candidatVersOrdre.get(v.id.gCnCod);
                 if (ordre == null) {
-                    candidatVersOrdre.put(v.id.G_CN_COD, (v.ordreAppel));
-                } else if (ordre != v.ordreAppel) {
-                    alerter("d) candidat" + v.id.G_CN_COD + " avec deux classements distincts " + v.ordreAppel + " dans le groupe " + g);
+                    candidatVersOrdre.put(v.id.gCnCod, (v.getOrdreAppel()));
+                } else if (ordre != v.getOrdreAppel()) {
+                    alerter("d) candidat" + v.id.gCnCod + " avec deux classements distincts " + v.getOrdreAppel() + " dans le groupe " + g);
                 }
 
-                if (v.ordreAppel <= 0) {
-                    alerter("e) ordre appel formation négatif dans le groupe " + v.groupe);
+                if (v.getOrdreAppel() <= 0) {
+                    alerter("e) ordre appel formation négatif ou nul dans le groupe " + v.groupe);
                 }
 
                 /* remarque le voeu peut-être marqué "avecInternat"
@@ -138,6 +139,7 @@ public class VerificationEntreeAlgoPropositions {
             }
         }
 
+        LOGGER.log(Level.INFO, "V\u00e9rification des {0} internats", entree.internats.size());
         for (GroupeInternat internat : entree.internats.values()) {
 
             /* intégrité des classements: un classement == un candidat */
@@ -154,16 +156,16 @@ public class VerificationEntreeAlgoPropositions {
                     alerter("e) classement internat négatif");
                 }
 
-                Integer G_CN_COD = ordreVersCandidat.get(v.rangInternat);
-                if (G_CN_COD == null) {
-                    ordreVersCandidat.put(v.rangInternat, v.id.G_CN_COD);
-                } else if (G_CN_COD != v.id.G_CN_COD) {
+                Integer gCnCod = ordreVersCandidat.get(v.rangInternat);
+                if (gCnCod == null) {
+                    ordreVersCandidat.put(v.rangInternat, v.id.gCnCod);
+                } else if (gCnCod != v.id.gCnCod) {
                     alerter("c) candidats distincts avec le même classement");
                 }
 
-                Integer ordre = candidatVersOrdre.get(v.id.G_CN_COD);
+                Integer ordre = candidatVersOrdre.get(v.id.gCnCod);
                 if (ordre == null) {
-                    candidatVersOrdre.put(v.id.G_CN_COD, (v.rangInternat));
+                    candidatVersOrdre.put(v.id.gCnCod, (v.rangInternat));
                 } else if (ordre != v.rangInternat) {
                     alerter("d) candidats distincts avec le même classement");
                 }
@@ -171,35 +173,38 @@ public class VerificationEntreeAlgoPropositions {
             }
         }
 
+        LOGGER.log(Level.INFO, "V\u00e9rification des {0} meilleurs bacheliers", entree.meilleursBacheliers.size());
         VerificationAlgoRepondeurAutomatique.verifier(
                 entree.voeux,
                 entree.candidatsAvecRepondeurAutomatique);
 
-        Set<Integer> MBvus = new HashSet<>();
+        Set<Integer> mbVus = new HashSet<>();
         for (MeilleurBachelier mb : entree.meilleursBacheliers) {
-            if (MBvus.contains(mb.G_CN_COD)) {
-                alerter("j: MB " + mb.G_CN_COD + " avec deux moyennes aux bac");
+            if (mbVus.contains(mb.gCnCod)) {
+                alerter("j: MB " + mb.gCnCod + " avec deux moyennes aux bac");
             }
             if (mb.moyenne < 10) {
                 alerter("h: MB sous la moyenne");
             }
-            MBvus.add(mb.G_CN_COD);
+            mbVus.add(mb.gCnCod);
         }
 
         for (Entry<Integer, Integer> entry : entree.nbPlacesMeilleursBacheliers.entrySet()) {
             int nbPlaces = entry.getValue();
             if (nbPlaces < 0) {
-                alerter("i: nombre de places MB négatif dans la  formation: G_TA_COD=" + entry.getKey());
+                alerter("i: nombre de places MB négatif dans la  formation: g_ta_cod=" + entry.getKey());
             }
         }
 
     }
 
-    private static void alerter(String message) {
-        throw new RuntimeException("Données d'entrée non intègres: " + message);
+    private static void alerter(String message) throws VerificationException {
+        throw new VerificationException("Données d'entrée non intègres: " + message);
     }
 
     private VerificationEntreeAlgoPropositions() {
     }
+
+    private static final Logger LOGGER = Logger.getLogger(VerificationEntreeAlgoPropositions.class.getSimpleName());
 
 }

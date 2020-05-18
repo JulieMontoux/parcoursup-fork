@@ -35,6 +35,7 @@ import parcoursup.propositions.algo.GroupeInternat;
 import parcoursup.propositions.algo.Voeu;
 import parcoursup.propositions.algo.VoeuUID;
 import parcoursup.verification.VerificationAffichages;
+import parcoursup.exceptions.VerificationException;
 
 public class AlgosAffichages {
 
@@ -43,7 +44,7 @@ public class AlgosAffichages {
     public static void mettreAJourAffichages(
             AlgoPropositionsSortie sortie,
             Set<VoeuUID> voeuxAvecPropositionDansMemeFormation,
-            Set<VoeuUID> propositionsDuJour) {
+            Set<VoeuUID> propositionsDuJour) throws VerificationException {
 
         Map<GroupeAffectation, List<Voeu>> voeuxParGroupes = new HashMap<>();
         Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
@@ -89,7 +90,7 @@ public class AlgosAffichages {
         LOGGER.log(Level.INFO,
                 "Vérification des rangs sur liste attente");
 
-        for (GroupeAffectation groupe : sortie.groupes) {
+        for(GroupeAffectation groupe : sortie.groupes) {
             VerificationAffichages.verifierRangsSurListeAttente(groupe);
         }
 
@@ -105,11 +106,11 @@ public class AlgosAffichages {
         int nbCandidatsEnAttente = 0;
 
         //initialisation
-        for (Voeu voeu : voeux) {
-            voeu.rangListeAttente = 0;
-        }
+        voeux.forEach(voeu -> 
+            voeu.setRangListeAttente(0)
+        );
 
-        voeux.sort((Voeu v1, Voeu v2) -> v1.ordreAppel - v2.ordreAppel);
+        voeux.sort((Voeu v1, Voeu v2) -> v1.getOrdreAppel() - v2.getOrdreAppel());
         for (Voeu voeu : voeux) {
 
             if (voeu.estEnAttenteDeProposition()) {
@@ -123,16 +124,16 @@ public class AlgosAffichages {
                  */
                 if (!voeuxAvecPropositionDansMemeFormation.contains(voeu.id)
                         && !propositionsDuJour.contains(
-                                new VoeuUID(voeu.id.G_CN_COD, voeu.id.G_TA_COD, !voeu.id.I_RH_COD)
+                                new VoeuUID(voeu.id.gCnCod, voeu.id.gTaCod, !voeu.id.iRhCod)
                         )
                         && !voeu.estAnnulationDemission()
                         && !voeu.estCorrectionClassement()
-                        && voeu.id.G_CN_COD != dernierCandidatEnAttente) {
+                        && voeu.id.gCnCod != dernierCandidatEnAttente) {
                     nbCandidatsEnAttente++;
-                    dernierCandidatEnAttente = voeu.id.G_CN_COD;
+                    dernierCandidatEnAttente = voeu.id.gCnCod;
                 }
 
-                voeu.rangListeAttente = Math.max(1, nbCandidatsEnAttente);
+                voeu.setRangListeAttente(Math.max(1, nbCandidatsEnAttente));
 
             }
 
@@ -153,20 +154,24 @@ public class AlgosAffichages {
         hors cas spéciaux comme les voeux bloqués par des demandes internat
         ou les demandes d'annulations de démissions par un candidat.
          */
-        groupe.rangDernierAppeleAffiche = 0;
+        groupe.setRangDernierAppeleAffiche(0);
 
-        voeux.sort((Voeu v1, Voeu v2) -> v1.ordreAppel - v2.ordreAppel);
+        voeux.sort((Voeu v1, Voeu v2) -> v1.getOrdreAppel() - v2.getOrdreAppel());
 
         for (Voeu voe : voeux) {
             if (voe.estProposition()) {
-                groupe.rangDernierAppeleAffiche = voe.ordreAppel;
-            } else if (voe.avecInternatAClassementPropre()
-                    && voe.estDesactiveParPositionAdmissionInternat()) {
-                continue;
-            } else if (voe.estCorrectionClassement()
-                    || voe.estAnnulationDemission()) {
-                continue;
-            } else if (voe.estEnAttenteDeProposition()) {
+                groupe.setRangDernierAppeleAffiche(voe.ordreAppelAffiche);
+            } else if (
+                    voe.estEnAttenteDeProposition()
+                    && !voe.estCorrectionClassement()
+                    && !voe.estAnnulationDemission()
+                    && !(voe.avecInternatAClassementPropre()
+                            && voe.estDesactiveParPositionAdmissionInternat())
+                    ) {
+                //on s'arrete au premier candidat en attente de proposition
+                //pour de bonnes raisons: ni correction de classement,
+                //ni annulation de démission
+                //ni pour cause de barre internat
                 break;
             }
         }
@@ -207,19 +212,17 @@ public class AlgosAffichages {
             n'est en attente de proposition. */
             internat.barresAppelAffichees.put(g.id, 0);
             voeux.sort((Voeu v1, Voeu v2)
-                    -> v1.ordreAppel - v2.ordreAppel);
+                    -> v1.getOrdreAppel() - v2.getOrdreAppel());
 
             for (Voeu voe : voeux) {
                 if (voe.groupe != g) {
                     //voeu hors groupe: on ignore
-                    continue;
                 } else if (voe.estProposition()) {
                     //proposition: on augmente la barre affichée
-                    internat.barresAppelAffichees.put(g.id, voe.ordreAppel);
+                    internat.barresAppelAffichees.put(g.id, voe.ordreAppelAffiche);
                 } else if (voe.estCorrectionClassement()
                         || voe.estAnnulationDemission()) {
                     //cas exceptionnels: on continue
-                    continue;
                 } else if (voe.estEnAttenteDeProposition()
                         && (voe.rangInternat <= internat.barresInternatAffichees.get(g.id))) {
                     //en attente et sous la barre internat affichée: fin de l'augmentation

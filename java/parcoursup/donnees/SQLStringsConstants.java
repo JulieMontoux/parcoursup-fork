@@ -1,5 +1,6 @@
-/* Copyright 2019 © Ministère de l'Enseignement Supérieur, de la Recherche et de l'Innovation,
-    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+/* Copyright 2020 © Ministère de l'Enseignement Supérieur, de la Recherche et de
+l'Innovation,
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -17,24 +18,21 @@
     along with Algorithmes-de-parcoursup.  If not, see <http://www.gnu.org/licenses/>.
 
  */
-package parcoursup.propositions.meilleursbacheliers;
+package parcoursup.donnees;
 
-
-public class MeilleurBachelier {
-
-    /* code candidat */
-    public final int gCnCod;
+/**
+ *
+ * @author gimbert
+ */
+public class SQLStringsConstants {
     
-    /* moyenne au bac */
-    public final double moyenne;
+    public static final String TRUNCATE_TABLE = "TRUNCATE TABLE ";
+    public static final String INSERT_INTO = "INSERT INTO ";
+    public static final String SELECT = "SELECT ";
+    public static final String WHERE = " WHERE ";
+    public static final String FROM = " FROM ";
+    public static final String EQUALS_ZERO = " = 0 ";
     
-    public MeilleurBachelier(int gCnCod, double moyenne) {
-        this.gCnCod = gCnCod;
-        this.moyenne = moyenne;
-    }
- 
-    private MeilleurBachelier() {
-        gCnCod = 0;
-        moyenne = 0;
-    }
+    private SQLStringsConstants() {}
+    
 }

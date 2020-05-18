@@ -33,6 +33,13 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import parcoursup.donnees.ConnecteurOracle;
+import static parcoursup.donnees.ConnecteurOracle.CLASSEMENTS_TABLE;
+import static parcoursup.donnees.ConnecteurOracle.FOR_INSCRIPTIONS_TABLE;
+import static parcoursup.donnees.ConnecteurOracle.RECRUTEMENTS_TABLE;
+import static parcoursup.donnees.SQLStringsConstants.*;
+
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.affichages.AlgosAffichages;
 import parcoursup.propositions.algo.AlgoPropositionsEntree;
 import parcoursup.propositions.algo.AlgoPropositionsSortie;
@@ -40,6 +47,7 @@ import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.GroupeAffectationUID;
 import parcoursup.propositions.algo.GroupeInternat;
 import parcoursup.propositions.algo.GroupeInternatUID;
+import parcoursup.propositions.algo.Parametres;
 import parcoursup.propositions.algo.Voeu;
 import parcoursup.propositions.algo.VoeuUID;
 import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
@@ -50,11 +58,11 @@ import parcoursup.propositions.meilleursbacheliers.MeilleurBachelier;
 
     La base identifie:
 
-    * chaque candidat par un G_CN_COD
-    * chaque formation d'inscription par un G_TI_COD
-    * chaque formation d'affectation par un G_TA_COD
-    * chaque commission de classement pédagogique des voeuxEnAttente par un C_GP_COD
-    * chaque commission de classement internat des voeuxEnAttente par un C_GI_COD
+    * chaque candidat par un gCnCod
+    * chaque formation d'inscription par un gTiCod
+    * chaque formation d'affectation par un gTaCod
+    * chaque commission de classement pédagogique des voeuxEnAttente par un cGpCod
+    * chaque commission de classement internat des voeuxEnAttente par un cGiCod
 
     Plus de détails dans doc/implementation.txt
  */
@@ -68,7 +76,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() throws SQLException {
         co.close();
     }
 
@@ -76,76 +84,133 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             String url,
             String user,
             String password,
-            boolean useTNSNames) throws SQLException {
-        co = new ConnecteurOracle(url, user, password, useTNSNames);
+            boolean verifierInterruptionFluxDonneesEntrantes) throws AccesDonneesException {
+        this.verifierInterruptionFluxDonneesEntrantes = verifierInterruptionFluxDonneesEntrantes;
+        this.recupererSeulementVoeuxEnAttente = true;
+        this.ignorerMBC = false;
+        this.sparseDataTestingMode = 0;
+        this.simulationAvantDebutCampagne = false;
+        co = new ConnecteurOracle(url, user, password);
     }
 
-    public ConnecteurDonneesPropositionsOracle(Connection conn) {
+    public ConnecteurDonneesPropositionsOracle(
+            Connection conn) throws AccesDonneesException {
         co = new ConnecteurOracle(conn);
+        this.verifierInterruptionFluxDonneesEntrantes = true;
+        this.recupererSeulementVoeuxEnAttente = true;
+        this.ignorerMBC = false;
+        this.sparseDataTestingMode = 0;
+        this.simulationAvantDebutCampagne = false;
     }
+
+    /* ce connecteur est utilisé par le simulateur */
+    public ConnecteurDonneesPropositionsOracle(
+            Connection conn,
+            boolean verifierInterruptionFluxDonneesEntrantes,
+            boolean recupererSeulementVoeuxEnAttente,
+            boolean ignorerMBC,
+            int sparseDataTestingMode,
+            boolean utiliserRangSiPAsOrdreAppel
+    ) throws AccesDonneesException {
+        co = new ConnecteurOracle(conn);
+        this.verifierInterruptionFluxDonneesEntrantes = verifierInterruptionFluxDonneesEntrantes;
+        this.recupererSeulementVoeuxEnAttente = recupererSeulementVoeuxEnAttente;
+        this.ignorerMBC = ignorerMBC;
+        this.sparseDataTestingMode = sparseDataTestingMode;
+        this.simulationAvantDebutCampagne = utiliserRangSiPAsOrdreAppel;
+    }
+
+    final boolean verifierInterruptionFluxDonneesEntrantes;
+    final boolean recupererSeulementVoeuxEnAttente;
+    final boolean ignorerMBC;
+    final int sparseDataTestingMode;//mode dans lequel seul une partie des données est résupérée
+    final boolean simulationAvantDebutCampagne;
 
     /* variable stockant les données d'entrée pendant la récupération */
     AlgoPropositionsEntree entree = null;
 
     @Override
-    public AlgoPropositionsEntree recupererDonnees() throws SQLException {
+    public AlgoPropositionsEntree recupererDonnees() throws AccesDonneesException {
 
-        entree = new AlgoPropositionsEntree();
+        try {
 
-        LOGGER.info("Vérification de l'interruption du flux de données entrantes.");
-        /* Si = 1 indique que le programme d'admission est en train de tourner
-        pour faire des propositions. Si c'est le cas, tout est bloqué */
-        try (ResultSet result
-                = conn().createStatement().executeQuery(
-                        "SELECT g_pr_val FROM g_par WHERE g_pr_cod="
-                        + indexFlagInterruptionDonnéeesEntrantes)) {
-            result.next();
-            boolean estVerouille = result.getBoolean(1);
-            if (!estVerouille) {
-                throw new RuntimeException(
-                        "Veuillez interrompre le flux de données entrantes "
-                        + "et positionner le g_pr_cod="
-                        + indexFlagInterruptionDonnéeesEntrantes + " à 1");
+            LOGGER.info("Vérification de l'interruption du flux de données entrantes.");
+            /* Si = 1 indique que le programme d'admission est en train de tourner
+            pour faire des propositions. Si c'est le cas, tout est bloqué */
+            try (PreparedStatement ps = conn().prepareStatement(
+                    "SELECT g_pr_val FROM g_par WHERE g_pr_cod=?")) {
+                ps.setInt(1, INDEX_FLAG_INTERRUP_DONNEES);
+                try (ResultSet result = ps.executeQuery()) {
+                    result.next();
+                    boolean estVerouille = result.getBoolean(1);
+                    if (verifierInterruptionFluxDonneesEntrantes
+                            && !estVerouille) {
+                        throw new AccesDonneesException(
+                                "Veuillez interrompre le flux de données entrantes "
+                                + "et positionner le g_pr_cod="
+                                + INDEX_FLAG_INTERRUP_DONNEES + " à 1");
+                    }
+                }
+
+                LOGGER.info("Récupération du nombre de jours depuis l'ouverture de la campagne");
+                int nbJoursCampagne = nbJoursDepuis(INDEX_DATE_DEBUT_CAMPAGNE) + 1;
+                LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagne);
+
+                LOGGER.info("Récupération du nombre de jours de campagne à la date pivot");
+                int nbJoursCampagneDatePivotInternats
+                        = nbJoursEntre(INDEX_DATE_DEBUT_CAMPAGNE, INDEX_DATE_OUV_COMP_INTERNATS);
+                LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDatePivotInternats);
+
+                Parametres parametres = new Parametres(nbJoursCampagne, nbJoursCampagneDatePivotInternats);
+                entree = new AlgoPropositionsEntree(parametres);
+
+                LOGGER.info("Récupération des candidats ayant activé le répondeur automatique");
+                recupererCandidatsAvecRepondeurAutomatique();
+
+                LOGGER.info("Récupération des groupes d'affectation");
+                entree.groupesAffectations.clear();
+                boolean retroCompatibilityMode = !verifierInterruptionFluxDonneesEntrantes;
+                Map<GroupeAffectationUID, GroupeAffectation> groupes
+                        = recupererGroupesAffectation(
+                                parametres,
+                                retroCompatibilityMode);
+                for (GroupeAffectation g : groupes.values()) {
+                    entree.ajouter(g);
+                }
+
+                LOGGER.info("Récupération des internats");
+                entree.internats.clear();
+                for (GroupeInternat internat : recupererInternats().values()) {
+                    entree.ajouter(internat);
+                }
+
+                if (!ignorerMBC) {
+                    LOGGER.info("Récupération des informations relatives aux meilleurs bacheliers");
+                    recupererDonneesMeilleursBacheliers();
+                }
+
+                LOGGER.info("Récupération des voeux en attente avec demande internat dans un internat ayant son propre classement");
+                recupererVoeuxAvecInternatsAClassementPropre(recupererSeulementVoeuxEnAttente);
+
+                LOGGER.info("Récupération des voeux en attente sans internat, ou avec internat n'ayant pas son propre classemnt");
+                recupererVoeuxSansInternatAClassementPropre(recupererSeulementVoeuxEnAttente);
+
+                LOGGER.info("Récupération des propositions non refusées ");
+                recupererPropositionsActuelles();
+
+                if (!groupesManquants.isEmpty()) {
+                    LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
+                }
+
+                if (!internatsManquants.isEmpty()) {
+                    LOGGER.log(Level.SEVERE, "{0} internats manquants.", internatsManquants.size());
+                }
             }
-
-        }
-
-        LOGGER.info("Récupération du nombre de jours écoulés depuis l'ouverture de la campagne");
-        GroupeInternat.nbJoursCampagne = nbJoursDepuis(indexDateDebutDeCampagne) + 1;
-        LOGGER.log(Level.INFO, "{0} jours.", GroupeInternat.nbJoursCampagne);
-
-        LOGGER.info("Récupération du nombre de jours de campagne à la date pivot");
-        GroupeInternat.nbJoursCampagneDatePivotInternats
-                = nbJoursEntre(indexDateDebutDeCampagne, indexDateOuvertureCompleteInternats);
-        LOGGER.log(Level.INFO, "{0} jours.", GroupeInternat.nbJoursCampagneDatePivotInternats);
-
-        LOGGER.info("Récupération des candidats ayant activé le répondeur automatique");
-        recupererCandidatsAvecRepondeurAutomatique();
-
-        LOGGER.info("Récupération des groupes d'affectation");
-        recupererGroupesAffectation();
-
-        LOGGER.info("Récupération des internats");
-        recupererInternats();
-
-        LOGGER.info("Récupération des propositions aux candidats ");
-        recupererPropositionsActuelles();
-
-        LOGGER.info("Récupération des informations relatives aux meilleurs bacheliers");
-        recupererDonneesMeilleursBacheliers();
-
-        LOGGER.info("Récupération des voeux en attente avec demande internat dans un internat à classement propre");
-        recupererVoeuxAvecInternatsAClassementPropre();
-
-        LOGGER.info("Récupération des voeux en attente sans internat, ou dans un internat sans classement propre");
-        recupererVoeuxSansInternatAClassementPropre();
-
-        if (!groupesManquants.isEmpty()) {
-            LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
-        }
-
-        if (!internatsManquants.isEmpty()) {
-            LOGGER.log(Level.SEVERE, "{0} internats manquants.", internatsManquants.size());
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Echec de la recuperation des donnes", ex);
+        } catch (VerificationException ex) {
+            throw new AccesDonneesException(
+                    "Problème d'intégrité des données d'entrée:\\n" + ex.getMessage(), ex);
         }
 
         LOGGER.info("Fin de la récupération des données depuis la base Oracle");
@@ -156,52 +221,53 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
     /* exportation des résultats du calcul: propositions à faire */
     @Override
-    public void exporterDonnees(AlgoPropositionsSortie sortie) throws SQLException {
+    public void exporterDonnees(AlgoPropositionsSortie sortie) throws VerificationException, AccesDonneesException {
+        exporterDonnees(sortie, true);
+    }
 
-        conn().setAutoCommit(false);
+    public void exporterDonnees(
+            AlgoPropositionsSortie sortie,
+            boolean yComprisAffichages)
+            throws VerificationException, AccesDonneesException {
+        try {
+            conn().setAutoCommit(false);
 
-        /* Si il y a eu un problème lors de l'export, on le signale via ce flag */
-        if (sortie.alerte) {
-            conn().createStatement().executeQuery(
-                    "UPDATE G_PAR SET G_PR_VAL=1 WHERE G_PR_COD = " + indexFlagAlerte
-            );
+            /* Si il y a eu un problème lors de l'export, on le signale via ce flag */
+            if (sortie.getAlerte()) {
+                try (PreparedStatement ps = conn().prepareStatement(
+                        "UPDATE G_PAR SET G_PR_VAL=1 WHERE G_PR_COD =?)")) {
+                    ps.setInt(1, INDEX_FLAG_ALERTE);
+                    ps.execute();
+                }
+                conn().commit();
+            }
+
+            LOGGER.info("Exportation des propositions d'admission");
+            exporterNouvellesPropositionsAdmission(sortie);
             conn().commit();
+
+            LOGGER.info("Exportation des démissions");
+            exporterDemissionsAutomatiques(sortie);
+            conn().commit();
+
+            LOGGER.info("Exportation des prédictions des derniers appelés à la date pivot");
+            exporterPredicteurRangDernierAppele(sortie.groupes, sortie.parametres);
+            conn().commit();
+
+            if (yComprisAffichages) {
+                LOGGER.info("Exportation des affichages");
+                exporterAffichages(sortie);
+                conn().commit();
+            }
+
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Echec de l'export des propositions, ex");
         }
-
-        LOGGER.info("Exportation des propositions d'admission");
-        exporterNouvellesPropositionsAdmission(sortie);
-        conn().commit();
-
-        LOGGER.info("Exportation des démissions");
-        exporterDemissionsAutomatiques(sortie);
-        conn().commit();
-
-        LOGGER.info("Exportation des prédictions des derniers appelés à la date pivot");
-        exporterPredicteurRangDernierAppele(sortie.groupes);
-        conn().commit();
-
-        LOGGER.info("Exportation des affichages");
-        exporterAffichages(sortie);
-        conn().commit();
     }
 
     /* exportation des données affichées: rangs sur liste d'attente et rangs
     des dernier appelés. */
- /* variable stockant les rangs affichés dans les ordres d'appel.
-    Il y a quelques rares cas d'erreurs de classement par les formations 
-    (de l'ordre de la centaine par an). Dans ce cas un candidat peut être
-    remonté dans l'ordre d'appel, ce qui crée deux candidats avec le
-    même ordre d'appel, avec priorité au candidat
-    remonté. Dans ce cas le champ C_CG_ORD_APP utilisé par l'algorithme
-    est incrémenté pour tous les candidats suivants, afin de maintenir 
-    la propriété d'unicité du candidat pour un ordre d'appel donnée. Le champ
-    C_CG_ORD_APP_AFF reste, lui égal à sa valeur initiale, 
-    sauf pour le canddiat qui a bénéficié de la remontée dans le classement. 
-    C'est le champ C_CG_ORD_APP_AFF qui est affiché au candidat surle site de
-    Parcoursup, et utilisé pour le mise à jour des affichages. */
-    public Map<VoeuUID, Integer> ordresAppelAffiches = new HashMap<>();
-
-    public void exporterAffichages(AlgoPropositionsSortie sortie) throws SQLException {
+    public void exporterAffichages(AlgoPropositionsSortie sortie) throws SQLException, VerificationException {
 
         LOGGER.info("Prise en compte des propositions du jour");
         Set<VoeuUID> voeuxAvecPropositionDansMemeFormation
@@ -212,14 +278,6 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         for (Voeu v : sortie.voeux) {
             if (v.estPropositionDuJour()) {
                 propositionsDuJour.add(v.id);
-            }
-        }
-
-        LOGGER.info("Mise à jour des rangs d'appels affichés");
-        for (Voeu v : sortie.voeux) {
-            Integer ordre = ordresAppelAffiches.get(v.id);
-            if (ordre != null) {
-                v.ordreAppel = ordre;
             }
         }
 
@@ -242,39 +300,44 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         conn().commit();
     }
 
-    private void exporterNouvellesPropositionsAdmission(AlgoPropositionsSortie sortie) throws SQLException {
+    public void exporterNouvellesPropositionsAdmission(
+            AlgoPropositionsSortie sortie
+    ) throws SQLException {
         LOGGER.info("Préparation de la table A_ADM_PROP avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_ADM_PROP WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps
+                = conn().prepareStatement("DELETE FROM A_ADM_PROP WHERE NB_JRS=?")) {
+            ps.setInt(1, sortie.parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_ADM_PROP "
-                + "(G_CN_COD,G_TA_COD,I_RH_COD,C_GP_COD,G_TI_COD,C_GI_COD,A_AM_FLG_MBC,NB_JRS)"
-                + " VALUES (?,?,?,?,?,?,?," + GroupeInternat.nbJoursCampagne + ")")) {
+                + "(G_CN_COD,g_ta_cod,I_RH_COD,C_GP_COD,G_TI_COD,C_GI_COD,A_AM_FLG_MBC,NB_JRS)"
+                + " VALUES (?,?,?,?,?,?,?,?)")) {
             int count = 0;
 
             for (Voeu voe : sortie.voeux) {
                 if (voe.estPropositionDuJour()) {
 
-                    GroupeAffectationUID groupe = voe.groupe.id;
+                    GroupeAffectationUID groupe = voe.groupeUID;
                     GroupeInternatUID internat = voe.internatID();
 
-                    assert voe.id.G_TA_COD == groupe.G_TA_COD;
+                    assert voe.id.gTaCod == groupe.gTaCod;
 
-                    ps.setInt(1, voe.id.G_CN_COD);
-                    ps.setInt(2, voe.id.G_TA_COD);
-                    ps.setInt(3, voe.id.I_RH_COD ? 1 : 0);
-                    ps.setInt(4, groupe.C_GP_COD);
-                    ps.setInt(5, groupe.G_TI_COD);
-                    ps.setInt(6, (internat == null) ? 0 : internat.C_GI_COD);
-                    ps.setBoolean(7, voe.eligibleDispositifMB);
+                    ps.setInt(1, voe.id.gCnCod);
+                    ps.setInt(2, voe.id.gTaCod);
+                    ps.setInt(3, voe.id.iRhCod ? 1 : 0);
+                    ps.setInt(4, groupe.cGpCod);
+                    ps.setInt(5, groupe.gTiCod);
+                    ps.setInt(6, (internat == null) ? 0 : internat.cGiCod);
+                    ps.setBoolean(7, voe.getEligibleDispositifMB());
+                    ps.setInt(8, sortie.parametres.nbJoursCampagne);
 
                     ps.addBatch();
                     if (++count % 100_000 == 0) {
                         LOGGER.log(Level.INFO, "Exportation des propositions {0} a {1}", new Object[]{count - 99_999, count});
                         ps.executeBatch();
                         ps.clearBatch();
-                        //LOGGER.info("Fait");
                     }
                 }
             }
@@ -289,37 +352,40 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
     private void exporterDemissionsAutomatiques(AlgoPropositionsSortie sortie) throws SQLException {
 
         LOGGER.info("Préparation de la table A_ADM_DEM_RA avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_ADM_DEM_RA WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps
+                = conn().prepareStatement("DELETE FROM A_ADM_DEM_RA WHERE NB_JRS=?")) {
+            ps.setInt(1, sortie.parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_ADM_DEM_RA "
-                + "(G_CN_COD,G_TA_COD,I_RH_COD,C_GP_COD,G_TI_COD,C_GI_COD,EST_DEM_PROP,NB_JRS)"
-                + " VALUES (?,?,?,?,?,?,?," + GroupeInternat.nbJoursCampagne + ")")) {
+                + "(G_CN_COD,g_ta_cod,I_RH_COD,C_GP_COD,G_TI_COD,C_GI_COD,EST_DEM_PROP,NB_JRS)"
+                + " VALUES (?,?,?,?,?,?,?,?)")) {
             int count = 0;
 
             for (Voeu voe : sortie.voeux) {
 
                 if (voe.estDemissionAutomatique()) {
-                    GroupeAffectationUID groupe = voe.groupe.id;
+                    GroupeAffectationUID groupe = voe.groupeUID;
                     GroupeInternatUID internat = voe.internatID();
 
-                    assert voe.id.G_TA_COD == groupe.G_TA_COD;
+                    assert voe.id.gTaCod == groupe.gTaCod;
 
-                    ps.setInt(1, voe.id.G_CN_COD);
-                    ps.setInt(2, voe.id.G_TA_COD);
-                    ps.setInt(3, voe.id.I_RH_COD ? 1 : 0);
-                    ps.setInt(4, groupe.C_GP_COD);
-                    ps.setInt(5, groupe.G_TI_COD);
-                    ps.setInt(6, (internat == null) ? 0 : internat.C_GI_COD);
+                    ps.setInt(1, voe.id.gCnCod);
+                    ps.setInt(2, voe.id.gTaCod);
+                    ps.setInt(3, voe.id.iRhCod ? 1 : 0);
+                    ps.setInt(4, groupe.cGpCod);
+                    ps.setInt(5, groupe.gTiCod);
+                    ps.setInt(6, (internat == null) ? 0 : internat.cGiCod);
                     ps.setBoolean(7, voe.estDemissionAutomatiqueProposition());
+                    ps.setInt(8, sortie.parametres.nbJoursCampagne);
 
                     ps.addBatch();
                     if (++count % 100_000 == 0) {
                         LOGGER.log(Level.INFO, "Exportation des demissions {0} a {1}", new Object[]{count - 99_999, count});
                         ps.executeBatch();
                         ps.clearBatch();
-                        //LOGGER.info("Fait");
                     }
                 }
             }
@@ -330,25 +396,30 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         }
     }
 
-    private void exporterPredicteurRangDernierAppele(Collection<GroupeAffectation> groupes) throws SQLException {
+    private void exporterPredicteurRangDernierAppele(Collection<GroupeAffectation> groupes,
+            Parametres parametres) throws SQLException {
 
         LOGGER.info("Préparation de la table A_ADM_PRED_DER_APP avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_ADM_PRED_DER_APP WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps
+                = conn().prepareStatement("DELETE FROM A_ADM_PRED_DER_APP WHERE NB_JRS=?")) {
+            ps.setInt(1, parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_ADM_PRED_DER_APP "
-                + "(G_TA_COD,C_GP_COD,A_RG_RAN_DER,NB_JRS)"
-                + " VALUES (?,?,?," + GroupeInternat.nbJoursCampagne + " )")) {
+                + "(g_ta_cod,C_GP_COD,A_RG_RAN_DER,NB_JRS)"
+                + " VALUES (?,?,?,?)")) {
 
             for (GroupeAffectation g : groupes) {
-                ps.setInt(1, g.id.G_TA_COD);
-                ps.setInt(2, g.id.C_GP_COD);
+                ps.setInt(1, g.id.gTaCod);
+                ps.setInt(2, g.id.cGpCod);
                 ps.setInt(3,
                         (g.estimationRangDernierAppeleADatePivot == Integer.MAX_VALUE)
                                 ? -1
                                 : g.estimationRangDernierAppeleADatePivot
                 );
+                ps.setInt(4, parametres.nbJoursCampagne);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -380,40 +451,43 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
         /* on compare avec les valeurs au jour n-1 et on met à jour
                 si la relation d'inclusion est vérifiée */
-        try (Statement stmt = conn().createStatement()) {
+        try (PreparedStatement stmt = conn().prepareStatement(
+                "SELECT C_GI_COD,"
+                + "g_ta_cod,"
+                + "prop.G_TI_COD,"
+                + "C_GP_COD,"
+                + "MAX(A_RG_RAN_DER), "
+                + "MAX(A_RG_RAN_DER_INT),"
+                + "g_ti_cla_int_uni"
+                + " FROM A_REC_GRP_INT_PROP prop,G_TRI_INS ins"
+                + " WHERE (NB_JRS < ?)"
+                + " AND C_GI_COD != 0"
+                + " AND ins.G_TI_COD=prop.G_TI_COD"
+                + " GROUP BY C_GI_COD,g_ta_cod,prop.G_TI_COD,C_GP_COD,g_ti_cla_int_uni"
+        )) {
             stmt.setFetchSize(100_000);
+            stmt.setInt(1, sortie.parametres.nbJoursCampagne);
 
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT C_GI_COD,"
-                    + "G_TA_COD,"
-                    + "prop.G_TI_COD,"
-                    + "C_GP_COD,"
-                    + "MAX(A_RG_RAN_DER), "
-                    + "MAX(A_RG_RAN_DER_INT),"
-                    + "g_ti_cla_int_uni"
-                    + " FROM A_REC_GRP_INT_PROP prop,G_TRI_INS ins"
-                    + " WHERE (NB_JRS < " + GroupeInternat.nbJoursCampagne + ")"
-                    + " AND C_GI_COD != 0"
-                    + " AND ins.G_TI_COD=prop.G_TI_COD"
-                    + " GROUP BY C_GI_COD,G_TA_COD,prop.G_TI_COD,C_GP_COD,g_ti_cla_int_uni")) {
-
+            try (ResultSet result = stmt.executeQuery()) {
                 while (result.next()) {
-                    int C_GI_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
-                    int G_TI_COD = result.getInt(3);
-                    int C_GP_COD = result.getInt(4);
+                    int cGiCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
+                    int gTiCod = result.getInt(3);
+                    int cGpCod = result.getInt(4);
                     int dernierAppeleRangAppe = result.getInt(5);
                     int dernierAppeleClassementInternat = result.getInt(6);
                     int typeInternat = result.getInt(7);
 
-                    GroupeInternatUID internatUID = internatUID(typeInternat, C_GI_COD, G_TA_COD);
+                    GroupeInternatUID internatUID = internatUID(typeInternat, cGiCod, gTaCod);
                     GroupeInternat internat = internats.get(internatUID);
 
                     if (internat == null) {
-                        throw new RuntimeException("Disparition suspecte de l'internat " + internatUID);
+                        sortie.setAvertissement();
+                        LOGGER.log(Level.WARNING, "exporterBarresAfficheesVoeuxAvecInternat: disparition suspecte de l''internat {0}", internatUID);
+                        continue;
                     }
 
-                    GroupeAffectationUID groupeUID = new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD);
+                    GroupeAffectationUID groupeUID = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
                     Integer nouvelleBarreAppel = internat.barresAppelAffichees.get(groupeUID);
                     Integer nouvelleBarreInternat = internat.barresInternatAffichees.get(groupeUID);
 
@@ -437,26 +511,30 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         }
 
         LOGGER.info("Préparation de la table A_REC_GRP_INT_PROP avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_REC_GRP_INT_PROP WHERE C_GI_COD !=0 AND NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps = conn().prepareStatement(
+                "DELETE FROM A_REC_GRP_INT_PROP WHERE C_GI_COD !=0 AND NB_JRS=?")) {
+            ps.setInt(1, sortie.parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         LOGGER.info("Export dans la table A_REC_GRP_INT_PROP");
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_REC_GRP_INT_PROP "
-                + "(C_GI_COD,G_TA_COD,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
-                + " VALUES (?,?,?,?,?,?," + GroupeInternat.nbJoursCampagne + " )")) {
+                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
+                + " VALUES (?,?,?,?,?,?,?)")) {
 
             for (GroupeInternat internat : sortie.internats) {
                 for (GroupeAffectation g : internat.groupesConcernes) {
                     Integer barreAppelAffichee = internat.barresAppelAffichees.get(g.id);
                     Integer barreInternatAffichee = internat.barresInternatAffichees.get(g.id);
                     if (barreAppelAffichee != null && barreInternatAffichee != null) {
-                        ps.setInt(1, internat.id.C_GI_COD);
-                        ps.setInt(2, g.id.G_TA_COD);
-                        ps.setInt(3, g.id.G_TI_COD);
-                        ps.setInt(4, g.id.C_GP_COD);
+                        ps.setInt(1, internat.id.cGiCod);
+                        ps.setInt(2, g.id.gTaCod);
+                        ps.setInt(3, g.id.gTiCod);
+                        ps.setInt(4, g.id.cGpCod);
                         ps.setInt(5, barreAppelAffichee);
                         ps.setInt(6, barreInternatAffichee);
+                        ps.setInt(7, sortie.parametres.nbJoursCampagne);
                         ps.addBatch();
                     }
                 }
@@ -479,48 +557,54 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         }
 
         /* on compare avec les valeurs au jour n-1 et on met à jour pour garantir la monotonie */
-        try (Statement stmt = conn().createStatement()) {
+        try (PreparedStatement stmt = conn().prepareStatement(
+                "SELECT g_ta_cod,G_TI_COD,C_GP_COD,MAX(A_RG_RAN_DER)"
+                + " FROM A_REC_GRP_INT_PROP"
+                + " WHERE (NB_JRS < ?)"
+                + " AND C_GI_COD=0"
+                + " GROUP BY C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD")) {
+
+            stmt.setInt(1, sortie.parametres.nbJoursCampagne);
             stmt.setFetchSize(100_000);
 
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT G_TA_COD,G_TI_COD,C_GP_COD,MAX(A_RG_RAN_DER)"
-                    + " FROM A_REC_GRP_INT_PROP"
-                    + " WHERE (NB_JRS < " + GroupeInternat.nbJoursCampagne + ")"
-                    + " AND C_GI_COD=0"
-                    + " GROUP BY C_GI_COD,G_TA_COD,G_TI_COD,C_GP_COD")) {
+            try (ResultSet result = stmt.executeQuery()) {
                 while (result.next()) {
-                    int G_TA_COD = result.getInt(1);
-                    int G_TI_COD = result.getInt(2);
-                    int C_GP_COD = result.getInt(3);
-                    int dernierAppeleRangAppe = result.getInt(4);
+                    int gTaCod = result.getInt(1);
+                    int gTiCod = result.getInt(2);
+                    int cGpCod = result.getInt(3);
+                    int dernierAppeleRangAppel = result.getInt(4);
 
                     GroupeAffectation groupe
-                            = groupes.get(new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD));
+                            = groupes.get(new GroupeAffectationUID(cGpCod, gTiCod, gTaCod));
 
                     if (groupe != null) {
-                        groupe.rangDernierAppeleAffiche
-                                = Math.max(dernierAppeleRangAppe, groupe.rangDernierAppeleAffiche);
+                        groupe.setRangDernierAppeleAffiche(
+                                Math.max(dernierAppeleRangAppel, groupe.getRangDernierAppeleAffiche())
+                        );
                     }
                 }
             }
         }
 
         LOGGER.info("Préparation de la table A_REC_GRP_INT_PROP avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_REC_GRP_INT_PROP WHERE C_GI_COD=0"
-                + " AND NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps = conn().prepareStatement(
+                "DELETE FROM A_REC_GRP_INT_PROP WHERE C_GI_COD=0 AND NB_JRS=?")) {
+            ps.setInt(1, sortie.parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         LOGGER.info("Export dans la table A_REC_GRP_INT_PROP");
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_REC_GRP_INT_PROP "
-                + "(C_GI_COD,G_TA_COD,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
-                + " VALUES (0,?,?,?,?,0," + GroupeInternat.nbJoursCampagne + " )")) {
+                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
+                + " VALUES (0,?,?,?,?,0,?)")) {
 
             for (GroupeAffectation g : sortie.groupes) {
-                ps.setInt(1, g.id.G_TA_COD);
-                ps.setInt(2, g.id.G_TI_COD);
-                ps.setInt(3, g.id.C_GP_COD);
-                ps.setInt(4, g.rangDernierAppeleAffiche);
+                ps.setInt(1, g.id.gTaCod);
+                ps.setInt(2, g.id.gTiCod);
+                ps.setInt(3, g.id.cGpCod);
+                ps.setInt(4, g.getRangDernierAppeleAffiche());
+                ps.setInt(5, sortie.parametres.nbJoursCampagne);
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -530,15 +614,17 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
     private void exporterRangsSurListeAttente(AlgoPropositionsSortie sortie) throws SQLException {
 
         LOGGER.info("Préparation de la table A_VOE_PROP avant export");
-        conn().createStatement().executeQuery(
-                "DELETE FROM A_VOE_PROP WHERE NB_JRS=" + GroupeInternat.nbJoursCampagne);
+        try (PreparedStatement ps = conn().prepareStatement("DELETE FROM A_VOE_PROP WHERE NB_JRS=?")) {
+            ps.setInt(1, sortie.parametres.nbJoursCampagne);
+            ps.execute();
+        }
 
         LOGGER.log(Level.INFO, "Exportation des rangs sur liste d''attente de {0} voeux", sortie.voeux.size());
 
         try (PreparedStatement ps = conn().prepareStatement(
                 "INSERT INTO A_VOE_PROP "
-                + "(G_CN_COD,G_TA_COD,I_RH_COD,C_GP_COD,G_TI_COD,A_VE_RAN_LST_ATT,NB_JRS)"
-                + " VALUES (?,?,?,?,?,?," + GroupeInternat.nbJoursCampagne + ")")) {
+                + "(G_CN_COD,g_ta_cod,I_RH_COD,C_GP_COD,G_TI_COD,A_VE_RAN_LST_ATT,NB_JRS)"
+                + " VALUES (?,?,?,?,?,?,?)")) {
             int count = 0;
 
             for (Voeu voe : sortie.voeux) {
@@ -546,18 +632,19 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                 /* Le rang sur liste d'attente ne concerne que les voeux
                 en ettente  dans des formations sans internat à classement propre.
                  */
-                if (voe.rangListeAttente == 0) {
+                if (voe.getRangListeAttente() == 0) {
                     continue;
                 }
 
-                GroupeAffectationUID groupe = voe.groupe.id;
+                GroupeAffectationUID groupe = voe.groupeUID;
 
-                ps.setInt(1, voe.id.G_CN_COD);
-                ps.setInt(2, voe.id.G_TA_COD);
-                ps.setInt(3, voe.id.I_RH_COD ? 1 : 0);
-                ps.setInt(4, groupe.C_GP_COD);
-                ps.setInt(5, groupe.G_TI_COD);
-                ps.setInt(6, voe.rangListeAttente);
+                ps.setInt(1, voe.id.gCnCod);
+                ps.setInt(2, voe.id.gTaCod);
+                ps.setInt(3, voe.id.iRhCod ? 1 : 0);
+                ps.setInt(4, groupe.cGpCod);
+                ps.setInt(5, groupe.gTiCod);
+                ps.setInt(6, voe.getRangListeAttente());
+                ps.setInt(7, sortie.parametres.nbJoursCampagne);
 
                 ps.addBatch();
                 if (++count % 100_000 == 0) {
@@ -565,12 +652,11 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                             new Object[]{count - 99_999, count});
                     ps.executeBatch();
                     ps.clearBatch();
-                    //LOGGER.info("Fait");
                 }
             }
 
             ps.executeBatch();
-            LOGGER.log(Level.INFO, "{0} rangs sur liste d'attente exportés.", count);
+            LOGGER.log(Level.INFO, "{0} rangs sur liste d attente exportés.", count);
 
         }
 
@@ -583,143 +669,175 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
     /* permet de comptabiliser les groupes manquants, avant le début de campagne */
     private final Set<GroupeAffectationUID> groupesManquants = new HashSet<>();
 
-    private void recupererGroupesAffectation() throws SQLException {
+    /*@
+    Le flag retroCompatibitilite permet d'adapter la requete à 
+    la non existence du champ a_rg_flg_adm_stop sur les anciennes bases (avant 2020).
+    Ce flag n'est pas utilisé en prod.
+     */
+    public Map<GroupeAffectationUID, GroupeAffectation>
+            recupererGroupesAffectation(
+                    Parametres parametres,
+                    boolean retroCompatibitilite)
+            throws SQLException, VerificationException {
 
-        entree.groupesAffectations.clear();
+        Map<GroupeAffectationUID, GroupeAffectation> resultat = new HashMap<>();
+
+        final boolean colAdmStopExists;
+
+        //Ce mode permet d'exécuter l'algorithme d'appel  et le simulateur sur des bases archivées
+        if (retroCompatibitilite) {
+            try (Statement stmt = conn().createStatement()) {
+                try (ResultSet result
+                        = stmt.executeQuery(
+                                "SELECT * FROM user_tab_cols "
+                                + "WHERE upper(column_name) = 'A_RG_FLG_ADM_STOP'"
+                                + " and upper(table_name) = '" + RECRUTEMENTS_TABLE + "'")) {
+                    colAdmStopExists = result.next();
+                }
+            }
+        } else {
+            colAdmStopExists = true;
+        }
 
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(1_000_000);
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT C_GP_COD,"
+            try (ResultSet result = stmt.executeQuery("SELECT C_GP_COD,"
                     + " G_TI_COD,"
-                    + " G_TA_COD,"
-                    + " A_RG_NBR_SOU capacite,"
+                    + " g_ta_cod,"
+                    + (simulationAvantDebutCampagne
+                            ? " NVL(A_RG_NBR_SOU,A_RG_PLA) capacite,"
+                            : " A_RG_NBR_SOU capacite,")
                     + " NVL(a_rg_ran_lim,0),"
-                    + "(SELECT MAX(C_CG_ORD_APP) FROM A_ADM adm, C_CAN_GRP cla "
-                    + " WHERE "
+                    + "(SELECT MAX(NVL(C_CG_ORD_APP,-1)) FROM A_ADM adm, "
+                    + CLASSEMENTS_TABLE + " cla "
+                    + WHERE
                     + " adm.g_cn_cod=cla.g_cn_cod"
-                    + " AND adm.g_ta_cod=a_rec_grp.g_ta_cod"
-                    + " AND adm.g_ti_cod=a_rec_grp.g_ti_cod"
-                    + " AND adm.c_gp_cod=a_rec_grp.c_gp_cod"
-                    + " AND cla.c_gp_cod=a_rec_grp.c_gp_cod"
+                    + " AND adm.g_ta_cod=rec.g_ta_cod"
+                    + (sparseDataTestingMode > 0 ? " AND MOD(adm.g_ta_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO : "")
+                    + " AND adm.g_ti_cod=rec.g_ti_cod"
+                    + " AND adm.c_gp_cod=rec.c_gp_cod"
+                    + " AND cla.c_gp_cod=rec.c_gp_cod"
                     + " AND adm.a_ta_cod=1" //proc principale
                     + " AND cla.i_ip_cod=5" //classé
                     + " AND cla.c_cg_ord_app is not null)"
                     + " rangDernierAppele"
-                    + " FROM a_rec_grp")) {
+                    + (colAdmStopExists ? " ,NVL(rec.a_rg_flg_adm_stop,0) " : " ")
+                    + " FROM " + RECRUTEMENTS_TABLE + " rec "
+            )) {
 
                 while (result.next()) {
 
-                    int C_GP_COD = result.getInt(1);
-                    int G_TI_COD = result.getInt(2);
-                    int G_TA_COD = result.getInt(3);
+                    int cGpCod = result.getInt(1);
+                    int gTiCod = result.getInt(2);
+                    int gTaCod = result.getInt(3);
                     int nbRecrutementsSouhaite = result.getInt(4);
                     int rangLimite = result.getInt(5);/* peut être null, vaut 0 dans ce cas */
                     int rangDernierAppele = result.getInt(6);
-
-                    GroupeAffectationUID id
-                            = new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD);
-                    if (entree.groupesAffectations.containsKey(id)) {
-                        throw new RuntimeException("GroupeAffectation dupliqué");
+                    int blocageAdmissionGroupe = (colAdmStopExists ? result.getInt(7) : 0);
+                    if (blocageAdmissionGroupe != 0) {
+                        nbRecrutementsSouhaite = 0;
+                        rangLimite = 0;
                     }
 
-                    entree.ajouter(
-                            new GroupeAffectation(
-                                    nbRecrutementsSouhaite,
-                                    id,
-                                    rangLimite,
-                                    rangDernierAppele)
-                    );
+                    GroupeAffectationUID id
+                            = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
+
+                    resultat.put(id, new GroupeAffectation(
+                            nbRecrutementsSouhaite,
+                            id,
+                            rangLimite,
+                            rangDernierAppele,
+                            parametres));
 
                 }
             }
         }
+        return resultat;
     }
 
-    private void recupererInternats() throws SQLException {
-        entree.internats.clear();
+    public Map<GroupeInternatUID, GroupeInternat> recupererInternats() throws SQLException, VerificationException {
+        Map<GroupeInternatUID, GroupeInternat> resultat = new HashMap<>();
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
 
             try (ResultSet result = stmt.executeQuery(
-                    "SELECT C_GI_COD, NVL(G_TA_COD,0), A_RI_NBR_SOU "
+                    "SELECT C_GI_COD, NVL(g_ta_cod,0), A_RI_NBR_SOU "
                     + "FROM a_rec_grp_int")) {
                 while (result.next()) {
-                    int C_GI_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
+                    int cGiCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
                     int nbPlacesTotal = result.getInt(3);
 
                     GroupeInternatUID id
-                            = new GroupeInternatUID(C_GI_COD, G_TA_COD);
+                            = new GroupeInternatUID(cGiCod, gTaCod);
 
-                    if (entree.internats.containsKey(id)) {
-                        throw new RuntimeException("Internat dupliqué");
-                    }
-
-                    entree.internats.put(id, new GroupeInternat(
-                            id,
-                            nbPlacesTotal
-                    )
-                    );
+                    resultat.put(id,
+                            new GroupeInternat(
+                                    id,
+                                    nbPlacesTotal));
 
                 }
             }
         }
+        return resultat;
     }
 
     /* Récupère un nombre de jours dans la table gpar */
-    private int nbJoursDepuis(int index) throws SQLException {
+    private int nbJoursDepuis(int index) throws SQLException, AccesDonneesException {
 
         Integer nbJours = null;
 
-        try (ResultSet result
-                = conn().createStatement().executeQuery(
-                        "SELECT TRUNC(SYSDATE) - TRUNC(TO_DATE(g_pr_val, 'DD/MM/YYYY:HH24MI'))"
-                        + " FROM g_par WHERE g_pr_cod=" + index)) {
-            while (result.next()) {
-                nbJours = result.getInt(1);
+        try (PreparedStatement ps = conn().prepareStatement("SELECT TRUNC(SYSDATE) - TRUNC(TO_DATE(g_pr_val, 'DD/MM/YYYY:HH24MI'))"
+                + " FROM g_par WHERE g_pr_cod=?")) {
+            ps.setInt(1, index);
+            try (ResultSet result = ps.executeQuery()) {
+                while (result.next()) {
+                    nbJours = result.getInt(1);
+                }
             }
         }
         if (nbJours == null) {
-            throw new RuntimeException("Date incohérente");
+            throw new AccesDonneesException("Date incohérente");
         }
         return nbJours;
     }
 
     /* Récupère un nombre de jours dans la table gpar */
-    private int nbJoursEntre(int index1, int index2) throws SQLException {
+    private int nbJoursEntre(int index1, int index2) throws SQLException, AccesDonneesException {
 
         Integer nbJours = null;
 
-        try (ResultSet result
-                = conn().createStatement().executeQuery(
-                        "SELECT TRUNC(TO_DATE(g_par2.g_pr_val, 'DD/MM/YYYY:HH24MI')) "
-                        + "- TRUNC(TO_DATE(g_par1.g_pr_val, 'DD/MM/YYYY:HH24MI'))"
-                        + " FROM g_par g_par1,g_par g_par2 WHERE g_par1.g_pr_cod=" + index1
-                        + " and g_par2.g_pr_cod=" + index2)) {
-            while (result.next()) {
-                nbJours = result.getInt(1);
+        try (PreparedStatement ps = conn().prepareStatement("SELECT TRUNC(TO_DATE(g_par2.g_pr_val, 'DD/MM/YYYY:HH24MI')) "
+                + "- TRUNC(TO_DATE(g_par1.g_pr_val, 'DD/MM/YYYY:HH24MI'))"
+                + " FROM g_par g_par1,g_par g_par2 WHERE g_par1.g_pr_cod=?"
+                + " and g_par2.g_pr_cod=?")) {
+            ps.setInt(1, index1);
+            ps.setInt(2, index2);
+            try (ResultSet result = ps.executeQuery()) {
+                while (result.next()) {
+                    nbJours = result.getInt(1);
+                }
             }
         }
         if (nbJours == null) {
-            throw new RuntimeException("Date incohérente");
+            throw new AccesDonneesException("Date incohérente");
         }
         return nbJours;
     }
 
-    /* Récupère les voeuxEnAttente sur lesquels il ya une proposition d'admission qui
+    /* Récupère les voeux sur lesquels il y a une proposition d'admission qui
     bloque une place car elle est soit en attente de réponse du candidat soit 
     acceptée par le candidat. 
      */
-    private void recupererPropositionsActuelles() throws SQLException {
+    private void recupererPropositionsActuelles()
+            throws SQLException, VerificationException {
 
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT "
+            try (ResultSet result = stmt.executeQuery(SELECT
                     + "adm.G_CN_COD,"//id candidat
                     + "adm.G_TI_COD, "//id formation affectation
-                    + "adm.G_TA_COD, "//id formation affectation
+                    + "adm.g_ta_cod, "//id formation affectation
                     + "adm.I_RH_COD, "//voeu avec internat?
                     + "adm.C_GP_COD, "
                     + "adm.C_GI_COD, "
@@ -733,63 +851,64 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     + "ti.g_ti_cla_int_uni "//type d'internat (cf notes ci-dessous)
                     + " FROM A_ADM adm,"//table des admissions
                     + " A_SIT_VOE sv,"//statut du voeu
-                    + " g_tri_ins ti"//données formations inscriptions                    
-                    + " WHERE "
+                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions                    
+                    + WHERE
                     + " adm.a_sv_cod=sv.a_sv_cod"
                     + " AND sv.a_sv_flg_aff=1"
                     + " AND adm.g_ti_cod=ti.g_ti_cod"
                     + " AND adm.a_ta_cod != 2"
+                    + (sparseDataTestingMode > 0 ? " AND MOD(adm.g_cn_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO
+                            + "AND MOD(adm.g_ta_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO : "")
             )) {
                 while (result.next()) {
 
-                    int G_CN_COD = result.getInt(1);
-                    int G_TI_COD = result.getInt(2);
-                    int G_TA_COD = result.getInt(3);
-                    boolean I_RH_COD = result.getBoolean(4);
-                    int C_GP_COD = result.getInt(5);
-                    int C_GI_COD = result.getInt(6);
-                    int A_TA_COD = result.getInt(7);
-                    boolean estAffectationPP = (A_TA_COD == 1);
-                    int type_internat = result.getInt(8);
+                    int gCnCod = result.getInt(1);
+                    int gTiCod = result.getInt(2);
+                    int gTaCod = result.getInt(3);
+                    boolean iRhCod = result.getBoolean(4);
+                    int cGpCod = result.getInt(5);
+                    int cGiCod = result.getInt(6);
+                    int aTaCod = result.getInt(7);
+                    boolean estAffectationPP = (aTaCod == 1);
+                    int typeInternat = result.getInt(8);
 
                     GroupeAffectationUID groupeId
-                            = new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD);
+                            = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
 
                     GroupeAffectation groupe
                             = entree.groupesAffectations.get(groupeId);
 
-                    if (groupe == null) {
-                        // peut arriver si les classements ou données d'appel ne sont pas renseignées 
-                        groupesManquants.add(groupeId);
-                        continue;
-                    }
-
                     GroupeInternatUID internatId
-                            = internatUID(type_internat, C_GI_COD, G_TA_COD);
+                            = internatUID(typeInternat, cGiCod, gTaCod);
 
                     GroupeInternat internat = entree.internats.get(internatId);
 
-                    if (internat == null) {
+                    if (groupe == null) {
+                        // peut arriver si les classements ou données d'appel ne sont pas renseignées 
+                        groupesManquants.add(groupeId);
+                    } else if (internat == null) {
                         Voeu v = new Voeu(
-                                G_CN_COD,
-                                I_RH_COD,
+                                gCnCod,
+                                iRhCod,
                                 groupe,
                                 0,
                                 0,
-                                Voeu.StatutVoeu.affecteJoursPrecedents,
+                                0,
+                                Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS,
                                 !estAffectationPP);
-                        entree.voeux.add(v);
+                        entree.ajouterSiNecessaire(v);
                     } else {
                         Voeu v = new Voeu(
-                                G_CN_COD,
+                                gCnCod,
                                 groupe,
+                                0,
                                 0,
                                 internat,
                                 0,
                                 0,
-                                Voeu.StatutVoeu.affecteJoursPrecedents,
+                                Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS,
                                 !estAffectationPP);
-                        entree.voeux.add(v);
+                        entree.ajouterSiNecessaire(v);
                     }
 
                 }
@@ -804,19 +923,19 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         LOGGER.info("Récupération du nombre de places MBC");
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT "
-                    + " arec.G_TA_COD,"//id formation affectation
+            try (ResultSet result = stmt.executeQuery(SELECT
+                    + " arec.g_ta_cod,"//id formation affectation
                     + " arec.A_RC_PLA_MBC "//nb places réservées MBC
                     + " FROM A_REC arec"//table des formations
-                    + " WHERE "
+                    + WHERE
                     + " NVL(A_RC_FLG_MBC,0) = 1"
+                    + (sparseDataTestingMode > 0 ? " AND MOD(arec.g_ta_cod," + sparseDataTestingMode + ") =0 " : "")
             )) {
 
                 while (result.next()) {
-                    int G_TA_COD = result.getInt(1);
-                    int nb_places = result.getInt(2);
-                    entree.nbPlacesMeilleursBacheliers.put(G_TA_COD, nb_places);
+                    int gTaCod = result.getInt(1);
+                    int nbPlaces = result.getInt(2);
+                    entree.nbPlacesMeilleursBacheliers.put(gTaCod, nbPlaces);
                 }
             }
         }
@@ -825,9 +944,9 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
             try (ResultSet result = stmt.executeQuery(
-                    "SELECT "
+                    SELECT
                     + " G_CN_COD,"
-                    + " G_TA_COD,"//id formation affectation
+                    + " g_ta_cod,"//id formation affectation
                     + " I_RH_COD"
                     + " FROM A_ADM adm,A_SIT_VOE asv"
                     + " WHERE adm.a_sv_cod=asv.a_sv_cod"
@@ -836,11 +955,11 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             )) {
 
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
-                    boolean I_RH_COD = result.getBoolean(3);
+                    int gCnCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
+                    boolean iRhCod = result.getBoolean(3);
                     entree.propositionsMeilleursBacheliers.add(
-                            new VoeuUID(G_CN_COD, G_TA_COD, I_RH_COD));
+                            new VoeuUID(gCnCod, gTaCod, iRhCod));
                 }
             }
         }
@@ -848,23 +967,24 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         LOGGER.info("Récupération des MBC et de leurs moyennes au Bac");
         try (Statement stmt = conn().createStatement()) {
 
-            String sql = "SELECT "
+            String sql = SELECT
                     + "can.G_CN_COD,"
                     + "I_CE_NOT " //moyenne au Bac
                     + " FROM G_CAN can, i_can_epr_bac bac"
                     //groupe de classement
                     + " WHERE can.G_CN_COD=bac.G_CN_COD"
                     + " AND   can.G_CN_FLG_MBC = 1"
-                    + " AND   bac.I_EB_COD = 20";/* code de la moyenne générale */
+                    + " AND   bac.I_EB_COD = 20 "
+                    + (sparseDataTestingMode > 0 ? " AND MOD(can.g_cn_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO : "");/* code de la moyenne générale */
 
             try (ResultSet result = stmt.executeQuery(sql)) {
 
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
+                    int gCnCod = result.getInt(1);
                     double moyenne = result.getDouble(2);
                     MeilleurBachelier mb
                             = new MeilleurBachelier(
-                                    G_CN_COD,
+                                    gCnCod,
                                     moyenne
                             );
                     entree.meilleursBacheliers.add(mb);
@@ -876,52 +996,60 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
     /* calcule l'identificateur internat en fonction des données, y compris le flag 
      type_internat  = g_ti_cla_int_uni en base */
-    private GroupeInternatUID internatUID(int type_internat, int C_GI_COD, int G_TA_COD) {
+    private GroupeInternatUID internatUID(int typeInternat, int cGiCod, int gtaCod) {
         /* on distingue le cas des établissements avec internat unique propre à plusieurs
                     formations et celui des établissements avec des entree.internats propres à chaque formation.
                     Remarque: dans les deux cas les entree.internats peuvent être mixtes ou non, cf doc de ref.
          */
-        boolean internatUnique = (type_internat == 1);
-        return new GroupeInternatUID(C_GI_COD, internatUnique ? 0 : G_TA_COD);
+        boolean internatUnique = (typeInternat == 1);
+        return new GroupeInternatUID(cGiCod, internatUnique ? 0 : gtaCod);
     }
 
-    private void recupererVoeuxAvecInternatsAClassementPropre() throws SQLException {
+    private void recupererVoeuxAvecInternatsAClassementPropre(boolean seulementVoeuxEnAttente)
+            throws SQLException, VerificationException {
 
         int compteur = 0;
 
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
             String requete
-                    = "SELECT "
+                    = SELECT
                     + "v.g_cn_cod,"//id candidat
                     + "v.g_ta_cod,"//id affectation
                     + "ti.g_ti_cod,"//id inscription
                     + "cg.c_gp_cod,"//groupe de classement pédagogique
-                    + "cg.c_cg_ord_app,"//ordre d'appel
+                    + (simulationAvantDebutCampagne
+                            ? "NVL(cg.c_cg_ord_app,cg.c_cg_ran) rang,"
+                            : "cg.c_cg_ord_app rang,")//ordre d'appel.
                     + "cg.c_cg_ord_app_aff,"//ordre d'appel
                     + "cgi.c_gi_cod,"//id internat
                     + "cgi.c_ci_ran,"//rang de classement internat
                     + "ti.g_ti_cla_int_uni,"//type d'internat (cf notes ci-dessous)
                     + "NVL(v.a_ve_typ_maj,0),"//code modification (annulation démission, modification classements erronés)
-                    + "NVL(v.a_ve_ord,0)"//rang du voeu dans le répondeur automatique (null di désactivé)
-                    + " FROM "
+                    + "NVL(v.a_ve_ord,0),"//rang du voeu dans le répondeur automatique (null si désactivé)
+                    + " sv.a_sv_flg_att,"
+                    + " sv.a_sv_flg_clo,"
+                    + " sv.a_sv_flg_aff"
+                    + FROM
                     + "g_can c,"//candidats
                     + "a_voe v,"//voeux
                     + "a_sit_voe sv,"//codes situations des voeuxEnAttente
-                    + "a_rec_grp rg,"//groupes de classement pédagogique
-                    + "c_can_grp cg,"//classements pédagogiques
+                    + RECRUTEMENTS_TABLE + " rg,"//groupes de classement pédagogique
+                    + CLASSEMENTS_TABLE + " cg,"//classements pédagogiques
                     + "a_rec_grp_int rgi,"//groupes de classement internats
                     + "c_can_grp_int cgi,"//classements internats
-                    + "g_tri_ins ti"//données formations inscriptions
-                    + " WHERE "
+                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
+                    + WHERE
                     + " v.i_rh_cod=1"//voeux avec internat
-                    + " AND sv.a_sv_flg_att=1"//voeu en attente
+                    + (seulementVoeuxEnAttente
+                            ? (" AND (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)")//voeu en attente ou bien clôturé (GDD)
+                            : " ")//inclus tous les voeux
                     + " AND cg.i_ip_cod=5" //candidat classé
                     + " AND cgi.i_ip_cod=5" //candidat classé
                     + " AND c.g_ic_cod >= 0" //dossier non-annulé (décès...)
                     + " AND ti.g_ti_eta_cla=2" //classement terminé
                     + " AND c.g_cn_cod=v.g_cn_cod"
-                    + " AND cg.c_cg_ord_app is not null"
+                    + (simulationAvantDebutCampagne ? " " : " AND cg.C_CG_ORD_APP is not null")
                     + " AND v.a_sv_cod=sv.a_sv_cod"
                     + " AND v.g_cn_cod=cg.g_cn_cod"
                     + " AND cg.c_gp_cod=rg.c_gp_cod"
@@ -936,21 +1064,22 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     + "   (rgi.g_ta_cod is not null AND rgi.g_ta_cod=v.g_ta_cod AND rgi.g_ti_cod=ti.g_ti_cod)" //internat par formation
                     + " )"
                     + " AND ti.g_ti_cla_int_uni IN (0,1)" //restriction aux internats à classement propre
-                    ;
+                    + ((sparseDataTestingMode > 0) ? (" AND MOD(v.g_cn_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO
+                            + "AND MOD(v.g_ta_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO) : "");
 
             LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
 
             try (ResultSet result = stmt.executeQuery(requete)) {
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
-                    int G_TI_COD = result.getInt(3);
-                    int C_GP_COD = result.getInt(4);
+                    int gCnCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
+                    int gTiCod = result.getInt(3);
+                    int cGpCod = result.getInt(4);
                     int rangAppel = result.getInt(5);
                     int rangAppelAffiche = result.getInt(6);
-                    int C_GI_COD = result.getInt(7);
-                    int C_CI_RAN = result.getInt(8);
-                    int type_internat = result.getInt(9);
+                    int cGiCod = result.getInt(7);
+                    int cCiRan = result.getInt(8);
+                    int typeInternat = result.getInt(9);
                     /*
                     g_ti_cla_int_uni = 3 : internat obligatoire
                     g_ti_cla_int_uni = 2 : internat sans élection
@@ -959,14 +1088,27 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     g_ti_cla_int_uni = 1 :  l'internat est commun
                                             à plusieurs formations de l'établissement
                      */
-                    int type_maj = result.getInt(10);
+                    int typeMaj = result.getInt(10);
                     int rangRepondeurAutomatique = result.getInt(11);
 
-                    boolean annulationDemission = (type_maj == 1);
-                    boolean modificationClassement = (type_maj == 10 || type_maj == 20);
+                    boolean annulationDemission = (typeMaj == 1);
+                    boolean modificationClassement = (typeMaj == 10 || typeMaj == 20);
+
+                    boolean enAttente = result.getBoolean(12);
+                    boolean cloture = result.getBoolean(13);//GDD
+                    boolean affecte = result.getBoolean(14);//GDD
+
+                    Voeu.StatutVoeu statut;
+                    if(enAttente || cloture) {
+                        statut = Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+                    } else if(affecte) {
+                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
+                    } else {
+                        statut = Voeu.StatutVoeu.REFUS_OU_DEMISSION;
+                    }
 
                     GroupeAffectationUID groupeId
-                            = new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD);
+                            = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
                     GroupeAffectation groupe
                             = entree.groupesAffectations.get(groupeId);
 
@@ -977,7 +1119,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     }
 
                     GroupeInternatUID internatId
-                            = internatUID(type_internat, C_GI_COD, G_TA_COD);
+                            = internatUID(typeInternat, cGiCod, gTaCod);
 
                     GroupeInternat internat = entree.internats.get(internatId);
                     if (internat == null) {
@@ -986,17 +1128,16 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     }
 
                     Voeu v = new Voeu(
-                            G_CN_COD,
+                            gCnCod,
                             groupe,
                             rangAppel,
+                            rangAppelAffiche,
                             internat,
-                            C_CI_RAN,
+                            cCiRan,
                             rangRepondeurAutomatique,
-                            Voeu.StatutVoeu.enAttenteDeProposition,
+                            statut,
                             false
                     );
-
-                    ordresAppelAffiches.put(v.id, rangAppelAffiche);
 
                     compteur++;
                     if (compteur % 100_000 == 0) {
@@ -1010,7 +1151,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                         v.setCorrectionClassement();
                     }
 
-                    entree.voeux.add(v);
+                    entree.ajouter(v);
 
                 }
             }
@@ -1018,35 +1159,43 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
         LOGGER.log(Level.INFO, "{0} voeux en attente avec internat à classement propre", compteur);
     }
 
-    private void recupererVoeuxSansInternatAClassementPropre() throws SQLException {
+    private void recupererVoeuxSansInternatAClassementPropre(boolean seulementVoeuxEnAttente)
+            throws SQLException, VerificationException {
         int compteur = 0;
         try (Statement stmt = conn().createStatement()) {
-            int fetch_size = 500_000;
-            stmt.setFetchSize(fetch_size);
+            int fetchSize = 500_000;
+            stmt.setFetchSize(fetchSize);
             String requete
-                    = "SELECT "
+                    = SELECT
                     + "v.g_cn_cod,"//id candidat
                     + "v.g_ta_cod,"//id affectation
                     + "v.i_rh_cod,"//demande internat (1) ou pas (0)
                     + "NVL(v.a_ve_ord,0),"//rang du voeu dans le répondeur automatique (null di désactivé)
                     + "ti.g_ti_cod,"//id inscription
                     + "cg.c_gp_cod,"//groupe de classement pédagogique
-                    + "cg.c_cg_ord_app rang,"//ordre d'appel.
+                    + (simulationAvantDebutCampagne
+                            ? "NVL(cg.c_cg_ord_app,cg.c_cg_ran) rang,"
+                            : "cg.c_cg_ord_app rang,")//ordre d'appel.
                     + "cg.c_cg_ord_app_aff rang_aff,"//ordre d'appel affiché.
-                    + "NVL(v.a_ve_typ_maj,0)"//code modification (annulation démission, modification classements erronés)
-                    + " FROM "
+                    + "NVL(v.a_ve_typ_maj,0),"//code modification (annulation démission, modification classements erronés)
+                    + " sv.a_sv_flg_att,"
+                    + " sv.a_sv_flg_clo,"
+                    + " sv.a_sv_flg_aff"
+                    + FROM
                     + "g_can c,"//candidats
                     + "a_voe v,"//voeux
                     + "a_sit_voe sv,"//codes situations des voeuxEnAttente
-                    + "a_rec_grp rg,"//groupes de classement pédagogique
-                    + "c_can_grp cg,"//classements pédagogiques
-                    + "g_tri_ins ti"//données formations inscriptions
-                    + " WHERE "
+                    + RECRUTEMENTS_TABLE + " rg,"//groupes de classement pédagogique
+                    + CLASSEMENTS_TABLE + " cg,"//classements pédagogiques
+                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
+                    + WHERE
                     + " cg.i_ip_cod=5" //candidat classé
                     + " AND c.g_ic_cod >= 0" //dossier non-annulé (décès...)
                     + " AND ti.g_ti_eta_cla=2" //classement terminé
-                    + " AND sv.a_sv_flg_att=1"//voeu en attente
-                    + " AND cg.C_CG_ORD_APP is not null"
+                    + (seulementVoeuxEnAttente
+                            ? (" AND (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)")//voeu en attente ou bien clôturé (GDD)
+                            : " ")
+                    + (simulationAvantDebutCampagne ? " " : " AND cg.C_CG_ORD_APP is not null")
                     + " AND c.g_cn_cod=v.g_cn_cod"
                     + " AND v.a_sv_cod=sv.a_sv_cod"
                     + " AND v.g_cn_cod=cg.g_cn_cod"
@@ -1054,50 +1203,64 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     + " AND rg.g_ta_cod=v.g_ta_cod"
                     + " AND rg.g_ti_cod=ti.g_ti_cod"
                     //exclut les formations d'inscriptions avec internat à classement propre
-                    + " AND (v.i_rh_cod =0 or ti.g_ti_cla_int_uni NOT IN (0,1)) " //+ " AND v.g_ta_cod= 8972"
-                    ;
+                    + " AND (v.i_rh_cod =0 or ti.g_ti_cla_int_uni NOT IN (0,1)) "
+                    + ((sparseDataTestingMode > 0) ? (" AND MOD(v.g_cn_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO
+                            + "AND MOD(v.g_ta_cod," + sparseDataTestingMode + ")" + EQUALS_ZERO) : "");
 
             LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
 
             try (ResultSet result = stmt.executeQuery(requete)) {
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
+                    int gCnCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
                     boolean avecInternat = result.getBoolean(3);
                     int rangRepondeurAutomatique = result.getInt(4);
-                    int G_TI_COD = result.getInt(5);
-                    int C_GP_COD = result.getInt(6);
+                    int gTiCod = result.getInt(5);
+                    int cGpCod = result.getInt(6);
                     int rangAppel = result.getInt(7);
                     int rangAppelAffiche = result.getInt(8);
 
-                    int type_maj = result.getInt(9);
-                    boolean annulationDemission = (type_maj == 1);
-                    boolean modificationClassement = (type_maj == 10 || type_maj == 20);
+                    int typeMaj = result.getInt(9);
+                    boolean annulationDemission = (typeMaj % 2 == 1);
+                    boolean modificationClassement = (typeMaj >= 10);
+
+                    boolean enAttente = result.getBoolean(10);
+                    boolean cloture = result.getBoolean(11);//GDD
+                    boolean affecte = result.getBoolean(12);//GDD
+
+                    Voeu.StatutVoeu statut;
+                    if(enAttente || cloture) {
+                        statut = Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+                    } else if(affecte) {
+                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
+                    } else {
+                        statut = Voeu.StatutVoeu.REFUS_OU_DEMISSION;
+                    }
 
                     GroupeAffectationUID groupeId
-                            = new GroupeAffectationUID(C_GP_COD, G_TI_COD, G_TA_COD);
+                            = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
                     GroupeAffectation groupe
                             = entree.groupesAffectations.get(groupeId);
 
                     if (groupe == null) {
-                        /* peut arriver si les classements ou données d'appel ne sont pas renseignées */
+                        /* peut arriver si les classements 
+                        ou données d'appel ne sont pas renseignées */
                         groupesManquants.add(groupeId);
                         continue;
                     }
                     Voeu voeu = new Voeu(
-                            G_CN_COD,
+                            gCnCod,
                             avecInternat,
                             groupe,
                             rangAppel,
+                            rangAppelAffiche,
                             rangRepondeurAutomatique,
-                            Voeu.StatutVoeu.enAttenteDeProposition,
+                            statut,
                             false
                     );
 
-                    ordresAppelAffiches.put(voeu.id, rangAppelAffiche);
-
                     compteur++;
-                    if (compteur % fetch_size == 0) {
+                    if (compteur % fetchSize == 0) {
                         LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
                     }
 
@@ -1108,9 +1271,7 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
                     if (modificationClassement) {
                         voeu.setCorrectionClassement();
                     }
-
-                    entree.voeux.add(voeu);
-
+                    entree.ajouter(voeu);
                 }
             }
         }
@@ -1123,17 +1284,17 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
-            try (ResultSet result = stmt.executeQuery(
-                    "SELECT "
+            try (ResultSet result = stmt.executeQuery(SELECT
                     + " G_CN_COD"//id candidat
                     + " FROM G_CAN can"//table des candidats
-                    + " WHERE "
+                    + WHERE
                     + " NVL(can.g_cn_flg_ra,0) = 1"
+                    + (sparseDataTestingMode > 0 ? " AND MOD(can.g_cn_cod," + sparseDataTestingMode + ") =0 " : "")
             )) {
 
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
-                    entree.candidatsAvecRepondeurAutomatique.add(G_CN_COD);
+                    int gCnCod = result.getInt(1);
+                    entree.candidatsAvecRepondeurAutomatique.add(gCnCod);
                 }
             }
         }
@@ -1153,17 +1314,17 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
 
         try (Statement stmt = conn().createStatement()) {
             stmt.setFetchSize(100_000);
-            String sql = "SELECT "
-                    + " v.G_CN_COD,v.G_TA_COD,v.I_RH_COD"
-                    + " FROM "
+            String sql = SELECT
+                    + " v.G_CN_COD,v.g_ta_cod,v.I_RH_COD"
+                    + FROM
                     + " A_VOE v,"//voeu
                     + " A_SIT_VOE sv,"//etat voeu 
                     + " A_ADM adm"//proposition d'admission
-                    + " WHERE "
+                    + WHERE
                     + " v.a_sv_cod = sv.a_sv_cod"
                     + " AND sv.a_sv_flg_att=1"
                     + " AND v.G_CN_COD=adm.G_CN_COD"
-                    + " AND v.G_TA_COD=adm.G_TA_COD"
+                    + " AND v.g_ta_cod=adm.g_ta_cod"
                     + " AND adm.A_TA_COD=1"; //admission en procédure normale
 
             LOGGER.info(sql);
@@ -1171,29 +1332,29 @@ public class ConnecteurDonneesPropositionsOracle implements ConnecteurDonneesPro
             try (ResultSet result = stmt.executeQuery(sql)) {
 
                 while (result.next()) {
-                    int G_CN_COD = result.getInt(1);
-                    int G_TA_COD = result.getInt(2);
-                    boolean I_RH_COD = result.getBoolean(3);
-                    voeux.add(new VoeuUID(G_CN_COD, G_TA_COD, I_RH_COD));
+                    int gCnCod = result.getInt(1);
+                    int gTaCod = result.getInt(2);
+                    boolean iRhCod = result.getBoolean(3);
+                    voeux.add(new VoeuUID(gCnCod, gTaCod, iRhCod));
                 }
             }
-            LOGGER.info(voeux.size() + " voeux récupérés");
+            LOGGER.log(Level.INFO, "{0} voeux r\u00e9cup\u00e9r\u00e9s", voeux.size());
         }
 
         return voeux;
     }
 
     /* flag permettant de vérifier l'interruption des données entrantes pendant le calcul des propositions */
-    private static final int indexFlagInterruptionDonnéeesEntrantes = 31;
+    private static final int INDEX_FLAG_INTERRUP_DONNEES = 31;
 
     /* flag permettant de signaler un problème lors du calcul des propositions */
-    private static final int indexFlagAlerte = 34;
+    private static final int INDEX_FLAG_ALERTE = 34;
 
     /* index de table stockant la date du début de campagen */
-    private static final int indexDateDebutDeCampagne = 35;
+    public static final int INDEX_DATE_DEBUT_CAMPAGNE = 35;
 
     /* index de table stockant la date de l'ouverture complète des internats */
-    private static final int indexDateOuvertureCompleteInternats = 334;
+    public static final int INDEX_DATE_OUV_COMP_INTERNATS = 334;
 
     private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesPropositionsOracle.class.getSimpleName());
 

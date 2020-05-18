@@ -21,78 +21,73 @@ package parcoursup.donnees;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import oracle.jdbc.OracleDriver;
 import oracle.jdbc.pool.OracleDataSource;
+import parcoursup.exceptions.AccesDonneesException;
 
 public class ConnecteurOracle implements java.lang.AutoCloseable {
 
+    public static final int SPARSE_DATA_TEST_MODE = 0;
+    
+    public static final String BULLETINS_TABLE = "I_BUL_SCO";
+    public static final String FORMATIONS_TABLE = "SP_G_TRI_AFF";
+    public static final String FOR_INSCRIPTIONS_TABLE = "G_TRI_INS";
+    public static final String RECRUTEMENTS_TABLE = "A_REC_GRP";
+    public static final String ADMISSION_TABLE = "A_ADM";
+    public static final String INSCRIPTIONS_TABLE = "I_INS";
+    public static final String SITUATION_VOEU_TABLE = "A_SIT_VOE";
+    public static final String FOR_TYPE_TABLE = "G_FOR" ;
+    public static final String FILIERES_TABLE = "G_FIL" ;
+    public static final String NOTES_BAC_TABLE = "I_CAN_EPR_BAC" ;
+    public static final String MATIERES_BAC_TABLE = "I_EPR_BAC" ;
+    public static final String CANDIDATS_TABLE = "G_CAN" ;
+    public static final String MATIERES_TABLE = "I_MAT" ;
+    public static final String CLASSEMENTS_TABLE = "C_CAN_GRP";
+    public static final String TYPES_MACRO_TABLE = "G_PRO_NEW";
+    public static final String ETABLISSEMENTS_TABLE = "G_ETA";
+
     /* connexion à la base de données */
     private final Connection conn;
-    
-    /* spécifie si la connexion doit être close en même temps que l'objet */    
+
+    /* spécifie si la connexion doit être close en même temps que l'objet */
     private final boolean cleanupOnClose;
-    
-    public ConnecteurOracle(Connection connection) {
-        if(connection == null) {
-            throw new RuntimeException("Impossible de créer un ConnecteurOracle à partir d'une connexion ull");
+
+    public ConnecteurOracle(Connection connection) throws AccesDonneesException {
+        if (connection == null) {
+            throw new AccesDonneesException("Impossible de créer un ConnecteurOracle à partir d'une connexion ull");
         }
         cleanupOnClose = false;
         this.conn = connection;
     }
-    
-    public ConnecteurOracle(String url, String user, String password, boolean useTNSNames) throws SQLException {
+
+    public ConnecteurOracle(String url, String user, String password) throws AccesDonneesException {
         cleanupOnClose = true;
-        
-        if (url == null || url.isEmpty()) {
-            OracleDriver ora = new OracleDriver();
-            conn = ora.defaultConnection();
 
-        } else if (useTNSNames) {
-            
-            /* utilisé pour renseigner le chemin vers le fichier de config  tnsnames.ora
-            "When using TNSNames with the JDBC Thin driver,
-            you must set the oracle.net.tns_admin property
-            to the directory that contains your tnsnames.ora file."        
-             */
-            String TNSAlias = url;
-            String TNS_ADMIN = System.getenv("TNS_ADMIN");
-            if (TNS_ADMIN == null) {
-                TNS_ADMIN = "/Applications/instantclient_12_2/";
-                //throw new RuntimeException("La variable d'environnement TNS_ADMIN n'est pas positionnée.");
+        try {
+            if (url == null || url.isEmpty()) {
+                OracleDriver ora = new OracleDriver();
+                conn = ora.defaultConnection();
+            } else {
+                OracleDataSource ods = new OracleDataSource();
+                ods.setURL(url);
+                ods.setUser(user);
+                ods.setPassword(password);
+                conn = ods.getConnection();
             }
-            LOGGER.log(Level.INFO, "Connexion \u00e0 la base Oracle en utilisant les param\u00e8tres de connexion du dossier TNS {0}", TNS_ADMIN);
-            System.setProperty("oracle.net.tns_admin", TNS_ADMIN);
-
-            OracleDataSource ods = new OracleDataSource();
-
-            ods.setURL("jdbc:oracle:thin:@" + TNSAlias);
-            ods.setUser(user);
-            ods.setPassword(password);
-
-            conn = ods.getConnection();
-
-        } else {
-            OracleDataSource ods = new OracleDataSource();
-            ods.setURL(url);
-            ods.setUser(user);
-            ods.setPassword(password);
-            conn = ods.getConnection();
+        } catch (SQLException ex) {
+            throw new AccesDonneesException("Echec de création du connecteur", ex);
         }
     }
-    
+
     public Connection connection() {
         return conn;
     }
-    
+
     @Override
-    public void close() throws Exception {
+    public void close() throws SQLException {
         if (cleanupOnClose && conn != null) {
             conn.close();
         }
     }
-
-    private static final Logger LOGGER = Logger.getLogger(ConnecteurOracle.class.getSimpleName());
 
 }

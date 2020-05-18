@@ -20,6 +20,7 @@ l'Innovation,
  */
 package parcoursup.verification;
 
+import parcoursup.exceptions.VerificationException;
 import parcoursup.propositions.algo.GroupeAffectation;
 import parcoursup.propositions.algo.Voeu;
 
@@ -33,7 +34,7 @@ public class VerificationAffichages {
     et si tous deux ont des voeuxEnAttente en attente pour F 
     alors C1 a un rang sur liste d'attente <= à celui de C2. 
      */
-    public static void verifierRangsSurListeAttente(GroupeAffectation groupe) {
+    public static void verifierRangsSurListeAttente(GroupeAffectation groupe) throws VerificationException {
 
         /* on trie les voeuxEnAttente, le meilleur rang sur liste attente en tête de liste */
         for (Voeu v1 : groupe.voeuxTriesParOrdreAppel()) {
@@ -41,10 +42,10 @@ public class VerificationAffichages {
                     && !v1.avecInternatAClassementPropre()) {
                 for (Voeu v2 : groupe.voeuxEnAttente) {
                     if (v2.estEnAttenteDeProposition()
-                            && v2.ordreAppel > v1.ordreAppel
-                            && v2.rangListeAttente < v1.rangListeAttente) {
+                            && v2.getOrdreAppel() > v1.getOrdreAppel()
+                            && v2.getRangListeAttente() < v1.getRangListeAttente()) {
 
-                        throw new RuntimeException(
+                        throw new VerificationException(
                                 "Violation respect ordre liste attente pour"
                                 + " les voeux sans demande internat"
                                 + " v1 floué par v2 où v1 est "
@@ -58,6 +59,5 @@ public class VerificationAffichages {
 
     VerificationAffichages() {
     }
-;
 
 }

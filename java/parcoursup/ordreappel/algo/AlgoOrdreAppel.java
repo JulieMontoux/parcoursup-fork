@@ -21,19 +21,20 @@ l'Innovation,
  */
 package parcoursup.ordreappel.algo;
 
+import parcoursup.exceptions.VerificationException;
 import parcoursup.verification.VerificationsResultatsAlgoOrdreAppel;
 
 public class AlgoOrdreAppel {
 
     /* la boucle principale de calcul des ordres d'appels. 
         Renvoit une exception en cas de problème. */
-    public static AlgoOrdreAppelSortie calculerOrdresAppels(AlgoOrdreAppelEntree data) throws Exception {
+    public static AlgoOrdreAppelSortie calculerOrdresAppels(AlgoOrdreAppelEntree data) throws VerificationException {
 
         AlgoOrdreAppelSortie resultat = new AlgoOrdreAppelSortie();
 
         /* calcul de l'ordre d'appel de chaque groupe de classement */
         for (GroupeClassement ga : data.groupesClassements) {
-            resultat.ordresAppel.put(ga.C_GP_COD, ga.calculerOrdreAppel());
+            resultat.ordresAppel.put(ga.cGpCod, ga.calculerOrdreAppel());
         }
 
         /* vérification avant retoru des resultats */

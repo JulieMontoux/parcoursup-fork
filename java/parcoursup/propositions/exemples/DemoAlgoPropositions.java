@@ -22,10 +22,12 @@ l'Innovation,
 package parcoursup.propositions.exemples;
 
 import java.util.Random;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 
 public class DemoAlgoPropositions {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws VerificationException, AccesDonneesException {
 
         Random random = new Random();
 
@@ -34,8 +36,7 @@ public class DemoAlgoPropositions {
 
         int nbCandidats = 100_000;
         
-        while (true) {
-            System.out.println("\n********** Exemple Aléatoire ************");
+        while (!Thread.interrupted()) {
             ExempleAleatoire exempleAleatoire = new ExempleAleatoire(random.nextInt(nbCandidats));
             exempleAleatoire.execute(logFile);
         }

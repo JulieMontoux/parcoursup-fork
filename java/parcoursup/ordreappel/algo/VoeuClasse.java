@@ -25,45 +25,54 @@ public class VoeuClasse implements Comparable<VoeuClasse> {
 
     /* les différents types de candidats */
     public enum TypeCandidat {
-        BoursierDuSecteur,
-        BoursierHorsSecteur,
-        NonBoursierDuSecteur,
-        NonBoursierHorsSecteur
-    };
+        BOURSIER_DU_SECTEUR,
+        BOURSIER_HORS_SECTEUR,
+        NON_BOURSIER_DU_SECTEUR,
+        NON_BOURSIER_HORS_SECTEUR
+    }
 
     /* le type du candidat */
     public final TypeCandidat typeCandidat;
 
     /* code identifiant le candidat dans la base de données */
-    public final int G_CN_COD;
+    public final int gCnCod;
 
     /* le rang du voeu transmis par la commission de classement des voeux */
     public final int rang;
 
     /* le rang du voeu dans l'ordre d'appel, caculé par l'algorithme */
-    public int rangAppel = 0;
+    private Integer rangAppel = null;
+    
+    public int getRangAppel() { 
+        return rangAppel; 
+    }
+
+    public void setRangAppel(int rangAppel) { 
+        this.rangAppel = rangAppel;
+    }
     
     public VoeuClasse(
-            int G_CN_COD,
+            int gCnCod,
             int rang,
             boolean estBoursier,
             boolean estDuSecteur) {
-        this.G_CN_COD = G_CN_COD;
+        this.gCnCod = gCnCod;
         this.rang = rang;
-        this.typeCandidat
-                = estBoursier
-                        ? (estDuSecteur ? TypeCandidat.BoursierDuSecteur : TypeCandidat.BoursierHorsSecteur)
-                        : (estDuSecteur ? TypeCandidat.NonBoursierDuSecteur : TypeCandidat.NonBoursierHorsSecteur);
+        if(estBoursier) {
+            this.typeCandidat = (estDuSecteur ? TypeCandidat.BOURSIER_DU_SECTEUR : TypeCandidat.BOURSIER_HORS_SECTEUR);
+        } else {
+            this.typeCandidat = (estDuSecteur ? TypeCandidat.NON_BOURSIER_DU_SECTEUR : TypeCandidat.NON_BOURSIER_HORS_SECTEUR);
+        }
     }
 
     public boolean estBoursier() {
-        return typeCandidat == TypeCandidat.BoursierDuSecteur
-                || typeCandidat == TypeCandidat.BoursierHorsSecteur;
+        return typeCandidat == TypeCandidat.BOURSIER_DU_SECTEUR
+                || typeCandidat == TypeCandidat.BOURSIER_HORS_SECTEUR;
     }
 
     public boolean estDuSecteur() {
-        return typeCandidat == TypeCandidat.BoursierDuSecteur
-                || typeCandidat == TypeCandidat.NonBoursierDuSecteur;
+        return typeCandidat == TypeCandidat.BOURSIER_DU_SECTEUR
+                || typeCandidat == TypeCandidat.NON_BOURSIER_DU_SECTEUR;
     }
 
     /* comparateur permettant de trier les voeux par ordre du groupe de classement */    
@@ -71,5 +80,26 @@ public class VoeuClasse implements Comparable<VoeuClasse> {
     public int compareTo(VoeuClasse o) {
         return rang - o.rang;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if(obj instanceof VoeuClasse) {
+            VoeuClasse o = (VoeuClasse) obj;
+            return this.rang == o.rang; 
+        } else {
+            throw new ClassCastException("equals test entre un VoeuClasse et un autre objet de type différent");
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return this.gCnCod;
+    }
+    
+    @Override
+    public String toString() {
+        return "gCnCod=" + gCnCod;
+    }
+    
 
 }

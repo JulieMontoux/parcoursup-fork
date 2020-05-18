@@ -35,7 +35,7 @@ public class OrdreAppel {
         
         /* ajoute les candidats dans l'ordre d'appel */
         for(VoeuClasse voe : voeux) {
-            candidats.add(new CandidatClasse(voe.G_CN_COD, voe.rangAppel));
+            candidats.add(new CandidatClasse(voe.gCnCod, voe.getRangAppel()));
         }
 
         candidats.sort((CandidatClasse c1,CandidatClasse c2) -> c1.rangAppel - c2.rangAppel);

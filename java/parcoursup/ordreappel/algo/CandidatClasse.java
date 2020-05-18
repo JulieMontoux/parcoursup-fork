@@ -24,13 +24,13 @@ package parcoursup.ordreappel.algo;
 public class CandidatClasse {
    
     /* identifiant unique du candidat dans la base */
-    public final int G_CN_COD;
+    public final int gCnCod;
     
     /* rangAppel dans l'ordre d'appel */
     public final int rangAppel;
     
-    public CandidatClasse(int G_CN_COD, int rang) {
-        this.G_CN_COD = G_CN_COD;
+    public CandidatClasse(int gCnCod, int rang) {
+        this.gCnCod = gCnCod;
         this.rangAppel = rang;
     }
     
@@ -38,20 +38,20 @@ public class CandidatClasse {
     public boolean equals(Object obj) {
         if (obj instanceof CandidatClasse) {
             CandidatClasse ta = (CandidatClasse) obj;
-            return (this.G_CN_COD == ta.G_CN_COD)
+            return (this.gCnCod == ta.gCnCod)
                     && (this.rangAppel == ta.rangAppel);
         } else {
-            throw new RuntimeException("Test d'égalité imprévu");
+            throw new ClassCastException("Test d'égalité imprévu");
         }
     }
 
     @Override
     public int hashCode() {
-        return Integer.hashCode(G_CN_COD)^Integer.hashCode(rangAppel);
+        return Integer.hashCode(gCnCod)^Integer.hashCode(rangAppel);
     }
 
     @Override
     public String toString() {
-        return "Candidat " + G_CN_COD + " rang " + rangAppel;
+        return "Candidat " + gCnCod + " rang " + rangAppel;
     }
 }

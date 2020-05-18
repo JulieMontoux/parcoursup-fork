@@ -20,6 +20,7 @@ l'Innovation,
  */
 package parcoursup.ordreappel.exemples;
 
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.algo.GroupeClassement;
 import parcoursup.ordreappel.algo.VoeuClasse;
 
@@ -31,7 +32,7 @@ public class ExempleA4 extends ExempleOrdreAppel {
     }
 
     @Override
-    GroupeClassement initialise() {
+    GroupeClassement initialise() throws VerificationException {
 
         GroupeClassement groupe = new GroupeClassement(0, 10, 0);
 

@@ -31,10 +31,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DonneesCarteFilenames {
 
     /* préfixes des noms de fichiers de données */
-    static final String donneesCapacitePrefix = "capacites";
-    static final String donneesPlacesDisposPrefix = "dispos";
-    static final String donneesCampagnePrefix = "psup";
-
+    static final String DONNEES_CAPACITES_PREFIX = "capacites";
+    static final String DONNEES_PLACES_DISPOS_PREFIX = "dispos";
+    static final String DONNEES_CAMPAGNE_PREFIX = "psupdata";
     
     String capacitesFilename = "";
     String disposFilename = "";

@@ -28,50 +28,56 @@ dans la base de données */
 public class VoeuUID {
 
     /*l'identifiant unique du candidat dans la base de données */
-    public final int G_CN_COD;
+    public final int gCnCod;
 
     /*l'identifiant unique de la formation d'affectation dans la base de données.
         Positionné à -1 pour les internats commun à plusieurs formations.*/
-    public final int G_TA_COD;
+    public final int gTaCod;
 
     /* indique si le voeu comprend une demande d'internat */
-    public final boolean I_RH_COD;
+    public final boolean iRhCod;
 
     public VoeuUID(
-            int G_CN_COD,
-            int G_TA_COD,
+            int gCnCod,
+            int gTaCod,
             boolean avecInternat) {
-        this.G_CN_COD = G_CN_COD;
-        this.G_TA_COD = G_TA_COD;
-        this.I_RH_COD = avecInternat;
+        this.gCnCod = gCnCod;
+        this.gTaCod = gTaCod;
+        this.iRhCod = avecInternat;
     }
-
+    
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof VoeuUID) {
             VoeuUID o = (VoeuUID) obj;
-            return (this.G_CN_COD == o.G_CN_COD
-                    && this.G_TA_COD == o.G_TA_COD
-                    && this.I_RH_COD == o.I_RH_COD);
+            return (this.gCnCod == o.gCnCod
+                    && this.gTaCod == o.gTaCod
+                    && this.iRhCod == o.iRhCod);
         } else {
-            throw new RuntimeException("Test d'égalité imprévu");
+            throw new ClassCastException("Test d'égalité imprévu");
         }
     }
 
     @Override
     public int hashCode() {
-        return Long.hashCode(
-                ((long) (this.I_RH_COD ? 1 : 0))
-                ^ (((long) G_CN_COD) << 1)
-                ^ (((long) G_TA_COD) << 32)
+        return Long.hashCode(((long) (this.iRhCod ? 1 : 0))
+                ^ (((long) gCnCod) << 1)
+                ^ (((long) gTaCod) << 32)
         );
     }
 
     @Override
     public String toString() {
-        return "G_CN_COD=" + G_CN_COD 
-                + " AND G_TA_COD=" + G_TA_COD 
-                + " AND I_RH_COD=" + (I_RH_COD ? "1" : "0");
+        return "G_CN_COD=" + gCnCod
+                + " AND g_ta_cod=" + gTaCod
+                + " AND I_RH_COD=" + (iRhCod ? "1" : "0");
     }
 
+    private VoeuUID() {
+        this.gCnCod = 0;
+        this.gTaCod = 0;
+        this.iRhCod = false;
+    }
+   
+    
 }

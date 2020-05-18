@@ -21,10 +21,12 @@ l'Innovation,
 package parcoursup.ordreappel.exemples;
 
 import java.util.Random;
+import javax.xml.bind.JAXBException;
+import parcoursup.exceptions.VerificationException;
 
 public class DemoOrdreAppel {
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) throws JAXBException, VerificationException {
 
         ExempleA1 exempleA1 = new ExempleA1();
         exempleA1.execute(true);
@@ -44,10 +46,14 @@ public class DemoOrdreAppel {
         ExempleA6 exempleA6 = new ExempleA6();
         exempleA6.execute(true);
         
-        while(true) {
-            Random r = new Random();
+        int nbExemples = 1000;
+
+        Random r = new Random();
+        
+        while(nbExemples > 0) {
             ExempleAleatoire e = new ExempleAleatoire(1 + r.nextInt(1000));
             e.execute(false);
+            nbExemples--;
         }
 
     }

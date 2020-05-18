@@ -19,23 +19,32 @@
  */
 package parcoursup.prod;
 
-import java.sql.SQLException;
+import parcoursup.exceptions.AccesDonneesException;
+import parcoursup.exceptions.VerificationException;
 import parcoursup.ordreappel.CalculOrdreAppel;
 import parcoursup.ordreappel.donnees.ConnecteurDonneesAppel;
 import parcoursup.ordreappel.donnees.ConnecteurDonneesAppelOracle;
 
+import java.util.logging.Logger;
+
 public class CalculOrdreAppelOracle {
 
-    public static void main(String[] args) throws SQLException, Exception {
+    private static final Logger LOGGER = Logger.getLogger(CalculOrdreAppelOracle.class.getSimpleName());
+
+    public static void main(String[] args) throws AccesDonneesException, VerificationException {
+
+        if (args.length < 3) {
+            LOGGER.info("Usage: CalculOrdreAppelOracle TNSAlias login password");
+            System.exit(0);
+        }
 
         ConnecteurDonneesAppel conn = new ConnecteurDonneesAppelOracle(
                 args[0],
                 args[1],
-                args[2],
-                false
+                args[2]
         );
 
-        CalculOrdreAppel calcul = new CalculOrdreAppel(conn); 
+        CalculOrdreAppel calcul = new CalculOrdreAppel(conn);
 
         calcul.execute();
 

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.xml.bind.annotation.XmlTransient;
+import parcoursup.exceptions.VerificationException;
 
 public class GroupeInternat {
 
@@ -46,26 +47,23 @@ public class GroupeInternat {
         return Integer.max(0, capacite - candidatsAffectes.size());
     }
 
-    /* le nombre de demandes d'internat considérées
-    Bmax dans le document de spécification */
-    public int contingentAdmission = 0;
-
     /* la position d'admission dans cet internat, calculée par l'algorithme */
-    public int positionAdmission = 0;
+    private int positionAdmission = 0;
+
+    public int getPositionAdmission() {
+        return positionAdmission;
+    }
 
     /* la position maximale d'admission dans cet internat, calculée par l'algorithme */
-    public int positionMaximaleAdmission = 0;
+    private int positionMaximaleAdmission = 0;
+
+    public int getPositionMaximaleAdmission() {
+        return positionMaximaleAdmission;
+    }
 
     /* affichages internat, groupe par groupe */
     public final Map<GroupeAffectationUID, Integer> barresInternatAffichees = new HashMap<>();
     public final Map<GroupeAffectationUID, Integer> barresAppelAffichees = new HashMap<>();
-
-    /* le nombre de jours depuis l'ouverture de la campagne, 1 le premier jour */
-    public static Integer nbJoursCampagne = null;
-
-    /* le nombre de jours de campagne (hors trêve du bac) au 3eme point de confirmation.
-    Cette date sert de pivot pour la régulation des places d'internat (cf doc)*/
-    public static Integer nbJoursCampagneDatePivotInternats = null;
 
     /* la liste des groupes de classement concernés par cet internat */
     @XmlTransient
@@ -91,33 +89,37 @@ public class GroupeInternat {
     public GroupeInternat(
             GroupeInternatUID id,
             int nbPlacesTotal
-    ) {
+    ) throws VerificationException {
         if (nbPlacesTotal < 0) {
-            throw new RuntimeException("Incohérence dans les paramètres du constructeur de GroupeInternat");
+            throw new VerificationException("Incohérence dans les paramètres du constructeur de GroupeInternat");
         }
         this.id = id;
         this.capacite = nbPlacesTotal;
     }
 
-    void ajouterVoeuEnAttenteDeProposition(Voeu voe) {
+    public GroupeInternat(GroupeInternat o) throws VerificationException {
+        this(o.id, o.capacite);
+    }
+
+    void ajouterVoeuEnAttenteDeProposition(Voeu voe) throws VerificationException {
         if (estInitialise) {
-            throw new RuntimeException("Groupe déjà initialisé");
+            throw new VerificationException("Groupe déjà initialisé");
         }
         if (voeuxEnAttente.contains(voe)) {
-            throw new RuntimeException("Voeu en doublon");
+            throw new VerificationException("Voeu en doublon");
         }
         voeuxEnAttente.add(voe);
         groupesConcernes.add(voe.groupe);
-        if (!candidatsAffectes.contains(voe.id.G_CN_COD)) {
-            candidatsEnAttente.add(voe.id.G_CN_COD);
+        if (!candidatsAffectes.contains(voe.id.gCnCod)) {
+            candidatsEnAttente.add(voe.id.gCnCod);
         }
     }
 
     /* ajoute un candidat affecté.
     Supprime le candidat de la liste des candidats en attente , si il y a lieu*/
-    public void ajouterCandidatAffecte(int G_CN_COD) {
-        candidatsAffectes.add(G_CN_COD);
-        candidatsEnAttente.remove(G_CN_COD);
+    public void ajouterCandidatAffecte(int gCnCod) {
+        candidatsAffectes.add(gCnCod);
+        candidatsEnAttente.remove(gCnCod);
     }
 
     public void reinitialiser() {
@@ -130,15 +132,15 @@ public class GroupeInternat {
         estInitialise = false;
     }
 
-    public boolean estAffecte(int G_CN_COD) {
-        return candidatsAffectes.contains(G_CN_COD);
+    public boolean estAffecte(int gCnCod) {
+        return candidatsAffectes.contains(gCnCod);
     }
 
     /* initialise la position d'admission à son maximum
     Bmax dans le document de référence. A l'issu de cet appel,
     les voeuxEnAttente sont triés par classement internat,
     les meilleurs en premier. */
-    public void initialiserPositionAdmission() {
+    public void initialiserPositionAdmission(Parametres parametres) throws VerificationException {
 
         /* La position maximale d'admission fixe une borne supérieure
         sur le rang à l'internat nécessaire pour obtenir une rpoposition à l'internat.
@@ -161,36 +163,42 @@ public class GroupeInternat {
  /* on calcule le nombre de candidats éligibles à une admission
         dans l'internat aujourd'hui, stocké dans la variable assietteAdmission.
         On utilise les notations du document de référence 2018 */
-        int M = candidatsEnAttente.size() + candidatsAffectes.size();
-        int L = capacite;
-        int t = nbJoursCampagne;
+        int m = candidatsEnAttente.size() + candidatsAffectes.size();
+        int l = capacite;
+        int t = parametres.nbJoursCampagne;
 
         final int assietteAdmission;
 
-        if (M <= L) {
-            assietteAdmission = M;
+        if (m <= l) {
+            assietteAdmission = m;
         } else if (t == 1) {
             /* le premier jour on s'en tient aux lits disponibles */
-            assietteAdmission = L;
-        } else if (t <= nbJoursCampagneDatePivotInternats) {
+            assietteAdmission = l;
+        } else if (t <= parametres.nbJoursCampagneDatePivotInternats) {
             /* jusqu'à la date pivot, on élargit progressivement
             l'assiette */
             assietteAdmission
-                    = L + (M - L) * (t - 1) / nbJoursCampagneDatePivotInternats;
+                    = l + (m - l) * (t - 1) / parametres.nbJoursCampagneDatePivotInternats;
         } else {
             /* finalement, l'assiette est maximale */
-            assietteAdmission = M;
+            assietteAdmission = m;
         }
 
-        this.contingentAdmission = Integer.max(0, assietteAdmission - candidatsAffectes.size());
+        int contingentAdmission = Integer.max(0, assietteAdmission - candidatsAffectes.size());
 
-        if (t <= 0
-                || L < 0
-                || assietteAdmission > M
+        if (t <= 0) {
+            throw new VerificationException("Impossible d'exécuter l'algorithme"
+                    + " à une date antérieure au début de la campagne,"
+                    + " veuillez vérifier les données.");
+        }
+        if (l < 0) {
+            throw new VerificationException("L'internat " + this + " a une capacité"
+                    + " négative veuillez vérifier les données.");
+        }
+        if (assietteAdmission > m
                 || contingentAdmission > candidatsEnAttente.size()
                 || contingentAdmission < 0) {
-            throw new RuntimeException("Problème de calcul du contingent d'admission,"
-                    + " veuillez vérifier les données.");
+            throw new VerificationException("Problème de calcul du contingent d'admission.");
         }
 
         if (contingentAdmission == 0) {
@@ -232,7 +240,7 @@ public class GroupeInternat {
             Remarque: il peut y avoir plusieurs voeuxEnAttente pour
             le même candidat, et les voeuxEnAttente sont triés par rang internat,
             donc les voeuxEnAttente d'un même candidat sont consécutifs */
-            if (nbJoursCampagne >= nbJoursCampagneDatePivotInternats) {
+            if (parametres.nbJoursCampagne >= parametres.nbJoursCampagneDatePivotInternats) {
                 positionMaximaleAdmission = dernierRangEligible;
             } else {
                 int compteurCandidat2 = 0;
@@ -284,10 +292,10 @@ public class GroupeInternat {
 
     /* Met à jour la position d'admission si nécessaire.
     Renvoie true si la position d'admission a été effectivement mise à jour */
-    public boolean mettreAJourPositionAdmission() {
+    public boolean mettreAJourPositionAdmission() throws VerificationException {
 
         if (!estInitialise) {
-            throw new RuntimeException("La position doit être initialisée au préalable");
+            throw new VerificationException("La position doit être initialisée au préalable");
         }
 
 
@@ -304,7 +312,7 @@ public class GroupeInternat {
             }
 
             /* les propositions à un même candidat comptent pour une seule place */
-            if (voe.id.G_CN_COD == dernierCandidatComptabilise) {
+            if (voe.id.gCnCod == dernierCandidatComptabilise) {
                 continue;
             }
 
@@ -319,7 +327,7 @@ public class GroupeInternat {
                     || voe.estProposition()) {
 
                 comptePlacesProposees++;
-                dernierCandidatComptabilise = voe.id.G_CN_COD;
+                dernierCandidatComptabilise = voe.id.gCnCod;
 
                 if (comptePlacesProposees > nbPlacesVacantes()) {
                     /* en cas de surcapacité, il faut diminuer la position d'admission */
@@ -333,7 +341,7 @@ public class GroupeInternat {
         }
         return false;
     }
-  
+
     /* trie les voeuxEnAttente dans l'ordre d'appel */
     public List<Voeu> voeuxTriesParClassementInternat() {
         voeuxEnAttente.sort((Voeu v1, Voeu v2) -> v1.rangInternat - v2.rangInternat);
@@ -353,6 +361,11 @@ public class GroupeInternat {
     @Override
     public String toString() {
         return id.toString();
+    }
+
+    private GroupeInternat() {
+        id = null;
+        capacite = 0;
     }
 
 }
