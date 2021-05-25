@@ -1,0 +1,70 @@
+{
+  "parametres": {
+    "nbJoursCampagne": 1,
+    "nbJoursCampagneDatePivotInternats": 60
+  },
+  "voeux": [
+    {
+      "id": {
+        "gCnCod": 10,
+        "gTaCod": 13,
+        "iRhCod": true
+      },
+      "groupeUID": {
+        "cGpCod": 11,
+        "gTiCod": 12,
+        "gTaCod": 13
+      },
+      "ordreAppel": 1,
+      "ordreAppelAffiche": 1,
+      "rangInternat": 0,
+      "rangRepondeur": 1,
+      "repondeurActive": false,
+      "rangListeAttente": 0,
+      "statut": "EN_ATTENTE_DE_PROPOSITION",
+      "annulationDemission": false,
+      "correctionClassement": false,
+      "affecteHorsPP": false
+    }
+  ],
+  "groupesAffectations": [
+    [
+      {
+        "cGpCod": 11,
+        "gTiCod": 12,
+        "gTaCod": 13
+      },
+      {
+        "id": {
+          "cGpCod": 11,
+          "gTiCod": 12,
+          "gTaCod": 13
+        },
+        "nbRecrutementsSouhaite": 2,
+        "rangLimite": 3,
+        "estimationRangDernierAppeleADatePivot": 2147483647,
+        "rangDernierAppeleAffiche": 0
+      }
+    ]
+  ],
+  "internats": [
+    [
+      {
+        "cGiCod": 14,
+        "gTaCod": 13
+      },
+      {
+        "id": {
+          "cGiCod": 14,
+          "gTaCod": 13
+        },
+        "capacite": 2,
+        "positionAdmission": 0,
+        "positionMaximaleAdmission": 0,
+        "barresInternatAffichees": {},
+        "barresAppelAffichees": {}
+      }
+    ]
+  ],
+  "candidatsAvecRepondeurAutomatique": []
+}

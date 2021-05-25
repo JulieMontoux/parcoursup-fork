@@ -1,0 +1,33 @@
+version: "3"
+
+services:
+
+  parcoursup:
+    container_name: parcoursup
+    image: parcoursup
+    build:
+      context: .
+      dockerfile: docker/parcoursup/Dockerfile
+    entrypoint: tail -f /dev/null
+    networks:
+      - parcoursup
+
+  parcoursup-bdd:
+    container_name: parcoursup-bdd
+    image: registry.gitlab.com/parcoursup/parcoursup/parcoursup-bdd:latest
+    build:
+      context: docker/parcoursup-bdd/
+      dockerfile: Dockerfile
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+      - "8080:8080"
+    restart: always
+    entrypoint: /db-setup/setup.sh
+    networks:
+      - parcoursup
+    volumes:
+     - ./db-setup/oracle/:/db-setup/
+
+networks:
+  parcoursup:

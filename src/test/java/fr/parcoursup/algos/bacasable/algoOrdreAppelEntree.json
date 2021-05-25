@@ -1,0 +1,108 @@
+{
+    "groupesClassements": [{
+        "cGpCod": 0,
+        "tauxMinBoursiersPourcents": 25,
+        "tauxMinDuSecteurPourcents": 0,
+        "voeuxClasses": [{
+                "gCnCod": 0,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 1
+            },
+            {
+                "gCnCod": 1,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 2
+            },
+            {
+                "gCnCod": 2,
+                "typeCandidat": "BOURSIER_DU_SECTEUR",
+                "rang": 3
+            },
+            {
+                "gCnCod": 3,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 4
+            },
+            {
+                "gCnCod": 4,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 5
+            },
+            {
+                "gCnCod": 5,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 6
+            },
+            {
+                "gCnCod": 6,
+                "typeCandidat": "BOURSIER_DU_SECTEUR",
+                "rang": 7
+            },
+            {
+                "gCnCod": 7,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 8
+            },
+            {
+                "gCnCod": 8,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 9
+            },
+            {
+                "gCnCod": 9,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 10
+            },
+            {
+                "gCnCod": 10,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 11
+            },
+            {
+                "gCnCod": 11,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 12
+            },
+            {
+                "gCnCod": 12,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 13
+            },
+            {
+                "gCnCod": 13,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 14
+            },
+            {
+                "gCnCod": 14,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 15
+            },
+            {
+                "gCnCod": 15,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 16
+            },
+            {
+                "gCnCod": 16,
+                "typeCandidat": "BOURSIER_DU_SECTEUR",
+                "rang": 17
+            },
+            {
+                "gCnCod": 17,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 18
+            },
+            {
+                "gCnCod": 18,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 19
+            },
+            {
+                "gCnCod": 19,
+                "typeCandidat": "NON_BOURSIER_DU_SECTEUR",
+                "rang": 20
+            }
+        ]
+    }]
+}

@@ -25,7 +25,9 @@ Le lien entre ces identifiants et les classes de l'algo sont
     VoeuClasse ~ (G_CN_COD,C_GP_COD)
     Voeu ~  VoeuUID ~ (G_CN_COD, G_TA_COD, I_RH_COD)
     GroupeAffectation ~  GroupeAffectationUID ~ (C_GP_COD, G_TI_COD, G_TA_COD)
-    GroupeInternat ~  GroupeInternatUID ~ (C_GI_COD, NVL(G_TA_COD,0) )
+    GroupeInternat ~  GroupeInternatUID ~ (C_GI_COD, NVL(G_TI_COD,0), NVL(G_TA_COD,0) )
+
+Des détails sur la structure de la BDD sont disponibles dans structure-bdd.md
 
 Algorithme OrdreAppel:
 ______________________
@@ -94,42 +96,6 @@ _____________________________
     quelque soit l'ordre dans lequel on effectue les itérations sur les listes de formations et
     d'internats. 
 
-**Dispositif "Meilleurs Bacheliers"**
-
-    Les lycéens ayant obtenu de bons résultats au Bac dans leur lycée sont appelés les
-    _meilleurs bacheliers_. Dans la plupart des formations, des places sont réservées aux MBC,
-    dans des proportions fixées par le recteur. L'algorithme attribue ces places aux meilleurs bacheliers,
-    en en faisant remonter le nombre correspondant dans l'ordre d'appel.
-
-    Le programme récupère dans la base de données:
-	* Le nombre de places éligibles au dispositif meilleurs bacheliers, dans chaque formation.
-          C'est le champ A_RC_PLA_MBC de la table A_REC
-	* Les propositions faites au titre du dispositif meilleurs bacheliers, et qui n'ont pas été refusées
-          C'est le champ A_AM_FLG_MBC de la table des admissions A_ADM qui indique cette propriété.
-        * La liste des meilleurs bacheliers et leurs notes de Bac. Dans la table G_CAN de tous les
-          candidats, les meilleurs bacheliers sont identifiés par le flag G_CN_FLG_MBC. Les moyennes au Bac
-          sont récupérées dans la table des notes de Bac, I_CAN_EPR_BAC, les moyennes sont fournies par les
-          entrées pour lesquelles I_EB_COD=20.
-      
-    Ensuite le programme appelle la méthode calculerNombrePlacesVacantes afin de fixer le nombre
-    de places vacantes pour les MBC, formation par formation, en soustrayant du nombre fixé 
-    par le recteur le nombre de propositons actuelles. Ces places vacantes sont ensuite ventilées
-    dans les groupes d'affectation de la formation et dans chacun de ces groupes d'affectation, le nombre
-    correspondant de MBC est remonté en haut de l'ordre d'appel. Ces trois opérations nécessitent
-    de comparer entre eux les MBC afin de prioriser l'attribution des places réservées. Cette comparaison
-    est effectuée par la méthode comparerVoeuxSelonCritereMB, selon les critères suivants:
-
-	1. la moyenne au Bac
-
-	2. le rang d'appel dans le groupe de classement, si les deux candidats font partie du même
-            groupe de classement.
-
-    Dans chaque formation, le programme sélectionne les MBC à remonter dans l'ordre d'appel
-    dans cet ordre de comparaison, jusqu'à épuisement des places vacantes. 
-    Si il ne reste qu'une place mais qu'il y a ex-aequo entre les meilleurs candidats non-sélectionnés 
-    (même moyenne et groupes différents), le programme les sélectionne tous.
-
-
 **Gestion du répondeur automatique**
 
     Les candidats ayant activé leur répondeur automatique délèguent leurs réponses au programme
@@ -140,6 +106,9 @@ _____________________________
     pour sélectionner la proposition qui a le plus haut rang dans le paramétrage
     de leur répondeur automatique, donné par le champ A_VE_ORD de A_VOE.
 
+** Meilleurs Bacheliers **
+
+    Ce dispositif a été abrogé par l'article 37 de la Loi no 2020-1674 du 24 décembre 2020.
 
 Vérification du résultat des calculs
 ____________________________________
@@ -155,4 +124,8 @@ Merci aux relecteurs du code:
 	   olivier@rhoban
 	   serge@parcoursup
 	   ms@pdp
+
+Développements des tests et du bacasable
+           romain@catie
+           thierry@catie
 
