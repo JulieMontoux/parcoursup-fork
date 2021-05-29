@@ -150,8 +150,8 @@
                  <DRIVER_BDD_BAC_A_SABLE>org.h2.Driver</DRIVER_BDD_BAC_A_SABLE>
                  <URL_BDD_BAC_A_SABLE>jdbc:h2:${project.basedir}/h2/bacasable;MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_BAC_A_SABLE>
                  <UTILISATEUR_BDD_BAC_A_SABLE>bacasable</UTILISATEUR_BDD_BAC_A_SABLE>
-                 <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>      
-            </properties>  
+                 <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>
+            </properties>
             <build>
                 <plugins>
                      <plugin>
@@ -168,16 +168,16 @@
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                              <systemPropertyVariables>                     
+                              <systemPropertyVariables>
                                  <DRIVER_BDD_TEST>org.h2.Driver</DRIVER_BDD_TEST>
                                  <URL_BDD_TEST>jdbc:h2:${project.basedir}/h2/tests;MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_TEST>
                                  <UTILISATEUR_BDD_TEST>tests</UTILISATEUR_BDD_TEST>
-                                 <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>     
-                              </systemPropertyVariables>           
+                                 <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>
+                              </systemPropertyVariables>
                         </configuration>
                     </plugin>
                 </plugins>
-            </build> 
+            </build>
         </profile>
         <profile>
             <id>bdd-oracle</id>
@@ -185,19 +185,19 @@
                  <DRIVER_BDD_BAC_A_SABLE>oracle.jdbc.driver.OracleDriver</DRIVER_BDD_BAC_A_SABLE>
                  <URL_BDD_BAC_A_SABLE>jdbc:oracle:thin:@localhost:1521/XEPDB1</URL_BDD_BAC_A_SABLE>
                  <UTILISATEUR_BDD_BAC_A_SABLE>bacasable</UTILISATEUR_BDD_BAC_A_SABLE>
-                 <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>      
-            </properties>  
+                 <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>
+            </properties>
             <build>
                 <plugins>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
-                              <systemPropertyVariables>                
+                              <systemPropertyVariables>
                                  <DRIVER_BDD_TEST>oracle.jdbc.driver.OracleDriver</DRIVER_BDD_TEST>
                                  <URL_BDD_TEST>jdbc:oracle:thin:@localhost:1521/XEPDB1</URL_BDD_TEST>
                                  <UTILISATEUR_BDD_TEST>tests</UTILISATEUR_BDD_TEST>
-                                 <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>     
+                                 <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>
                               </systemPropertyVariables>
                         </configuration>
                     </plugin>
@@ -205,12 +205,12 @@
             </build>
            <dependencies>
                 <dependency>
-                    <groupId>com.oracle</groupId>
+                    <groupId>com.oracle.database.jdbc</groupId>
                     <artifactId>ojdbc8</artifactId>
-                    <version>12.2.0.1</version>          
+                    <version>12.2.0.1</version>
                 </dependency>
             </dependencies>
-        </profile>       
+        </profile>
         <profile>
             <id>metriques-clover</id>
             <build>
@@ -241,13 +241,13 @@
                                 </goals>
                             </execution>
                         </executions>
-                    </plugin>   
+                    </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-site-plugin</artifactId>
                         <version>3.7.1</version>
                     </plugin>
-                </plugins>   
+                </plugins>
             </build>
         </profile>
         <profile>            <!-- https://stackoverflow.com/a/574650/6463920 -->
