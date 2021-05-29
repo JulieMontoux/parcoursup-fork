@@ -94,19 +94,7 @@ si au moins l'un des tests échoue). Pour une génération plus rapide sans exé
 mvn clean package -DskipTests=true
 ```
 
-La procédure à suivre pour l'utilisation du SGBD **Oracle** passe quant à elle par les étapes suivantes :
-
-1/ récupérer le fichier [https://maven.xwiki.org/externals/com/oracle/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar](https://maven.xwiki.org/externals/com/oracle/jdbc/ojdbc8/12.2.0.1/ojdbc8-12.2.0.1.jar) (driver JDBC Oracle) puis le déposer à la racine du projet.
-
-2/ installer ce fichier dans le dépôt local :
-
-```
-mvn install:install-file -Dfile=./ojdbc8-12.2.0.1.jar -DgroupId=com.oracle -DartifactId=ojdbc8 -Dversion=12.2.0.1 -Dpackaging=jar
-```
-
-(note : le fichier est alors "mis en cache" par Maven à un emplacement qui peut varier mais qui est typiquement, sous Linux : `~/.m2/repository/com/oracle/ojdbc8/`)
-
-3/ compiler le projet (ici sans exécution des tests unitaires associés) :
+Pour l'utilisation du SGBD **Oracle**, activer le profil `bdd-oracle`:
 
 ```
 mvn clean package -P bdd-oracle -DskipTests=true
