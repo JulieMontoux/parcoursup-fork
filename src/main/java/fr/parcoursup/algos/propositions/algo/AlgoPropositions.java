@@ -25,7 +25,6 @@ import fr.parcoursup.algos.propositions.repondeur.RepondeurAutomatique;
 import fr.parcoursup.algos.verification.VerificationEntreeAlgoPropositions;
 import fr.parcoursup.algos.verification.VerificationsResultatsAlgoPropositions;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -98,7 +97,7 @@ public class AlgoPropositions {
     }
 
     /* ventile les voeux encore en attente dans les groupes concernés */
-    public static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
+    private static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
         /* réinitialisation des groupes */
         entree.groupesAffectations.values().stream().parallel().forEach(
                 GroupeAffectation::reinitialiser
@@ -117,23 +116,14 @@ public class AlgoPropositions {
     }
 
     /* renvoie le nombre de places liberees par le repondeur automatique */
-    public static long appliquerRepndeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
+    private static long appliquerRepndeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
         if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
             LOGGER.log(Level.INFO, "Préparation des données du répondeur automatique,"
                     + "{0} candidats l''ont activé",
                     entree.candidatsAvecRepondeurAutomatique.size()
             );
 
-            Collection<Voeu> voeuxDesCandidatsAvecRepAuto = new ArrayList<>();
-            for (Voeu v : entree.voeux) {
-                /* le répondeur automatique ne tient pas compte des voeuxEnAttente hors PP */
-                if (v.estAffecteHorsPP()) {
-                    continue;
-                }
-                if (entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)) {
-                    voeuxDesCandidatsAvecRepAuto.add(v);
-                }
-            }
+            Collection<Voeu> voeuxDesCandidatsAvecRepAuto = entree.getVoeuxDesCandidatsAvecRepondeurAutomatique();
             LOGGER.log(Level.INFO, "{0} voeux avec répondeur automatique", voeuxDesCandidatsAvecRepAuto.size());
 
             final long placesLibereesParRepAuto
@@ -152,7 +142,7 @@ public class AlgoPropositions {
         }
     }
 
-    public static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
+    private static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
         /* groupes à mettre à jour */
         Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>(entree.groupesAffectations.values());
 

@@ -26,12 +26,14 @@ import fr.parcoursup.algos.propositions.algo.Voeu;
 
 import java.util.*;
 
+import static java.util.stream.Collectors.groupingBy;
+
 public class RepondeurAutomatique {
 
     /* Comparateur de voeu, basé sur le principe suivant.
-    
+
     Renvoie -1 ssi v1 est préféré à v2.
-    
+
     Lorsqu'il active son répondeur automatique,
     un candidat conserve au plus une proposition, qu'il accepte,
     refuse une partie de ses voeux en attente et classe les voeux en attente
@@ -58,7 +60,7 @@ public class RepondeurAutomatique {
     }
 
     /* effectue les réponses automatiques des candidats
-    ayant activé le répondeur automatique. 
+    ayant activé le répondeur automatique.
     Retourne le nombre de places libérées par l'application du RA.*/
     public static long reponsesAutomatiques(Collection<Voeu> entree) throws VerificationException {
         /* L'entrée ne contient que des voeux de candidats
@@ -72,20 +74,11 @@ public class RepondeurAutomatique {
 
         /* Liste, indexée par candidats, des voeux en attente et des propositions
         des candidats ayant activé le répondeur automatique. */
-        final Map<Integer, List<Voeu>> voeux = new HashMap<>();
 
-        for (Voeu v : entree) {
-            int gCnCod = v.id.gCnCod;
-            if (v.estEnAttenteDeProposition()
-                    || v.estProposition()) {
-                /* on crée la liste si le candidat n'a pas encore été rencontré */
-                if (!voeux.containsKey(gCnCod)) {
-                    voeux.put(gCnCod, new ArrayList<>());
-                }
-                List<Voeu> voeuxCandidat = voeux.get(gCnCod);
-                voeuxCandidat.add(v);
-            }
-        }
+        /* on crée la liste si le candidat n'a pas encore été rencontré */
+        final Map<Integer, List<Voeu>> voeux = entree.stream()
+                .filter(v -> v.estEnAttenteDeProposition() || v.estProposition())
+                .collect(groupingBy(v -> v.id.gCnCod));
 
         long placesLiberees = 0;
         /* candidat par candidat, on applique le répondeur automatique */
@@ -96,7 +89,7 @@ public class RepondeurAutomatique {
         return placesLiberees;
     }
 
-    public static long reponsesAutomatiquesCandidat(List<Voeu> voeuxCandidat) throws VerificationException {
+    private static long reponsesAutomatiquesCandidat(List<Voeu> voeuxCandidat) throws VerificationException {
 
         long placesLiberees = 0;
         /* on trie les voeux selon les préférences du candidat */

@@ -1,6 +1,6 @@
 /* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
 l'Innovation,
-    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -32,6 +32,8 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.util.stream.Collectors.toList;
 
 @SuppressWarnings("unused")
 @XmlRootElement
@@ -138,6 +140,14 @@ public final class AlgoPropositionsEntree implements Serializable {
 
     public Parametres getParametres() {
         return parametres;
+    }
+
+    public Collection<Voeu> getVoeuxDesCandidatsAvecRepondeurAutomatique() {
+        return voeux.stream()
+                /* le répondeur automatique ne tient pas compte des voeuxEnAttente hors PP */
+                .filter(v -> !v.estAffecteHorsPP())
+                .filter(v -> candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod))
+                .collect(toList());
     }
 
     /* pour tests */
