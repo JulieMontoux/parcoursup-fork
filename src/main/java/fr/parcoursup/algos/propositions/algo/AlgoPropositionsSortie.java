@@ -24,12 +24,10 @@ package fr.parcoursup.algos.propositions.algo;
 import org.jetbrains.annotations.NotNull;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Stream;
+import java.util.*;
 
 @XmlRootElement
 public class AlgoPropositionsSortie implements Serializable {
@@ -51,19 +49,20 @@ public class AlgoPropositionsSortie implements Serializable {
     }
 
     /* liste des voeux, avec statut mis à jour */
-    public final Collection<Voeu> voeux
+    public final List<Voeu> voeux
             = new ArrayList<>();
 
     /* liste des internats, permettant de récupérer les positions max d'admission */
-    public final transient Collection<GroupeInternat> internats
+    public transient List<GroupeInternat> internats
             = new ArrayList<>();
 
     /* index des internats */
-    public final transient IndexInternats indexInternats = new IndexInternats();
+    public transient IndexInternats indexInternats = new IndexInternats();
 
     /* liste des groupes */
-    public final transient Collection<GroupeAffectation> groupes
+    public transient List<GroupeAffectation> groupes
             = new ArrayList<>();
+
 
     /* signale que la vérification a déclenché une alerte
     (groupes ignorés lors de l'export, intervention rapide nécessaire) */
@@ -109,7 +108,7 @@ public class AlgoPropositionsSortie implements Serializable {
             voeux.removeIf(v -> groupesNonExportes.contains(v.groupeUID));
             groupes.removeIf(g -> groupesNonExportes.contains(g.id));
             internats.removeIf(
-                    internat -> internat.voeuxEnAttente.stream().anyMatch(v -> groupesNonExportes.contains(v.groupeUID))
+                    internat -> internat.aUnVoeuDansGroupe(groupesNonExportes)
             );
 
             return resultat;
@@ -133,16 +132,29 @@ public class AlgoPropositionsSortie implements Serializable {
         }
     }
 
-    public Stream<Voeu> propositionsDuJour() {
-        return voeux.stream().filter(Voeu::estPropositionDuJour);
+    public long nbPropositionsDuJour() {
+        return voeux.stream().filter(Voeu::estPropositionDuJour).count();
     }
 
-    public Stream<Voeu> demissions() {
-        return voeux.stream().filter(Voeu::estDemissionAutomatique);
+    public long nbDemissions() {
+        return voeux.stream().filter(Voeu::estDemissionAutomatiqueParRepondeurAutomatique).count();
     }
-    
+
+    /**
+     * Utilisé par les désérialisations Json et XML
+     */
     private AlgoPropositionsSortie() {
         parametres = new Parametres(0,0);
+    }
+
+    /**
+     * Utilisé par la désérialisation Java
+     */
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        internats = new ArrayList<>();
+        indexInternats = new IndexInternats();
+        groupes = new ArrayList<>();
     }
 
 }

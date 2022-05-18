@@ -65,7 +65,7 @@ public class DemoPropositionsBdd {
         // être préalablement vidées
         
         String driver = properties.getProperty("DRIVER_BDD_BAC_A_SABLE");
-        String urlBddJdbc = properties.getProperty("URL_BDD_BAC_A_SABLE");
+        String urlBddJdbc = properties.getProperty("URL_BDD_BAC_A_SABLE").replace('\\','/');
         String nomUtilisateur = properties.getProperty("UTILISATEUR_BDD_BAC_A_SABLE");
         String mdp = properties.getProperty("MDP_BDD_BAC_A_SABLE");
 
@@ -782,7 +782,8 @@ public class DemoPropositionsBdd {
             1,     // identifiant numérique
             1,     // code 1 = voeu en attente 
             0,     // code 0 = voeu non affecte 
-            0      // code 0 = voeu non clôturé 
+            0,      // code 0 = voeu non clôturé
+                0
         );
 
         situationVoeuEnAttente.insert();
@@ -792,7 +793,8 @@ public class DemoPropositionsBdd {
             2,     // identifiant numérique
             0,     // code 0 = voeu en attente 
             1,     // code 1 = voeu affecte 
-            0      // code 0 = voeu non clôturé 
+            0,      // code 0 = voeu non clôturé
+                0
         );
 
         situationVoeuAffecte.insert();

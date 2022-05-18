@@ -12,7 +12,7 @@ public class ParametresConnexionBddTest {
     public ParametresConnexionBddTest() {
 
         this.driver = System.getProperty("DRIVER_BDD_TEST");
-        this.urlBddJdbc = System.getProperty("URL_BDD_TEST");
+        this.urlBddJdbc = System.getProperty("URL_BDD_TEST").replace('\\','/');
         this.nomUtilisateur = System.getProperty("UTILISATEUR_BDD_TEST");
         this.mdp = System.getProperty("MDP_BDD_TEST");
 

@@ -20,7 +20,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         constructor.newInstance();
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_memeSiAucunMeilleurBachelier() throws Exception {
         // True branch coverage de la ligne 75
         Parametres p = new Parametres(1, 10);
@@ -43,41 +43,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         AlgoPropositions.calcule(entree);
     }
 
-    @Test
-    public void calcule_doit_reussir_avec_propositionMeilleurBachelier() throws Exception {
-        // True branch coverage de la ligne 159
-        // Puisqu'on teste en premier que le voeu est eligible à un groupeAffectation.id,
-        // on teste ensuite si il rentre dans l'internat. Si il ne rentre pas dans
-        // l'internat, on diminue la position admission et on reteste si il rentre dans
-        // le groupeAffectation...
-        // D'où le besoin d'avoir + de places en groupeAffectation qu'en groupeInternat
-        // pour le test qui doit effectivement mettre à jour la positionadmission de
-        // l'internat.
-        // La positionAdmission initiale de l'internat doit également être assez
-        // élevée,, et pour cela on doit être à un jour assez avancé dans le calendrier.
-        Parametres p = new Parametres(61, 60);
-
-        final GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        final GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 2, 2, p);
-
-        final GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
-        final GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-
-        final List<Voeu> voeux = new ArrayList<>();
-        Voeu v1 = new Voeu(1, groupeAffectation.id, 1, 0, groupeInternat.id, 1, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-        Voeu v2 = new Voeu(2, groupeAffectation.id, 2, 0, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-        voeux.add(v1);
-        voeux.add(v2);
-
-        final AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
-        entree.voeux.addAll(voeux);
-        entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
-        entree.internats.put(groupeInternat.id, groupeInternat);
-
-        AlgoPropositions.calcule(entree);
-    }
-
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siVerifierEstFalse() throws Exception {
         Parametres p = new Parametres(1, 60);
 
@@ -99,7 +65,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         AlgoPropositions.calcule(entree, false);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siCandidatsAvecRepondeurAutomatique() throws Exception {
         Parametres p = new Parametres(1, 60);
 
@@ -124,7 +90,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         AlgoPropositions.calcule(entree, false);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siCandidatsAvecRepondeurAutomatiqueEtAutreCandidatAffecteHorsPP() throws Exception {
         Parametres p = new Parametres(1, 60);
 
@@ -135,7 +101,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         final GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
 
         final List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(1, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 1, Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS, true));
+        voeux.add(new Voeu(1, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 1, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, true));
         voeux.add(new Voeu(2, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 2, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
         voeux.add(new Voeu(3, groupeAffectation.id, 3, 3, groupeInternat.id, 3, 3, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
@@ -150,7 +116,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         AlgoPropositions.calcule(entree, false);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siRepondeurLiberePlaces() throws Exception {
         Parametres p = new Parametres(1, 60);
 

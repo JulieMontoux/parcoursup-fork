@@ -1,6 +1,6 @@
 /* Copyright 2018 © Ministère de l'Enseignement Supérieur, de la Recherche et de
 l'Innovation,
-    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
+    Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr) 
 
     This file is part of Algorithmes-de-parcoursup.
 
@@ -33,34 +33,32 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static java.util.stream.Collectors.toList;
-
 @SuppressWarnings("unused")
 @XmlRootElement
 public final class AlgoPropositionsEntree implements Serializable {
 
     private static final Logger LOGGER = Logger.getLogger(AlgoPropositionsEntree.class.getSimpleName());
 
-    /* les parametres de l'algorithme */
+    /** les parametres de l'algorithme */
     Parametres parametres;
 
-    /* la liste des voeux */
-    public final Collection<Voeu> voeux
+    /** la liste des voeux */
+    public final Set<Voeu> voeux
             = new HashSet<>();
 
-    /* La liste des groupes d'affectation */
+    /** La liste des groupes d'affectation */
     public final Map<GroupeAffectationUID, GroupeAffectation> groupesAffectations
             = new HashMap<>();
 
-    /* La liste des internats */
+    /** La liste des internats */
     public final Map<GroupeInternatUID, GroupeInternat> internats
             = new HashMap<>();
 
-    /* indexation des internats, utilisé pour l'export */
-    public IndexInternats internatsIndex
+    /** indexation des internats, utilisé pour l'export */
+    public final IndexInternats internatsIndex
             = new IndexInternats();
 
-    /* liste des candidats (identifiés par leur G_CN_COD) dont le répondeur automatique est activé */
+    /** liste des candidats (identifiés par leur G_CN_COD) dont le répondeur automatique est activé */
     public final Set<Integer> candidatsAvecRepondeurAutomatique
             = new HashSet<>();
 
@@ -74,7 +72,7 @@ public final class AlgoPropositionsEntree implements Serializable {
         for (Map.Entry<GroupeAffectationUID, GroupeAffectation> e : o.groupesAffectations.entrySet()) {
             groupesAffectations.put(
                     e.getKey(),
-                    new GroupeAffectation(e.getValue(), o.parametres)
+                    new GroupeAffectation(e.getValue())
             );
         }
         for (Map.Entry<GroupeInternatUID, GroupeInternat> e : o.internats.entrySet()) {
@@ -116,10 +114,9 @@ public final class AlgoPropositionsEntree implements Serializable {
         voeux.add(v);
     }
 
-    public void ajouterSiNecessaire(Voeu v) {
-        if (!voeux.contains(v)) {
-            voeux.add(v);
-        }
+    public void ajouterOuRemplacer(Voeu v) {
+        voeux.remove(v);
+        voeux.add(v);
     }
 
     public void loggerEtatAdmission() {
@@ -140,14 +137,6 @@ public final class AlgoPropositionsEntree implements Serializable {
 
     public Parametres getParametres() {
         return parametres;
-    }
-
-    public Collection<Voeu> getVoeuxDesCandidatsAvecRepondeurAutomatique() {
-        return voeux.stream()
-                /* le répondeur automatique ne tient pas compte des voeuxEnAttente hors PP */
-                .filter(v -> !v.estAffecteHorsPP())
-                .filter(v -> candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod))
-                .collect(toList());
     }
 
     /* pour tests */
@@ -185,7 +174,7 @@ public final class AlgoPropositionsEntree implements Serializable {
      * unmarshalling into it
      * @param parent instance of JAXB mapped class that will reference target.
      * null when target is root element.
-     * @throws VerificationException
+     * @throws VerificationException erreur de vérification
      */
     public void afterUnmarshal(Unmarshaller unmarshaller, Object parent) throws VerificationException {
         injecterGroupesEtInternatsDansVoeux();

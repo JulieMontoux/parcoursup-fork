@@ -28,22 +28,22 @@ public class Parametres implements Serializable {
     /* le nombre de jours depuis l'ouverture de la campagne, 1 le premier jour */
     public final int nbJoursCampagne;
 
-    /* le nombre de jours de campagne à la date pivot internats */
-    public final int nbJoursCampagneDatePivotInternats;
+    /* le nombre de jours de campagne à la date de fin de réservation des places internats */
+    public final int nbJoursCampagneDateFinReservationInternats;
 
-    public Parametres(int nbJoursCampagne, int nbJoursCampagneDatePivotInternats) {
+    public Parametres(int nbJoursCampagne, int nbJoursCampagneDateFinReservationInternats) {
         this.nbJoursCampagne = nbJoursCampagne;
-        this.nbJoursCampagneDatePivotInternats = nbJoursCampagneDatePivotInternats;
+        this.nbJoursCampagneDateFinReservationInternats = nbJoursCampagneDateFinReservationInternats;
     }
  
     public Parametres(Parametres p) {
         this.nbJoursCampagne = p.nbJoursCampagne;
-        this.nbJoursCampagneDatePivotInternats = p.nbJoursCampagneDatePivotInternats;
+        this.nbJoursCampagneDateFinReservationInternats = p.nbJoursCampagneDateFinReservationInternats;
     }
     
     private Parametres() {
         this.nbJoursCampagne = 0;
-        this.nbJoursCampagneDatePivotInternats = 0;
+        this.nbJoursCampagneDateFinReservationInternats = 0;
     }
     
 }

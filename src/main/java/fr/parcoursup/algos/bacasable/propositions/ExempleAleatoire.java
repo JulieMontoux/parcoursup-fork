@@ -266,15 +266,15 @@ public class ExempleAleatoire extends ExemplePropositions {
                         = classements.get(ga);
                 int rang = cl.ajouterCandidat(candidat);
 
-                boolean horsPP = (random.nextInt(100) == 0);
+                int status = random.nextInt(10);
                 Voeu.StatutVoeu statut
-                        = horsPP
-                                ? Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS
+                        = (status == 0) ? Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS
+                            : (status <= 3) ? Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
                                 : Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
 
                 if (!avecInternat || (internat == null && internatsCommuns.isEmpty())) {
                     if (rang <= cl.plusHautRangAffecte) {
-                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
+                        statut = Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
                     }
                     voeux.add(
                             new Voeu(
@@ -285,7 +285,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     rang,
                                     rangRepondeurAutomatique1,
                                     statut,
-                                    horsPP
+                                    (status == 0)
                             )
                     );
                     return 1;
@@ -315,7 +315,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
                     if ((rang <= cl.plusHautRangAffecte 
                             && rangInternat <= j.plusHautRangAffecte)) {
-                        statut = Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS;
+                        statut = Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
                     }
                     
                     voeux.add(
@@ -328,7 +328,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     rangInternat,
                                     rangRepondeurAutomatique1,
                                     statut,
-                                    horsPP
+                                    (status == 0)
                             )
                     );
 
@@ -342,7 +342,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                                         rang,
                                         rangRepondeurAutomatique2,
                                         statut,
-                                        horsPP
+                                        (status == 0)
                                 )
                         );
                         return 2;
@@ -484,7 +484,7 @@ public class ExempleAleatoire extends ExemplePropositions {
             }
             if (v.estAcceptationAutomatique() || v.estAffecteJoursPrecedents()) {
                 if (propositionsAuxCandidatsAvecRepAuto.containsKey(gCnCod)) {
-                    v.refuserAutomatiquement();
+                    v.refuserAutomatiquementParApplicationRepondeurAutomatique();
                 }
                 propositionsAuxCandidatsAvecRepAuto.put(gCnCod, v);
             }

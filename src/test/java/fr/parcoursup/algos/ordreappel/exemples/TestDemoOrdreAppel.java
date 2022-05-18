@@ -21,8 +21,8 @@ public class TestDemoOrdreAppel {
 	public static void setUpBeforeClass() {
 		LogManager.getLogManager().reset();
     }
-    
-    @Test
+
+    @Test(expected = Test.None.class /* no exception expected */)
     public void reproduction_de_la_demo_dExemple() throws Exception{
         // Code recopié de DemoOrdreAppel. A terme il faudra enlever la classe DemoOrdreAppel.
         final ExempleA1 exempleA1 = new ExempleA1();
@@ -49,7 +49,6 @@ public class TestDemoOrdreAppel {
             final ExempleAleatoire e = new ExempleAleatoire(1 + r.nextInt(1_000));
             e.execute(false);
         }
-        assertTrue(true);
     }
 
     @Test

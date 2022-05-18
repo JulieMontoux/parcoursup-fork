@@ -24,6 +24,8 @@ import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,7 +39,7 @@ public class GroupeAffectation implements Serializable {
 
     /* le nombre de recrutements souhaité par la formation */
     private int nbRecrutementsSouhaite;
-    
+
     public int getNbRecrutementsSouhaite() {
         return nbRecrutementsSouhaite;
     }
@@ -49,7 +51,7 @@ public class GroupeAffectation implements Serializable {
     /* le rang limite des candidats (dans l'ordre d'appel): 
     tous les candidats de rang inférieur reçoivent une proposition */
     private int rangLimite;
-    
+
     public int getRangLimite() {
         return rangLimite;
     }
@@ -58,59 +60,136 @@ public class GroupeAffectation implements Serializable {
         rangLimite = rang;
     }
 
-    /* évaluation du rang du dernier appelé à la date pivot.
-    Utilisée pour la gestion des places d'internats */
-    public final int estimationRangDernierAppeleADatePivot;
+    /**
+     * évaluation du rang du dernier appelé à la date pivot.
+     * utilisée pour la gestion des places d'internats
+     */
+    private int estimationRangDernierAppeleADateFinReservationInternats;
 
-    /* le rang du dernier appelé, affiché dans les formations avec internat */
+    public int getEstimationRangDernierAppeleADateFinReservationInternats() {
+        return estimationRangDernierAppeleADateFinReservationInternats;
+    }
+
+    public void setEstimationRangDernierAppeleADateFinReservationInternats(int rang) {
+        estimationRangDernierAppeleADateFinReservationInternats = rang;
+    }
+
+    /**
+     * le rang du dernier appelé, affiché dans les formations avec internat
+     */
     private int rangDernierAppeleAffiche = 0;
 
-    /* fag indiquant qu'on ne réserve pas de places dans cet internat */
+    /**
+     * flag indiquant qu'on ne réserve pas de places dans cet internat
+     */
     private boolean finReservationPlacesInternat;
 
+    /**
+     * @return le rang du dernier appelé affiché pour ce groupe (ne tient pas compte des annulations de démission)
+     */
     public int getRangDernierAppeleAffiche() {
         return rangDernierAppeleAffiche;
     }
-    
+
     public void setRangDernierAppeleAffiche(int rang) {
         rangDernierAppeleAffiche = rang;
     }
 
-    /* constructeur */
+    /**
+     * Constructeur d'un groupe d'affectation
+     *
+     * @param nbRecrutementsSouhaite le nombre de places totale dans le groupe
+     * @param id                     l'id du groupe
+     * @param rangLimite             le rang limite d'appel par bloc
+     * @param rangDernierAppeleActuellement      le rang du dernier appelé actuellement
+     * @param rangDernierAppeleReference         le rang du dernier appelé il y a quelques jours
+     * @param parametres             paramètres de la campagne en cours
+     * @throws VerificationException si données non cohérentes
+     */
+    public GroupeAffectation(
+            int nbRecrutementsSouhaite,
+            GroupeAffectationUID id,
+            int rangLimite,
+            int rangDernierAppeleActuellement,
+            int rangDernierAppeleReference,
+            Parametres parametres) throws VerificationException {
+        if (id == null || nbRecrutementsSouhaite < 0 || rangLimite < 0 || rangDernierAppeleActuellement < 0) {
+            throw new VerificationException(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES);
+        }
+        this.id = id;
+        this.nbRecrutementsSouhaite = nbRecrutementsSouhaite;
+        this.rangLimite = rangLimite;
+        this.estimationRangDernierAppeleADateFinReservationInternats =
+                calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        rangDernierAppeleActuellement,
+                        rangDernierAppeleReference,
+                        rangLimite,
+                        parametres
+                );
+    }
+
+    /* constructeur utilisé par certains tests unitaires */
     public GroupeAffectation(
             int nbRecrutementsSouhaite,
             GroupeAffectationUID id,
             int rangLimite,
             int rangDernierAppele,
             Parametres parametres) throws VerificationException {
-        if (id == null || nbRecrutementsSouhaite < 0 || rangLimite < 0 || rangDernierAppele < 0) {
-            throw new VerificationException(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES);
+        this(nbRecrutementsSouhaite, id, rangLimite, rangDernierAppele, 0, parametres);
+    }
+
+    /** le coefficient utilisé pour la réservation de places le premier jour,
+     * en fonction du taux de propositions l'année précédente
+     */
+    public static final int NB_JOURS_POUR_INTERPOLATION_INTERNAT = 4;
+
+    /**
+     * Calcule une estimation du rang du dernier appelé à la date d'ouverture des internats
+     *
+     * @param rangDernierAppeleActuellement le rang du dernier appelé, actuellement
+     * @param rangDernierAppeleAnterieur le rang du dernier appelé à nbJoursCampagneRef =  (nbJoursCampagne - NB_JOURS_POUR_INTERPOLATION_INTERNAT)
+     * @param parametres  paramètres de la campagne
+     * @return l'estimation
+     */
+    public static int calculerEstimationRangDernierAppeleADateFinReservationInternat(
+            int rangDernierAppeleActuellement,
+            int rangDernierAppeleAnterieur,
+            int rangLimiteAppelBloc,
+            Parametres parametres
+    ) throws VerificationException {
+        if(rangDernierAppeleActuellement < rangDernierAppeleAnterieur) {
+            throw new VerificationException(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_RANG_DERNIER_APPELE);
         }
-        this.id = id;
-        this.nbRecrutementsSouhaite = nbRecrutementsSouhaite;
-        this.rangLimite = rangLimite;
-        if (rangDernierAppele == 0 || parametres.nbJoursCampagne <= 1) {
-            this.estimationRangDernierAppeleADatePivot = Integer.MAX_VALUE;
-        } else if (parametres.nbJoursCampagne < parametres.nbJoursCampagneDatePivotInternats) {
-            this.estimationRangDernierAppeleADatePivot
-                    = Math.max(rangLimite,
-                            rangDernierAppele
-                            * parametres.nbJoursCampagneDatePivotInternats
-                            / (parametres.nbJoursCampagne - 1)
-                    );
+        if (parametres.nbJoursCampagne <= 1) {
+            //le premier jour de la campagne: très conservatif on suppose que tous les candidats recevront une proposition
+            return Integer.MAX_VALUE;
+        } else if (parametres.nbJoursCampagne >= parametres.nbJoursCampagneDateFinReservationInternats) {
+            //apres la date de fin de réservation: pas du tout conservatif, on évalue à minima
+            return Math.max(rangLimiteAppelBloc, rangDernierAppeleActuellement);
+        } else if(rangDernierAppeleActuellement <= 0) {
+            //manque de données, on reste conservatif
+            return Integer.MAX_VALUE;
         } else {
-            this.estimationRangDernierAppeleADatePivot
-                    = Math.max(rangLimite, rangDernierAppele);
+            final int estimation;
+            if(rangDernierAppeleAnterieur <= 0) {
+                estimation = rangDernierAppeleActuellement * (parametres.nbJoursCampagneDateFinReservationInternats - 1) / (parametres.nbJoursCampagne - 1);
+            } else {
+                int nbJoursrestantsAvantOuverture = parametres.nbJoursCampagneDateFinReservationInternats - parametres.nbJoursCampagne;
+                estimation = rangDernierAppeleActuellement
+                        + (nbJoursrestantsAvantOuverture * (rangDernierAppeleActuellement - rangDernierAppeleAnterieur)) / NB_JOURS_POUR_INTERPOLATION_INTERNAT;
+            }
+            return Math.max(estimation, Math.max(rangLimiteAppelBloc, rangDernierAppeleActuellement));
         }
     }
 
-    public GroupeAffectation(GroupeAffectation o, Parametres p) throws VerificationException {
-        this(
-                o.nbRecrutementsSouhaite, 
-                o.id, 
-                o.rangLimite, 
-                o.rangDernierAppeleAffiche,
-                p);
+
+    public GroupeAffectation(GroupeAffectation o) {
+        this.id = o.id;
+        this.nbRecrutementsSouhaite = o.nbRecrutementsSouhaite;
+        this.rangLimite = o.rangLimite;
+        this.estimationRangDernierAppeleADateFinReservationInternats = o.estimationRangDernierAppeleADateFinReservationInternats;
+        this.finReservationPlacesInternat = o.finReservationPlacesInternat;
+        this.rangDernierAppeleAffiche = o.rangDernierAppeleAffiche;
     }
 
     /* signale que la formation ne réserve plus de places dans les internats */
@@ -166,24 +245,19 @@ public class GroupeAffectation implements Serializable {
             /* On fait une proposition:
                 * si il y a des places libres (aPourvoir > 0)
                 * ou si la formation a positionné un rang limite d'appel supérieur au rang du candidat
-                * ou si la formation est déjà obtenue (voeux avec internat)
+                * ou, après la fin de réservation des places internats, si la formation est déjà obtenue (voeux avec internat)
                 * ou si on vient de faire une proposition à ce candidat, deux voeux consécutifs peuvent concerner un même candidat,
-                (un avec et un sans internat). Par contre les voeux non-consécutifs concernent
-                nécessairement des candidats différents.
-            
-                Remarque: le rang limite d'appel se base sur l'ordre d'appel du candidat
-                avant les remontées MB.            
+                (un avec et un sans internat). Les voeux non-consécutifs concernent nécessairement des candidats différents.
              */
             if (aPourvoir > 0
                     || v.ordreAppel <= rangLimite
-                    || v.formationDejaObtenue() /* variante permet d'éviter les sous-capacités internat */
+                    || (finReservationPlacesInternat && v.formationDejaObtenue())
                     || dernierCandidatAvecProposition == v.id.gCnCod) {
 
                 v.proposer();
 
                 /* on décroit la capacité résiduelle si il y a lieu de le faire */
-                if (!v.formationDejaObtenue()
-                        && dernierCandidatAvecProposition != v.id.gCnCod) {
+                if (!v.formationDejaObtenue() && dernierCandidatAvecProposition != v.id.gCnCod) {
                     aPourvoir--;
                 }
 
@@ -200,15 +274,18 @@ public class GroupeAffectation implements Serializable {
         return Integer.max(0, nbRecrutementsSouhaite - candidatsAffectes.size());
     }
 
-    /* la liste initiale des voeuxEnAttente du groupe, triée dans l'ordre d'appel du candidat.
-    Remarque: c'est un ordre partiel car il peut y avoir deux voeuxEnAttente du même candidat,
-    un avec internat et l'autre sans. */
-    public final transient List<Voeu> voeuxEnAttente = new ArrayList<>();
+    /* ensemble des voeuxEnAttente du groupe */
+    private transient Set<Voeu> voeuxEnAttente = new HashSet<>();
+
+    public List<Voeu> getVoeuxEnAttente() {
+        return new ArrayList<>(voeuxEnAttente);
+    }
 
     /* trie les voeuxEnAttente dans l'ordre d'appel */
     public List<Voeu> voeuxTriesParOrdreAppel() {
-        voeuxEnAttente.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
-        return Collections.unmodifiableList(voeuxEnAttente);
+        List<Voeu> result = getVoeuxEnAttente();
+        result.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
+        return result;
     }
 
     /* tous les internats apparaissant parmi les voeux en attente */
@@ -219,7 +296,7 @@ public class GroupeAffectation implements Serializable {
                 .collect(Collectors.toSet());
     }
 
-    private final transient Set<Integer> candidatsAffectes = new HashSet<>();
+    private transient Set<Integer> candidatsAffectes = new HashSet<>();
 
     @Override
     public String toString() {
@@ -229,10 +306,14 @@ public class GroupeAffectation implements Serializable {
     private GroupeAffectation() {
         this.id = new GroupeAffectationUID(0,0,0);
         this.nbRecrutementsSouhaite = 0;
-        this.estimationRangDernierAppeleADatePivot = 0;
+        this.estimationRangDernierAppeleADateFinReservationInternats = 0;
         this.finReservationPlacesInternat = false;
     }
 
-
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+        voeuxEnAttente = new HashSet<>();
+        candidatsAffectes = new HashSet<>();
+    }
 
 }

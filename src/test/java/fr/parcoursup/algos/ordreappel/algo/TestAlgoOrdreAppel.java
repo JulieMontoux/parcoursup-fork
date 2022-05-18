@@ -7,7 +7,7 @@ import org.junit.Test;
 
 public class TestAlgoOrdreAppel {
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void testCalculerOrdresAppels() throws Exception {
 
         GroupeClassement g1 = new GroupeClassement(0, 0, 0);
@@ -27,11 +27,7 @@ public class TestAlgoOrdreAppel {
         AlgoOrdreAppelSortie as = AlgoOrdreAppel.calculerOrdresAppels(ae);
 
         VerificationsResultatsAlgoOrdreAppel verif = new VerificationsResultatsAlgoOrdreAppel();
-        verif.verifier(ae, as);  // Pas besoin d'assert, car le verif.verifier lance déjà une exception en cas d'échec
-        // Dans l'idéal, on ne devrait pas avoir à appeler une classe d'un autre paquet, mais ici le test est déjà écrit, donc rien ne sert de le réécrire.
-        // En revanche, il faudra s'assurer que la méthode vérifier est bien testée dans son propre paquet.
-        assertTrue(true);
-
+        verif.verifier(ae, as);  // verif.verifier génère une exception en cas d'échec
     }
 
 }

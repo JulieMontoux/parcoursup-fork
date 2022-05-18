@@ -47,7 +47,7 @@ public abstract class ExemplePropositions {
         entree = donneesEntree();
 
         int nbJours = entree.getParametres().nbJoursCampagne;
-        int datePivot = entree.getParametres().nbJoursCampagneDatePivotInternats;
+        int datePivot = entree.getParametres().nbJoursCampagneDateFinReservationInternats;
 
         try {
             while (true) {
@@ -66,7 +66,7 @@ public abstract class ExemplePropositions {
 
                 /* suppression des refus */
                 entree.voeux.removeIf((Voeu v) -> (v.getStatut() == Voeu.StatutVoeu.REFUS_OU_DEMISSION));
-                entree.voeux.removeIf(Voeu::estDemissionAutomatique);
+                entree.voeux.removeIf(Voeu::estDemissionAutomatiqueParRepondeurAutomatique);
 
                 for (Voeu v : entree.voeux) {
                     v.simulerEtape();
@@ -142,7 +142,7 @@ public abstract class ExemplePropositions {
         Map<Integer, List<Voeu>> candidates = new HashMap<>();
         for (Voeu v : entree.voeux) {
             int gCnCod = v.id.gCnCod;
-            if (v.rangRepondeur > 0
+            if (v.rangPreferencesCandidat > 0
                     && !entree.candidatsAvecRepondeurAutomatique.contains(gCnCod)) {
                 if (!candidates.containsKey(gCnCod)) {
                     candidates.put(gCnCod, new ArrayList<>());
@@ -160,7 +160,7 @@ public abstract class ExemplePropositions {
                 Collections.shuffle(voeux);
                 boolean propositionTrouvee = false;
                 for (Voeu v : voeux) {
-                    if (propositionTrouvee && (v.estProposition() || v.rangRepondeur == 0)) {
+                    if (propositionTrouvee && (v.estProposition() || v.rangPreferencesCandidat == 0)) {
                         v.simulerRefus();
                     } else if (v.estProposition()) {
                         propositionTrouvee = true;

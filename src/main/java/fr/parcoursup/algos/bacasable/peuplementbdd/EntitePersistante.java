@@ -43,10 +43,10 @@ public abstract class EntitePersistante extends Model {
     }
     
     
-    abstract protected String getNomTable();
+    protected abstract String getNomTable();
     
 
-    abstract protected Object getValeurChamp(String nom);  
+    protected abstract Object getValeurChamp(String nom);
     
     
     protected static void checkSiChampReserve(

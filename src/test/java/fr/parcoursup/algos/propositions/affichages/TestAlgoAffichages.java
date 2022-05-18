@@ -31,7 +31,7 @@ public class TestAlgoAffichages {
         constructor.newInstance();
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussir() throws Exception {
         Parametres p = new Parametres(1, 60);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
@@ -55,14 +55,14 @@ public class TestAlgoAffichages {
         AlgosAffichages.mettreAJourAffichages(sortie, voeuxAvecPropositionDansMemeFormation, propositionsDuJour);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussirSiVoeuAffecteJoursPrecedents() throws Exception {
         Parametres p = new Parametres(1, 60);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 
-        Voeu v1 = Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS, 1);
+        Voeu v1 = Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, 1);
         Voeu v3 = Helpers.creeVoeuAvecInternatEtInjecteDependances(v1.id.gCnCod, g , gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, v1.ordreAppel, 3);
 
         Set<VoeuUID> voeuxAvecPropositionDansMemeFormation = new HashSet<>(Collections.singletonList(v3.id));
@@ -75,7 +75,7 @@ public class TestAlgoAffichages {
         AlgosAffichages.mettreAJourAffichages(sortie, voeuxAvecPropositionDansMemeFormation, propositionsDuJour);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangsListeAttente_doit_reussirSiVoeuPasDansVoeuxAvecPropositionDansMemeFormation() throws Exception {
         Parametres p = new Parametres(1, 60);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
@@ -104,7 +104,7 @@ public class TestAlgoAffichages {
         );
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangDernierAppeleAffiche_doit_reussirPourGroupeAffectationAvecVoeuEnAttenteSansDemandeInternat() throws Exception {
         Parametres p = new Parametres(1, 60);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);

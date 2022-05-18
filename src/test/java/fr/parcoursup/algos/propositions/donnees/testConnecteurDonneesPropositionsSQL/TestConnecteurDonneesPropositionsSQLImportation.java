@@ -36,7 +36,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         int nbJoursCampagne = Whitebox.invokeMethod(
                 connecteurDonneesPropositions,
-                "nbJoursDepuisDebutCampagne"
+                "getNbJoursCampagne"
         );
 
         return nbJoursCampagne;
@@ -62,13 +62,13 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
     }
     
     
-    int recupere_nombre_jours_ecoules_entre_dates_debut_campagne_et_ouverture_complete_internats(
+    int recupere_nombre_jours_campagne_a_date_pivot_internats(
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
 
         int nbJoursCampagneDatePivotInternats = Whitebox.invokeMethod(
                 connecteurDonneesPropositions,
-                "nbJoursEntreDebutCampagneEtOuvertureInternats"
+                "getNbJoursCampagneDatePivotInternats"
         );
 
         return nbJoursCampagneDatePivotInternats;
@@ -84,19 +84,19 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
     public void test_recuperation_verification_nombre_jours_ecoules_entre_dates_debut_campagne_et_ouverture_complete_internats_avec_connecteur_prod_doit_reussir() throws Exception {
 
         this.setBddDateDebutCampagne("20/05/2020:0000");
-        this.setBddDateOuvertureCompleteInternats("01/07/2020:0000");
+        this.setBddDateOuvertureCompleteInternats("21/05/2020:0000");
 
         int nbJoursCampagneDatePivotInternats;
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            nbJoursCampagneDatePivotInternats = this.recupere_nombre_jours_ecoules_entre_dates_debut_campagne_et_ouverture_complete_internats(
+            nbJoursCampagneDatePivotInternats = this.recupere_nombre_jours_campagne_a_date_pivot_internats(
                     connecteurDonneesPropositions
             );
         }
 
-        assertEquals(nbJoursCampagneDatePivotInternats, 42);
+        assertEquals(2, nbJoursCampagneDatePivotInternats);
 
     }
 
@@ -204,7 +204,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 connecteurDonneesPropositions,
                 "recupererGroupesAffectation",
                 parametres,
-                true // paramètre retroCompatibitilite
+                false // paramètre retroCompatibitilite
         );
 
         return groupesAffectation;
@@ -292,7 +292,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 connecteurDonneesPropositions,
                 "recupererGroupesAffectation",
                 parametres,
-                true // paramètre retroCompatibitilite
+                false // paramètre retroCompatibitilite
         );
 
         for (GroupeAffectation g : groupesAffectation.values()) {
@@ -312,7 +312,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 connecteurDonneesPropositions,
                 "recupererVoeuxAvecInternatsAClassementPropre",
                 entree.internatsIndex,
-                seulementVoeuxEnAttente
+                seulementVoeuxEnAttente,
+                true
         );
 
         return entree;
@@ -433,7 +434,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 connecteurDonneesPropositions,
                 "recupererGroupesAffectation",
                 parametres,
-                true // paramètre retroCompatibitilite
+                false // paramètre retroCompatibitilite
         );
 
         for (GroupeAffectation g : groupesAffectation.values()) {
@@ -452,7 +453,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
         Whitebox.invokeMethod(
                 connecteurDonneesPropositions,
                 "recupererVoeuxSansInternatAClassementPropre",
-                seulementVoeuxEnAttente
+                seulementVoeuxEnAttente,
+                true
         );
 
         return entree;

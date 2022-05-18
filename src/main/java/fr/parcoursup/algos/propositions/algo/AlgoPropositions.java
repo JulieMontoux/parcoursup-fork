@@ -21,13 +21,10 @@ l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 package fr.parcoursup.algos.propositions.algo;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
-import fr.parcoursup.algos.propositions.repondeur.RepondeurAutomatique;
 import fr.parcoursup.algos.verification.VerificationEntreeAlgoPropositions;
 import fr.parcoursup.algos.verification.VerificationsResultatsAlgoPropositions;
 
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,6 +38,14 @@ public class AlgoPropositions {
         return calcule(entree, true);
     }
 
+    /**
+     * Algorithme de calcul des propositions à envoyer aux candidats
+     *
+     * @param entree   Les données d'entrée.
+     * @param verifier si ce paramétre est true, les données d'entrée sont vérifiées. En prod le paramètre est activé. En simulation il est parfois désactivé.
+     * @return Un objet de type AlgoPropositionsSortie contenant la liste des voeux mis à jour
+     * @throws VerificationException en cas de défaut d'intégrité des données d'entrée
+     */
     public static AlgoPropositionsSortie calcule(
             AlgoPropositionsEntree entree,
             boolean verifier) throws VerificationException {
@@ -66,7 +71,7 @@ public class AlgoPropositions {
 
             calculerNouvellesPropositions(entree);
 
-            long placesLibereesParRepAuto = appliquerRepndeurAutomatique(entree);
+            long placesLibereesParRepAuto = RepondeurAutomatique.appliquerRepondeurAutomatique(entree);
 
             if (placesLibereesParRepAuto == 0) {
                 break;
@@ -80,16 +85,16 @@ public class AlgoPropositions {
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(entree);
 
         if (verifier) {
-            LOGGER.log(Level.INFO, "V\u00e9rification des {0} propositions", sortie.propositionsDuJour().count());
+            LOGGER.log(Level.INFO, "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
             new VerificationsResultatsAlgoPropositions().verifier(entree, sortie);
         }
 
-        LOGGER.log(Level.INFO, "Propositions {0}", sortie.propositionsDuJour().count());
-        LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.demissions().count());
+        LOGGER.log(Level.INFO, "Propositions {0}", sortie.nbPropositionsDuJour());
+        LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.nbDemissions());
 
-        if(verifier) {
+        if (verifier) {
             LOGGER.log(Level.INFO,
-                    "V\u00e9rification des {0} propositions", sortie.propositionsDuJour().count());
+                    "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
             new VerificationsResultatsAlgoPropositions().verifier(entree, sortie);
         }
         return sortie;
@@ -97,7 +102,7 @@ public class AlgoPropositions {
     }
 
     /* ventile les voeux encore en attente dans les groupes concernés */
-    private static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
+    public static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
         /* réinitialisation des groupes */
         entree.groupesAffectations.values().stream().parallel().forEach(
                 GroupeAffectation::reinitialiser
@@ -106,43 +111,15 @@ public class AlgoPropositions {
                 GroupeInternat::reinitialiser
         );
 
-        /* ajout des voeux aux groupes  et remise à leurs valeurs initiales
-            des ordres d'appels (modifiables temporairement par dispositif MB) */
+        /* ajout des voeux aux groupes */
         for (Voeu v : entree.voeux) {
-            v.setRepondeurActive( (v.rangRepondeur > 0)
+            v.setRepondeurActive((v.rangPreferencesCandidat > 0)
                     && entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod));
             v.ajouterAuxGroupes();
         }
     }
 
-    /* renvoie le nombre de places liberees par le repondeur automatique */
-    private static long appliquerRepndeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
-        if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
-            LOGGER.log(Level.INFO, "Préparation des données du répondeur automatique,"
-                    + "{0} candidats l''ont activé",
-                    entree.candidatsAvecRepondeurAutomatique.size()
-            );
-
-            Collection<Voeu> voeuxDesCandidatsAvecRepAuto = entree.getVoeuxDesCandidatsAvecRepondeurAutomatique();
-            LOGGER.log(Level.INFO, "{0} voeux avec répondeur automatique", voeuxDesCandidatsAvecRepAuto.size());
-
-            final long placesLibereesParRepAuto
-                    = RepondeurAutomatique.reponsesAutomatiques(voeuxDesCandidatsAvecRepAuto);
-            /* si le répondeur ne libère pas de place, le calcul est terminé */
-            if (placesLibereesParRepAuto == 0) {
-                LOGGER.info("Aucune place libérée par le répondeur automatique");
-            } else {
-                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
-                        placesLibereesParRepAuto);
-            }
-            return placesLibereesParRepAuto;
-        } else {
-            LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
-            return 0;
-        }
-    }
-
-    private static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
+    public static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
         /* groupes à mettre à jour */
         Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>(entree.groupesAffectations.values());
 
@@ -157,7 +134,7 @@ public class AlgoPropositions {
             compteurBoucle++;
 
             LOGGER.log(Level.INFO, "It\u00e9ration {0}: "
-                    + "mise \u00e0 jour des propositions dans {1} groupes d''affectations",
+                            + "mise \u00e0 jour des propositions dans {1} groupes d''affectations",
                     new Object[]{compteurBoucle, groupesAMettreAJour.size()});
 
             /* calcul des propositions à effectuer,
@@ -174,7 +151,7 @@ public class AlgoPropositions {
             car les formations devront potentiellement descendre plus bas dans l'ordre d'appel.
 
             Par conséquent, on peut mettre à jour toutes les positions d'admission
-            de tous les internats sans mettre à jour systématiquement les propositions:
+            de tous les internats sans mettre à jour systématiquement les propositions :
             si un internat est détecté en surcapacité avant la mise
             à jour des propositions, il l'aurait été également après la mise à jour des propositions.
             (Mais la réciproque est fausse en général).
@@ -191,7 +168,7 @@ public class AlgoPropositions {
             La boucle termine quand les contraintes de capacité des internats
             sont satisfaites, c'est-à-dire quand ce minimum global est atteint.
 
-            Une propriété de symétrie i.e. d'équité intéressante:
+            Une propriété d'équité intéressante :
             le résultat ne dépend pas de l'ordre dans lequel on itère sur les internats et
             les formations.
              */

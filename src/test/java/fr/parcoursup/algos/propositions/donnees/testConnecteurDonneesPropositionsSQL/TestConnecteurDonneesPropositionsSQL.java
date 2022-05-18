@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 
 import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.donnees.ParametresConnexionBddTest;
+import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionSQLConfig;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
 import org.dbunit.DBTestCase;
 import org.dbunit.PropertiesBasedJdbcDatabaseTester;
@@ -95,57 +96,52 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
     // Tests / connexion BDD
     //
     ///////////////////////////////////////////////////////////////////////////
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_connexion_bdd_doit_reussir_avec_constructeur_proto1_et_parametres_connexion_valides() throws Exception {
-
         try (ConnecteurSQL connecteurSQL = new ConnecteurSQL(
-                
-
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_CONNECTION_URL),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_USERNAME),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD))) {
-            ConnecteurDonneesPropositionsSQL connecteur
+                ConnecteurDonneesPropositionsSQL connecteur
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
+                assertNotNull(connecteur);
         }
-
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_connexion_bdd_doit_reussir_avec_constructeur_proto2_et_parametres_connexion_valides() throws Exception {
-
         try (Connection conn = DriverManager.getConnection(
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_CONNECTION_URL),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_USERNAME),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD)
         )) {
-
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(conn);
-
         }
-
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_connexion_bdd_doit_reussir_avec_constructeur_proto3_et_parametres_connexion_valides() throws Exception {
-
         try (Connection conn = DriverManager.getConnection(
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_CONNECTION_URL),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_USERNAME),
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD)
         )) {
-
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(
-                            conn,
-                            true, // paramètre verifierInterruptionFluxDonneesEntrantes
-                            false, // paramètre recupererSeulementVoeuxEnAttente
-                            0, // paramètre sparseDataTestingMode
-                            false // paramètre utiliserRangSiPAsOrdreAppel
-                    );
+                    conn,
+                    new ConnecteurDonneesPropositionSQLConfig(
+                            false, //recupererSeulementVoeuxEnAttente
+                            false, //recupererSeulementVoeuxClasses
+                            0, //sparseDataTestingMode
+                            false, //utiliserRangSiPasOrdreAppel
+                            false //ignorerSurbooking
+                    )
+            );
         }
-
     }
+
+
 
     ///////////////////////////////////////////////////////////////////////////
     //
@@ -241,19 +237,19 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
 
     protected int recupereBddNombreJoursEcoulesDepuisDebutCampagne() throws Exception {
 
-        LocalDateTime maintenant = LocalDateTime.now();
-        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne();
-        long nombreJoursEcoules = Duration.between(dateDebutCampagne, maintenant).toDays();
-        return (int) nombreJoursEcoules;
+        LocalDateTime maintenant = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
+        long nombreJoursEcoules = Duration.between(dateDebutCampagne, maintenant).toDays() + 1;
+        return Math.toIntExact(nombreJoursEcoules);
 
     }
 
     protected int recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats() throws Exception {
 
-        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne();
-        LocalDateTime dateOuvertureCompleteInternats = this.getBddDateOuvertureCompleteInternats();
-        long nombreJoursEcoules = Duration.between(dateDebutCampagne, dateOuvertureCompleteInternats).toDays();
-        return (int) nombreJoursEcoules;
+        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
+        LocalDateTime dateOuvertureCompleteInternats = this.getBddDateOuvertureCompleteInternats().toLocalDate().atStartOfDay();
+        long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, dateOuvertureCompleteInternats).toDays();
+        return Math.toIntExact(nombreJoursEcoules);
 
     }
 

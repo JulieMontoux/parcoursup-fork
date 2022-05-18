@@ -31,7 +31,7 @@ public class TestAlgoPropositionsEntree {
         // assertEquals(entree1.parametres, entree2.parametres);
         assertTrue(
             entree1.parametres.nbJoursCampagne == entree2.parametres.nbJoursCampagne
-            && entree1.parametres.nbJoursCampagneDatePivotInternats == entree2.parametres.nbJoursCampagneDatePivotInternats
+            && entree1.parametres.nbJoursCampagneDateFinReservationInternats == entree2.parametres.nbJoursCampagneDateFinReservationInternats
         );
         assertEquals(entree1.voeux, entree2.voeux);
         assertEquals(entree1.groupesAffectations.size(), entree2.groupesAffectations.size());  //TODO GroupeAffectation devrait avoir un equals pour les tester directement
@@ -104,16 +104,16 @@ public class TestAlgoPropositionsEntree {
     }
 
     @Test
-    public void ajouterSiNecessaire_doit_ajouterUniquementSiVoeuNonPresent() throws VerificationException {
+    public void ajouterOuRemplacer_doit_ajouterUniquementSiVoeuNonPresent() throws VerificationException {
         Parametres p = new Parametres(2, 60);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
 
         assertEquals(0, entree.voeux.size());
-        entree.ajouterSiNecessaire(v);
+        entree.ajouterOuRemplacer(v);
         assertEquals(1, entree.voeux.size());
-        entree.ajouterSiNecessaire(v);
+        entree.ajouterOuRemplacer(v);
         assertEquals(1, entree.voeux.size());
     }
 

@@ -52,7 +52,7 @@ public class TestConnecteurDonneesPropositionsXML {
         assertTrue(exception.getMessage().contains("Erreur de deserialisation des donnees d'entree"));
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void exporterDonnees_doit_reussir() throws Exception {
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class);
         String testFilename = "/tmp/parcoursup-test-ConnecteurDonneesPropositionsXML-exporterDonnees_doit_ecrire_fichier.xml";

@@ -21,13 +21,13 @@ public enum VerificationExceptionMessage {
     FILIERE_DUPLICATION("Duplication de filiere."),
 
     GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES("Incohérence dans les paramètres du constructeur de GroupeAffectation"),
+    GROUPE_AFFECTATION_INCOHERENCE_RANG_DERNIER_APPELE("Lors de l'estimation du rang du dernier appelé, le rangDernierAppeleAnterieur doit être inférieur ou égal à rangDernierAppeleActuellement"),
 
     GROUPE_CLASSEMENT_TAUX_INCOHERENTS("Taux incohérents"),
     GROUPE_CLASSEMENT_POSSIBLE_DEPASSEMENT_ARITHMETIQUE("Possibilité de capacité arithmetique"),
 
     GROUPE_INTERNAT_INCOHERENCE_PARAMETRES("Incohérence dans les paramètres du constructeur de GroupeInternat"),
     GROUPE_INTERNAT_CAPACITE_NEGATIVE("L'internat %s a une capacité négative veuillez vérifier les données."),
-    GROUPE_INTERNAT_INCOHERENCE_CONSTRUCTEUR("Incohérence dans les paramètres du constructeur de GroupeInternat"),
     GROUPE_INTERNAT_DEJA_INITIALISE("Groupe déjà initialisé"),
     GROUPE_INTERNAT_VOEU_EN_DOUBLON("Voeu en doublon"),
     GROUPE_INTERNAT_DATE_ANTERIEURE("Impossible d'exécuter l'algorithme à une date antérieure au début de la campagne, veuillez vérifier les données."),
@@ -76,7 +76,11 @@ public enum VerificationExceptionMessage {
     INTERNAT_INCONSISTENCE_INDEX("Internat c_gi_cod=%s: inconsistence de l'index"),
 
     VOEU_HORS_PP_NON_REFUSABLE_AUTOMATIQUEMENT("Le voeu affecté hors PP %s ne peut être refusé automatiquement"),
+    VOEU_NON_REFUSABLE_AUTOMATIQUEMENT_HORS_REP_AUTO("La proposition %s ne peut être refusée automatiquement hors application du répondeur auto"),
+    VOEU_SANS_RANG_NON_REFUSABLE_AUTOMATIQUEMENT("Le voeu %s sans rang dans le rep auto ne peut être refusé automatiquement"),
+    VOEU_AVEC_REPONDEUR_NON_REFUSABLE_PAR_DEM_AUTO_GDD("Le voeu %s n'est pas refusable automatiquement en GDD, il doit être traité par le répondeur automatique"),
     VOEU_REFUS_AUTOMATIQUE_IMPOSSIBLE("Le statut du voeu %s ne permet pas le refus automatique"),
+    VOEU_SANS_STATUT_DEMISSION_AUTOMATIQUE("Ce voeu n'est pas une démission automatique et n'a donc pas de statut associé"),
     VOEU_INCONSISTENCE_STATUT_HORS_PP("Inconsistence logique: un voeu hors PP doit avoir le statut affecteJoursPrecedents"),
     VOEU_RANGS_NEGATIFS("Rangs négatifs"),
     VOEU_ORDRE_APPEL_MANQUANT("Ordre appel manquant"),

@@ -24,7 +24,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
     // Tests
     //
     ///////////////////////////////////////////////////////////////////////////
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_recuperation_DonneesOrdreAppel_doit_reussir() throws Exception {
 
         try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {
@@ -36,7 +36,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
 
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_recuperation_verification_DonneesOrdreAppelGroupe_existant_doit_reussir() throws Exception {
 
         try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {
@@ -63,7 +63,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
 
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_recuperation_verification_donnees_GroupeClassement_existant_doit_reussir() throws Exception {
 
         try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {

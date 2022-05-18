@@ -31,7 +31,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         LogManager.getLogManager().reset();
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_sansInternat_et_proposition_correlee_de_ordreAppel() throws Exception {
         // P1
         Parametres p = new Parametres(1, 0);
@@ -57,7 +57,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_avecInternat_et_proposition_internat_correlee_ordreAppel()
             throws Exception {
         // P2
@@ -88,7 +88,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_c1_internat_et_c2_nonInternat_et_c1_rangInternat_inferieur_a_c2_rangInternat()
             throws Exception {
         // P3
@@ -119,7 +119,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_nombreDePropositions_est_inferieur_au_nombreDePlacesVacantes_et_candidatsEnAttenteDeProposition_sont_avecDemandeInternat_et_rangInternat_superieur_a_la_barreAdmission_de_lInternat() throws Exception {
         //P4
         Parametres p = new Parametres(1, 0);
@@ -149,7 +149,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_P4_non_satisfait_et_loggerEtAfficher_et_passage_CompensableParLeVoeu() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -178,7 +178,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_P4_non_satisfait_et_loggerEtAfficher_et_passage_sansClassementInternat() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -207,7 +207,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_P4_surCapacite() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -236,7 +236,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_P5_satisfait() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -266,7 +266,7 @@ public class TestVerificationsResultatsAlgoPropositions {
     }
 
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_meme_si_un_groupe_valide_et_un_groupe_non_valide() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -296,7 +296,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_multiples_internats() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -315,7 +315,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_multiples_groupeAffectation() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -333,7 +333,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_meme_si_internatPositionAdmission_superieureA_internatPositionMaximaleAdmission() throws Exception {
         Parametres p = new Parametres(1, 0);
 
@@ -361,7 +361,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         // En fait il ne faut pas de propositionDuJour dans sortie pour les groupes si on ne veut pas qu'il y en ait un de supprimé, mais en même temps il faut un groupeNonValide (et donc une proposition du jour pour satisfaire les conditions de 197). Donc le code en 291 semble inatteignable.
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_nettoyer_les_entrees_sorties_si_echec() throws Exception {
         //Coverage de la ligne 312
         //On doit être en mode nePasEchouerSiLoggerOuAfficher et on doit faire une exception/passer par alerter entre 114 et 307
@@ -372,7 +372,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         verificationsResultatsAlgoPropositions.verifier(entree, sortie);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void clotureTransitiveDependances_doit_etendre_les_groupesAIgnorer() throws Exception {
         //Objectif: Coverage des lignes 604 à 608
         

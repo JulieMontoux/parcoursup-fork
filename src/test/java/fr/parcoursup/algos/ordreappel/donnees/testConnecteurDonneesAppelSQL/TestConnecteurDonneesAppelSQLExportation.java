@@ -35,7 +35,7 @@ public class TestConnecteurDonneesAppelSQLExportation extends TestConnecteurDonn
     ///////////////////////////////////////////////////////////////////////////
 
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_exportation_DonneesOrdresAppel_doit_reussir() throws Exception {
 
         try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {

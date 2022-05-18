@@ -16,16 +16,17 @@ CREATE TABLE IF NOT EXISTS "A_ADM"
 );
 
 --------------------------------------------------------
---  Création de la table A_ADM_DEM_RA
+--  Création de la table A_ADM
 --------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS "A_ADM_DEM_RA"
+CREATE TABLE IF NOT EXISTS "A_ADM_DEM"
 (   "G_CN_COD" NUMBER(8,0) NOT NULL,
     "G_TA_COD" NUMBER(8,0) NOT NULL,
     "I_RH_COD" NUMBER(3,0) NOT NULL,
     "C_GP_COD" NUMBER(8,0),
     "G_TI_COD" NUMBER(8,0),
     "C_GI_COD" NUMBER(8,0),
+   	"A_AD_TYP_DEM" NUMBER(3,0) NOT NULL,
     "EST_DEM_PROP" NUMBER(1,0) NOT NULL,
     "NB_JRS" NUMBER(3,0) NOT NULL,
     "ETIQUETTE1" VARCHAR2(150 CHAR),
@@ -140,6 +141,7 @@ CREATE TABLE IF NOT EXISTS "A_SIT_VOE"
     "A_SV_FLG_AFF" NUMBER(1,0) NOT NULL,
     "A_SV_FLG_ATT" NUMBER(1,0) NOT NULL,
 	"A_SV_FLG_CLO" NUMBER(1,0) NOT NULL,
+    "A_SV_FLG_OUI" NUMBER(1,0) NOT NULL,
     "ETIQUETTE1" VARCHAR2(150 CHAR),
     PRIMARY KEY("A_SV_COD")
 );

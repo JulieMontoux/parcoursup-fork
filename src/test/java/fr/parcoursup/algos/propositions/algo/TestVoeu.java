@@ -3,6 +3,10 @@ package fr.parcoursup.algos.propositions.algo;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
@@ -55,8 +59,8 @@ public class TestVoeu {
     public void refuserAutomatiquement_doit_echouer_si_estAffecteHorsPP() throws VerificationException {
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS, true);
-        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquement);
+        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, true);
+        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquementParApplicationRepondeurAutomatique);
         assertSame(VerificationExceptionMessage.VOEU_HORS_PP_NON_REFUSABLE_AUTOMATIQUEMENT, exception.exceptionMessage);
     }
 
@@ -67,19 +71,21 @@ public class TestVoeu {
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
         v.setRepondeurActive(false);
-        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquement);
+        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquementParApplicationRepondeurAutomatique);
         assertSame(VerificationExceptionMessage.VOEU_REFUS_AUTOMATIQUE_IMPOSSIBLE, exception.exceptionMessage);
     }
 
     @Test
-    public void refuserAutomatiquement_doit_echouer_si_statutVoeuNestPasAcceptationAutomatiqueOuAttenteProposition()
+    public void refuserAutomatiquement_doit_echouer_si_statutVoeuEstRefus()
             throws VerificationException {
         // True branch coverage de la ligne 135
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false);
+        Voeu v = new Voeu(0, false, g.id, 1, 1, 1,
+                StatutVoeu.REP_AUTO_REFUS_PROPOSITION,
+                false);
         v.setRepondeurActive(true);
-        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquement);
+        VerificationException exception = assertThrows(VerificationException.class, v::refuserAutomatiquementParApplicationRepondeurAutomatique);
         assertSame(VerificationExceptionMessage.VOEU_REFUS_AUTOMATIQUE_IMPOSSIBLE, exception.exceptionMessage);
     }
 
@@ -183,24 +189,6 @@ public class TestVoeu {
         assertFalse(v.estAnnulationDemission());
     }
 
-    @Test
-    public void setCorrectionClassement_doit_passerCorrectionClassementATrue() throws VerificationException {
-        Parametres p = new Parametres(59, 60);
-        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-        v.setTypeMaj(MODIF_CLASSEMENT_TYPE_MAJ1);
-        assertTrue(v.estCorrectionClassement());
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ + MODIF_CLASSEMENT_TYPE_MAJ1);
-        assertTrue(v.estCorrectionClassement());
-        v.setTypeMaj(MODIF_CLASSEMENT_TYPE_MAJ2);
-        assertTrue(v.estCorrectionClassement());
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ + MODIF_CLASSEMENT_TYPE_MAJ2);
-        assertTrue(v.estCorrectionClassement());
-        v.setTypeMaj(0);
-        assertFalse(v.estCorrectionClassement());
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ);
-        assertFalse(v.estCorrectionClassement());
-    }
 
     @Test
     public void set_type_maj_verifie_coherence() throws VerificationException {
@@ -217,7 +205,7 @@ public class TestVoeu {
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.REP_AUTO_DEMISSION_ATTENTE, false);
-        assertTrue(v.estDemissionAutomatiqueVoeuAttente());
+        assertTrue(v.estDemissionAutomatiqueVoeuAttenteParRepondeurAutomatique());
     }
 
     @Test
@@ -225,21 +213,21 @@ public class TestVoeu {
         // True branch coverage de la ligne 131
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS, false);
-        v.refuserAutomatiquement();
+        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, false);
+        v.refuserAutomatiquementParApplicationRepondeurAutomatique();
         assertEquals(Voeu.StatutVoeu.REP_AUTO_REFUS_PROPOSITION, v.statut);
     }
 
     @Test
-    public void refuserAutomatiquement_doit_changerStatutEnDemissionAutoVoeuAttenteSiAcceptationAutomatique()
+    public void refuserAutomatiquement_doit_changerStatutEnRefusAutoPropositionSiAcceptationAutomatique()
             throws VerificationException {
         // False branch coverage de la ligne 135
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.REP_AUTO_ACCEPTE, false);
         v.setRepondeurActive(true);
-        v.refuserAutomatiquement();
-        assertEquals(Voeu.StatutVoeu.REP_AUTO_DEMISSION_ATTENTE, v.statut);
+        v.refuserAutomatiquementParApplicationRepondeurAutomatique();
+        assertEquals(StatutVoeu.REP_AUTO_REFUS_PROPOSITION, v.statut);
     }
 
     @Test
@@ -272,7 +260,7 @@ public class TestVoeu {
         assertEquals(2, v.getRangListeAttente());
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void toString_doit_reussir_avecDemandeInternat() throws VerificationException {
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
@@ -287,7 +275,7 @@ public class TestVoeu {
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
         v.simulerAcceptation();
-        assertSame(Voeu.StatutVoeu.AFFECTE_JOURS_PRECEDENTS, v.statut);
+        assertSame(Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, v.statut);
     }
 
     @Test
@@ -312,6 +300,24 @@ public class TestVoeu {
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
         Throwable exception = assertThrows(ClassCastException.class, () -> v.equals(""));
         assertTrue(exception.getMessage().contains("Test d'égalité imprévu"));
+    }
+
+    @Test
+    public void deux_voeux_de_meme_id_sont_consideres_identiques_dans_les_containers() throws VerificationException {
+        GroupeAffectationUID gid = new GroupeAffectationUID(0, 0, 0);
+        Voeu v1 = new Voeu(0, false, gid, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
+        Voeu v2 = new Voeu(0, false, gid, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
+        List<Voeu> l = new ArrayList<>();
+        l.add(v1);
+        assertTrue(l.contains(v2));
+
+        Set<Voeu> s = new HashSet<>();
+        s.add(v1);
+        s.add(v2);
+        assertTrue(s.size() == 1);
+        s.remove(v1);
+        assertTrue(s.isEmpty());
+
     }
 
 }

@@ -16,7 +16,8 @@ public class SituationVoeu extends EntitePersistante {
     public static final String ID_SITUATION_VOEU = "SituationVoeu:ID_SITUATION_VOEU"; 
     public static final String CODE_VOEU_AFFECTE = "SituationVoeu:CODE_VOEU_AFFECTE"; 
     public static final String CODE_VOEU_EN_ATTENTE_DE_PROPOSITION = "SituationVoeu:CODE_VOEU_EN_ATTENTE_DE_PROPOSITION"; 
-    public static final String CODE_VOEU_CLOTURE = "SituationVoeu:CODE_VOEU_CLOTURE"; 
+    public static final String CODE_VOEU_CLOTURE = "SituationVoeu:CODE_VOEU_CLOTURE";
+    public static final String CODE_VOEU_PROPOSITION_ACCEPTEE = "SituationVoeu:CODE_VOEU_PROPOSITION_ACCEPTEE";
     public static final String ETIQUETTE = "SituationVoeu:ETIQUETTE"; 
     
     protected static final Map<String,String> mappingNomsChamps = new HashMap<>();
@@ -44,7 +45,12 @@ public class SituationVoeu extends EntitePersistante {
         // Code indiquant si le vœu est clôturé
         // Valeurs possibles : 0 = non, 1 = oui
         // Type attendu : Integer
-        
+
+        mappingNomsChamps.put(CODE_VOEU_PROPOSITION_ACCEPTEE, "A_SV_FLG_OUI");
+        // Code indiquant si le vœu est clôturé
+        // Valeurs possibles : 0 = non, 1 = oui
+        // Type attendu : Integer
+
         mappingNomsChamps.put(ETIQUETTE, "ETIQUETTE1");
         // Etiquette n°1
         // Type attendu : String
@@ -58,7 +64,8 @@ public class SituationVoeu extends EntitePersistante {
         champsReserves.add(CODE_VOEU_AFFECTE);
         champsReserves.add(CODE_VOEU_EN_ATTENTE_DE_PROPOSITION);
         champsReserves.add(CODE_VOEU_CLOTURE);
-                
+        champsReserves.add(CODE_VOEU_PROPOSITION_ACCEPTEE);
+
         
         // Vérification valeurs champs
         
@@ -79,6 +86,7 @@ public class SituationVoeu extends EntitePersistante {
             int codeVoeuEnAttente,
             int codeVoeuAffecte,
             int codeVoeuCloture,
+            int codeVoeuPropAcceptee,
             Map<String,Object> parametresSupplementaires
             ) {
         // rappel : parametresSupplementaires peut embarquer la valeur
@@ -88,7 +96,8 @@ public class SituationVoeu extends EntitePersistante {
         this.set(mappingNomsChamps.get(CODE_VOEU_EN_ATTENTE_DE_PROPOSITION), codeVoeuEnAttente);
         this.set(mappingNomsChamps.get(CODE_VOEU_AFFECTE), codeVoeuAffecte);
         this.set(mappingNomsChamps.get(CODE_VOEU_CLOTURE), codeVoeuCloture);
-        
+        this.set(mappingNomsChamps.get(CODE_VOEU_PROPOSITION_ACCEPTEE), codeVoeuPropAcceptee);
+
         for (Map.Entry<String,Object> entry : parametresSupplementaires.entrySet()) {
             String nom = entry.getKey();
             checkSiChampReserve(nom, champsReserves);
@@ -102,19 +111,38 @@ public class SituationVoeu extends EntitePersistante {
             int idSituationVoeu,
             int codeVoeuEnAttente,
             int codeVoeuAffecte,
-            int codeVoeuCloture
+            int codeVoeuCloture,
+            int codeVoeuPropAcceptee
             ) {
-               
+
         this(
-            idSituationVoeu,
-            codeVoeuEnAttente,
-            codeVoeuAffecte,
-            codeVoeuCloture,
+                idSituationVoeu,
+                codeVoeuEnAttente,
+                codeVoeuAffecte,
+                codeVoeuCloture,
+                codeVoeuPropAcceptee,
                 new HashMap<>()
-            );      
+        );
     }
-    
-    
+
+    public SituationVoeu(
+            int idSituationVoeu,
+            int codeVoeuEnAttente,
+            int codeVoeuAffecte,
+            int codeVoeuCloture
+    ) {
+
+        this(
+                idSituationVoeu,
+                codeVoeuEnAttente,
+                codeVoeuAffecte,
+                codeVoeuCloture,
+                codeVoeuAffecte,
+                new HashMap<>()
+        );
+    }
+
+
     @Override
     public String getNomTable() {
         

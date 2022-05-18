@@ -3,12 +3,14 @@ package fr.parcoursup.algos.propositions.algo;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
+import java.util.Random;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 import fr.parcoursup.algos.propositions.Helpers;
 import org.junit.Test;
 
+import static fr.parcoursup.algos.propositions.algo.GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT;
 import static org.junit.Assert.*;
 
 public class TestGroupeAffectation {
@@ -25,12 +27,12 @@ public class TestGroupeAffectation {
     public void constructeur_doit_copier() throws VerificationException {
         Parametres p = new Parametres(2, 60);
         GroupeAffectation g1 = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        GroupeAffectation g2 = new GroupeAffectation(g1, p);
+        GroupeAffectation g2 = new GroupeAffectation(g1);
         assertTrue(
-            g1.id == g2.id
-            && g1.getNbRecrutementsSouhaite() == g2.getNbRecrutementsSouhaite()
-            && g1.getRangLimite() == g2.getRangLimite()
-            && g1.getRangDernierAppeleAffiche() == g2.getRangDernierAppeleAffiche()
+                g1.id == g2.id
+                        && g1.getNbRecrutementsSouhaite() == g2.getNbRecrutementsSouhaite()
+                        && g1.getRangLimite() == g2.getRangLimite()
+                        && g1.getRangDernierAppeleAffiche() == g2.getRangDernierAppeleAffiche()
         );
     }
 
@@ -42,20 +44,19 @@ public class TestGroupeAffectation {
         VerificationException exception2 = assertThrows(VerificationException.class, () -> new GroupeAffectation(-1, new GroupeAffectationUID(0, 0, 0), 1, 1, p));
         VerificationException exception3 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), -1, 1, p));
         VerificationException exception4 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, -1, p));
-        assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception1.exceptionMessage);
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception2.exceptionMessage);
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception3.exceptionMessage);
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception4.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void constructeur_doit_reussir_si_milieuCampagne() throws Exception {
         // True branch coverage de la ligne 63
         Parametres p = new Parametres(2, 60);
         new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 2, 2, p);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourPropositions_doit_reussir_si_aucunePlacePossible() throws VerificationException {
         // False branch coverage de la ligne 128
         Parametres p = new Parametres(2, 60);
@@ -82,4 +83,97 @@ public class TestGroupeAffectation {
         assertEquals(1, g.getRangDernierAppeleAffiche());
     }
 
+    @Test
+    public void calculerEstimationRangDernierAppeleADateFinReservationInternat_doit_echouer_si_valeurs_incoherentes() throws VerificationException {
+        GroupeAffectationUID gid = new GroupeAffectationUID(0, 0, 0);
+        VerificationException verif = assertThrows(VerificationException.class,
+                () -> new GroupeAffectation(0, gid, 1, 10, 11, new Parametres(1, 60))
+                        .getEstimationRangDernierAppeleADateFinReservationInternats()
+        );
+        assertEquals(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_RANG_DERNIER_APPELE, verif.exceptionMessage);
+    }
+
+    @Test
+    public void calculerEstimationRangDernierAppeleADateFinReservationInternat_retoure_valeur_correcte() throws VerificationException {
+        Random r = new Random();
+
+        GroupeAffectationUID gid = new GroupeAffectationUID(r.nextInt(), r.nextInt(), r.nextInt());
+
+        //MAX_INT le premier jour
+        assertEquals(
+                Integer.MAX_VALUE,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        10,
+                        0,
+                        500,
+                        new Parametres(1, 12)
+                )
+        );
+        //pas d'estimation après la date pivot
+        assertEquals(
+                555,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        10,
+                        0,
+                        555,
+                        new Parametres(13, 12)
+                )
+        );
+        //pas d'estimation après la date pivot
+        assertEquals(
+                777,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        777,
+                        100,
+                        555,
+                        new Parametres(13, 12)
+                )
+        );
+        //avant la date pivot, au moins le rang limite d'appel par bloc
+        assertEquals(
+                500,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        10,
+                        0,
+                        500,
+                        new Parametres(10, 12)
+                )
+        );
+        //avant la date pivot, au moins le rang d'appelé actuel
+        assertEquals(
+                777,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        777,
+                        777,
+                        50,
+                        new Parametres(10, 13)
+                )
+        );
+        //avant la date pivot, interpolation linéaire si rangAppelelAnterieur non disponible
+        assertEquals(
+                2 * 500,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        500,
+                        0,
+                        50,
+                        new Parametres(11, 21)
+                )
+        );
+        //avant la date pivot, interpolation affine si rangAppelelAnterieur est disponible
+        int vitesseDescente = 5;
+        int nbJourstoGo = 10;
+        int rangDernierAppeleActuel = 500;
+        int rangDernierAppeleAnterieur = rangDernierAppeleActuel - NB_JOURS_POUR_INTERPOLATION_INTERNAT * vitesseDescente;
+        int rangEstime = rangDernierAppeleActuel + nbJourstoGo * vitesseDescente;
+        assertEquals(
+                rangEstime,
+                GroupeAffectation.calculerEstimationRangDernierAppeleADateFinReservationInternat(
+                        rangDernierAppeleActuel,
+                        rangDernierAppeleAnterieur,
+                        50,
+                        new Parametres(11, 11 + nbJourstoGo)
+                )
+        );
+
+    }
 }

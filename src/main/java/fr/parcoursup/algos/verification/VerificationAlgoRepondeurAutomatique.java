@@ -63,12 +63,12 @@ public class VerificationAlgoRepondeurAutomatique {
     public static void verifierP71(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws VerificationException {
         /* Vérification P7.1 */
         for (Voeu v : voeux) {
-            if ((v.estDemissionAutomatique() || v.estAcceptationAutomatique())
+            if ((v.estDemissionAutomatiqueParRepondeurAutomatique() || v.estAcceptationAutomatique())
                     && !candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)) {
                 throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_1, v);
             }
             if (candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)
-                    && (v.rangRepondeur <= 0)
+                    && (v.rangPreferencesCandidat <= 0)
                     && v.estEnAttenteDeProposition()) {
                 throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_4, v);
             }
@@ -110,11 +110,11 @@ public class VerificationAlgoRepondeurAutomatique {
         /* Vérification P7.3 */
         for (Voeu v : voeux) {
             int gCnCod = v.id.gCnCod;
-            if (v.estDemissionAutomatique()) {
+            if (v.estDemissionAutomatiqueParRepondeurAutomatique()) {
                 Voeu proposition = propositionsAuxCandidatsAvecRepAuto.getOrDefault(gCnCod, null);
                 if (proposition == null
-                        || (!proposition.estAcceptationAutomatique() || proposition.rangRepondeur <= 0)
-                        || (v.estDemissionAutomatiqueVoeuAttente() && proposition.rangRepondeur > v.rangRepondeur)) {
+                        || (!proposition.estAcceptationAutomatique() || proposition.rangPreferencesCandidat <= 0)
+                        || (v.estDemissionAutomatiqueVoeuAttenteParRepondeurAutomatique() && proposition.rangPreferencesCandidat > v.rangPreferencesCandidat)) {
                     throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_3, v);
                 }
             }
@@ -125,12 +125,12 @@ public class VerificationAlgoRepondeurAutomatique {
         /* Vérification P7.5 */
         Map<Integer, Set<Integer>> candidatsVersRangs = new HashMap<>();
         for (Voeu v : voeux) {
-            if (v.rangRepondeur > 0) {
+            if (v.rangPreferencesCandidat > 0) {
                 Set<Integer> s = candidatsVersRangs.computeIfAbsent(v.id.gCnCod, k -> new HashSet<>());
-                if (s.contains(v.rangRepondeur)) {
+                if (s.contains(v.rangPreferencesCandidat)) {
                     throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_5, v);
                 }
-                s.add(v.rangRepondeur);
+                s.add(v.rangPreferencesCandidat);
             }
         }
     }
@@ -145,18 +145,18 @@ public class VerificationAlgoRepondeurAutomatique {
                     || v.estAffecteHorsPP()) {
                 continue;
             }
-            if(v.rangRepondeur > 0) {
+            if(v.rangPreferencesCandidat > 0) {
                 int gCnCod = v.id.gCnCod;
                 if (v.estProposition()) {
                     /* vérification normalement déjà effectuée par verifierP72 */
                     if (candidatsVersRangProposition.containsKey(gCnCod)) {
                         throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_2, v);
                     }
-                    candidatsVersRangProposition.put(gCnCod, v.rangRepondeur);
+                    candidatsVersRangProposition.put(gCnCod, v.rangPreferencesCandidat);
                 }
                 if(v.estEnAttenteDeProposition()) {
                     int rangActuel = candidatsVersRangMaxEnAttente.getOrDefault(gCnCod, Integer.MAX_VALUE);
-                    candidatsVersRangMaxEnAttente.put(gCnCod, Math.min(v.rangRepondeur, rangActuel));
+                    candidatsVersRangMaxEnAttente.put(gCnCod, Math.min(v.rangPreferencesCandidat, rangActuel));
                 }
             }
         }

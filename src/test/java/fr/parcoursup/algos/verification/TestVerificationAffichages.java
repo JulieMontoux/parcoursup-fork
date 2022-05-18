@@ -21,7 +21,7 @@ public class TestVerificationAffichages {
         LogManager.getLogManager().reset();
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_proprietes_respectees() throws Exception {
         Parametres p = new Parametres(0, 0);
         GroupeAffectation g
@@ -32,7 +32,6 @@ public class TestVerificationAffichages {
                 0,
                 p);
         VerificationAffichages.verifierRangsSurListeAttente(g);
-        assertTrue(true);
     }
 
     @Test

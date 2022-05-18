@@ -25,7 +25,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
 		LogManager.getLogManager().reset();
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_proprietes_respectees() throws Exception {
         VoeuClasse vc1 = new VoeuClasse(0, 1, false, false);
         VoeuClasse vc2 = new VoeuClasse(1, 2, false, false);
@@ -49,8 +49,6 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         as.ordresAppel.put(gc.cGpCod, ordreAppel);
         
         new VerificationsResultatsAlgoOrdreAppel().verifier(ae, as);
-        assertTrue(true);
-
     }
 
     @Test
@@ -132,7 +130,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         assertEquals(exception.exceptionMessage, VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_GCNCOD_MANQUANT);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifierP1_doit_reussir_si_taux_boursier_respecte() throws Exception {
         VoeuClasse vc1 = new VoeuClasse(0, 1, false, false);
         VoeuClasse vc2 = new VoeuClasse(1, 2, false, false);
@@ -146,7 +144,6 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         vb3.setRangAppel(1);
         
         new VerificationsResultatsAlgoOrdreAppel().verifierP1(gc);
-        assertTrue(true);
 
     }
 
@@ -167,7 +164,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         assertEquals(exception.exceptionMessage, VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_VIOLATION_P1);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifierP2_doit_reussir_si_candidatEstBoursierEtEstDuSecteur_et_rangAppel_inferieurOuEgal_a_rang() throws Exception {
         VoeuClasse vc1 = new VoeuClasse(0, 1, false, false);
         VoeuClasse vbs2 = new VoeuClasse(1, 2, true, true);
@@ -181,7 +178,6 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         vb3.setRangAppel(3);
 
         new VerificationsResultatsAlgoOrdreAppel().verifierP2(gc);
-        assertTrue(true);
     }
 
     @Test
@@ -219,7 +215,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         assertSame(VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_BOURSIER_DU_SECTEUR_DEPASSE, exception.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifierP3_doit_reussir_si_candidatEstNonBoursierEtEstDuSecteur_et_doubleParBoursier() throws Exception {
         VoeuClasse vc1 = new VoeuClasse(0, 1, false, false);
         VoeuClasse vs2 = new VoeuClasse(1, 2, false, true);
@@ -233,7 +229,6 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         vb3.setRangAppel(1);
 
         new VerificationsResultatsAlgoOrdreAppel().verifierP3(gc);
-        assertTrue(true);
     }
 
     @Test
@@ -270,7 +265,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         assertSame(VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_NON_BOURSIER_DU_SECTEUR_DIMINUE_TROP, exception.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void verifierP4_doit_reussir_si_candidatEstBoursierEtEstHorsSecteur_et_doubleParSecteur() throws Exception {
         VoeuClasse vc1 = new VoeuClasse(0, 1, false, false);
         VoeuClasse vb2 = new VoeuClasse(1, 2, true, false);
@@ -284,7 +279,6 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         vs3.setRangAppel(2);
 
         new VerificationsResultatsAlgoOrdreAppel().verifierP4(gc);
-        assertTrue(true);
     }
 
     @Test

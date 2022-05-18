@@ -23,7 +23,7 @@ public class GroupeAffectationFormation extends EntitePersistante {
     public static final String CODE_ADMISSIONS_BLOQUEES = "GroupeAffectationFormation:CODE_ADMISSIONS_BLOQUEES"; 
     public static final String ETIQUETTE = "GroupeAffectationFormation:ETIQUETTE"; 
     
-    protected final static Map<String,String> mappingNomsChamps = new HashMap<>();
+    protected static final Map<String,String> mappingNomsChamps = new HashMap<>();
     protected static final List<String> champsReserves = new ArrayList<>();
     
     static {

@@ -26,19 +26,19 @@ import fr.parcoursup.algos.exceptions.ClassCastExceptionMessage;
 import java.io.Serializable;
 import java.util.Objects;
 
-/* Classe comprenant les caractéristiques 
+/** Classe comprenant les caractéristiques
 identifiant de manière unique un voeu 
 dans la base de données */
 public class VoeuUID implements Serializable {
 
-    /*l'identifiant unique du candidat dans la base de données */
+    /** l'identifiant unique du candidat dans la base de données */
     public final int gCnCod;
 
-    /*l'identifiant unique de la formation d'affectation dans la base de données.
+    /** l'identifiant unique de la formation d'affectation dans la base de données.
         Positionné à -1 pour les internats commun à plusieurs formations.*/
     public final int gTaCod;
 
-    /* indique si le voeu comprend une demande d'internat */
+    /** indique si le voeu comprend une demande d'internat */
     public final boolean iRhCod;
 
     public VoeuUID(
@@ -72,6 +72,9 @@ public class VoeuUID implements Serializable {
                 + " AND I_RH_COD=" + (iRhCod ? "1" : "0");
     }
 
+    /**
+     * Utilisé par les désérialisations Json et XML
+     */
     private VoeuUID() {
         this.gCnCod = 0;
         this.gTaCod = 0;

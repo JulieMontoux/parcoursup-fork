@@ -23,7 +23,7 @@ Table contenant la liste des propositions d'admission.
 |C_GI_COD|valeur numérique|Identifiant du groupe de classement internat|Référence au champ C_GI_COD de la table A_REC_GRP_INT|
 |I_RH_COD|valeur numérique|Code relatif au régime d'hébergement demandé|Valeurs possibles : 0 = pas d’hébergement en internat demandé, 1 = hébergement en internat demandé|
 
-## A_ADM_DEM_RA
+## A_ADM_DEM
 
 Rapport relatif aux démissions automatiques liées à la mise en oeuvre du répondeur automatique (mis à jour quotidiennement durant la campagne).
 

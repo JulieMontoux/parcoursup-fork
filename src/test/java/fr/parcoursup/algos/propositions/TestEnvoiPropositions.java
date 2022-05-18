@@ -9,7 +9,7 @@ import static fr.parcoursup.algos.donnees.ConnecteurSQL.ADMISSIONS_TABLE_SORTIE;
 
 public class TestEnvoiPropositions extends TestConnecteurDonneesPropositionsSQL {
 
-    public TestEnvoiPropositions() throws Exception {
+    public TestEnvoiPropositions() {
         super(TestEnvoiPropositions.class.getSimpleName());
     }
 

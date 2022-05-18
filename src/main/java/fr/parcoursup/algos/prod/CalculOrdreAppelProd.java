@@ -15,8 +15,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Logger;
 
-import static fr.parcoursup.algos.prod.EnvoiPropositionsProd.log;
-
 public class CalculOrdreAppelProd {
 
     /**
@@ -67,6 +65,10 @@ public class CalculOrdreAppelProd {
     }
 
     private static final Logger LOGGER = Logger.getLogger(CalculOrdreAppelProd.class.getSimpleName());
+
+    static void log(String msg) {
+        LOGGER.info(msg);
+    }
 
     private CalculOrdreAppelProd() {
     }

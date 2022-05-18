@@ -324,17 +324,17 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
 
             sortie.voeux.add(voeu);
 
-            int nombreLignesTable_A_ADM_DEM_RA_AvantExportation = this.getConnection().getRowCount("A_ADM_DEM_RA");
+            int nombreLignesTable_A_ADM_DEM_AvantExportation = this.getConnection().getRowCount("A_ADM_DEM");
 
             this.exporte_donnees_demission_automatique(connecteurDonneesPropositions, sortie);
 
-            int nombreLignesTable_A_ADM_DEM_RA_ApresExportation = this.getConnection().getRowCount("A_ADM_DEM_RA");
+            int nombreLignesTable_A_ADM_DEM_ApresExportation = this.getConnection().getRowCount("A_ADM_DEM");
 
-            assertEquals(nombreLignesTable_A_ADM_DEM_RA_ApresExportation, nombreLignesTable_A_ADM_DEM_RA_AvantExportation + 1);
+            assertEquals(nombreLignesTable_A_ADM_DEM_ApresExportation, nombreLignesTable_A_ADM_DEM_AvantExportation + 1);
 
             PreparedStatement ps = this.getConnection().getConnection().prepareStatement(
                     "SELECT count(*) "
-                    + "FROM A_ADM_DEM_RA "
+                    + "FROM A_ADM_DEM "
                     + "WHERE "
                     + "G_CN_COD = ? "
                     + "AND G_TA_COD = ? "

@@ -77,6 +77,10 @@ public class GroupeInternatUID implements Serializable {
                 + ((gTaCod != 0) ? (" AND  g_ta_cod=" + gTaCod) : "");
     }
 
+
+    /**
+     * Utilisé par les désérialisations Json et XML
+     */
     private GroupeInternatUID() {
         this.cGiCod = 0;
         this.gTiCod = 0;

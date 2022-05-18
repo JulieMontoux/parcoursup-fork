@@ -70,6 +70,9 @@ public class GroupeAffectationUID implements Serializable {
         return "(C_GP_COD " + cGpCod + " G_TI_COD " + gTiCod + " G_TA_COD " + gTaCod + ")";
     }
 
+    /**
+     * Utilisé par les désérialisations Json et XML
+     */
     private GroupeAffectationUID() {
         this.cGpCod = 0;
         this.gTiCod = 0;

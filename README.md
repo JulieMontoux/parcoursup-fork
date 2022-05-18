@@ -94,7 +94,7 @@ si au moins l'un des tests échoue). Pour une génération plus rapide sans exé
 mvn clean package -DskipTests=true
 ```
 
-Pour l'utilisation du SGBD **Oracle**, activer le profil `bdd-oracle`:
+Pour l'utilisation du SGBD **Oracle** sans exécution des tests unitaires associés :
 
 ```
 mvn clean package -P bdd-oracle -DskipTests=true

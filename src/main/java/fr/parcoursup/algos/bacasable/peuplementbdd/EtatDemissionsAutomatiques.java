@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 
-@Table("A_ADM_DEM_RA")
+@Table("A_ADM_DEM")
 @CompositePK({"G_CN_COD", "G_TA_COD", "I_RH_COD", "NB_JRS"})
 public class EtatDemissionsAutomatiques extends EntitePersistante {
         

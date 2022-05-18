@@ -76,7 +76,7 @@ public class VerificationEntreeAlgoPropositions {
 
         LOGGER.info("Vérification: tous les voeux des groupes dans la file de voeux");
         for (GroupeAffectation g : entree.groupesAffectations.values()) {
-            for (Voeu v : g.voeuxEnAttente) {
+            for (Voeu v : g.getVoeuxEnAttente()) {
                 if (!entree.voeux.contains(v)) {
                     throw new VerificationException(VerificationExceptionMessage.VERIFICATION_ENTREE_ALGO_PROPOSITIONS_VOEU_NON_RECENSE);
                 }
@@ -108,7 +108,7 @@ public class VerificationEntreeAlgoPropositions {
                 = new HashMap<>();
         Set<VoeuUID> voeuxVus = new HashSet<>();
 
-        for (Voeu v : g.voeuxEnAttente) {
+        for (Voeu v : g.getVoeuxEnAttente()) {
 
             if (voeuxVus.contains(v.id)) {
                 alerter("b) deux voeux avec la même id " + v.id);

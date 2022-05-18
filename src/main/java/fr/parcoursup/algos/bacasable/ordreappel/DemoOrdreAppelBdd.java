@@ -286,7 +286,8 @@ public class DemoOrdreAppelBdd {
             1, // identifiant numérique
             1, // code 1 = voeu en attente 
             0, // code 0 = voeu non affecte 
-            0  // code 0 = voeu non clôturé 
+            0,  // code 0 = voeu non clôturé
+                0
         );
 
         situationVoeuEnAttente.insert();

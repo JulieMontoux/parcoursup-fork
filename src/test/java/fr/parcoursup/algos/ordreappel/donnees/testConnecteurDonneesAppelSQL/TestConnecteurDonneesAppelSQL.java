@@ -90,7 +90,7 @@ public class TestConnecteurDonneesAppelSQL extends DBTestCase {
     // Tests / connexion BDD
     //
     ///////////////////////////////////////////////////////////////////////////
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_connexion_bdd_doit_reussir_avec_constructeur_proto1_et_parametres_connexion_valides() throws Exception {
 
         try (
@@ -103,7 +103,7 @@ public class TestConnecteurDonneesAppelSQL extends DBTestCase {
         }
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_connexion_bdd_doit_reussir_avec_constructeur_proto2_et_parametres_connexion_valides() throws Exception {
 
         try (Connection conn = DriverManager.getConnection(

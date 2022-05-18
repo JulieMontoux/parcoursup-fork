@@ -12,7 +12,7 @@ public class ScenarioTestDbUnit {
     static {
         
         tablesATraiter.add("A_ADM");
-        tablesATraiter.add("A_ADM_DEM_RA");
+        tablesATraiter.add("A_ADM_DEM");
         tablesATraiter.add("A_ADM_PRED_DER_APP");
         tablesATraiter.add("A_ADM_PROP");
         tablesATraiter.add("A_REC");

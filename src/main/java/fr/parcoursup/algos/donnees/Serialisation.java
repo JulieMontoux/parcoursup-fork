@@ -45,7 +45,7 @@ public class Serialisation<T> {
     
     public void serialiserEtCompresser(String filename, T o , Class[] c, int level) throws AccesDonneesException {
         if (filename == null) {
-            filename = "entree_" + LocalDateTime.now() + ".xml";
+            filename = "entree_" + LocalDateTime.now().toString().replace(':','_') + ".xml";
         }
         String outfilename = filename + ".zip";
 

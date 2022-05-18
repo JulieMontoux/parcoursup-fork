@@ -33,14 +33,6 @@ public class TestGroupeInternat {
     }
 
     @Test
-    public void constructeur_doit_echouer_si_nbPlacesTotalNegatif() {
-        // True branch coverage de la ligne 95
-        Throwable exception = assertThrows(VerificationException.class, () -> new GroupeInternat(new GroupeInternatUID(1, 0), -1));
-        assertTrue(
-                exception.getMessage().contains("Incohérence dans les paramètres du constructeur de GroupeInternat"));
-    }
-
-    @Test
     public void ajouterVoeuEnAttenteDeProposition_doit_echouer_si_groupeDejaInitialise()
             throws VerificationException {
         // True branch coverage de la ligne 103
@@ -65,7 +57,7 @@ public class TestGroupeInternat {
         assertSame(VerificationExceptionMessage.GROUPE_INTERNAT_VOEU_EN_DOUBLON, exception.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void ajouterVoeuEnAttenteDeProposition_doit_reussir_si_deuxVoeuxPourUnCandidatDontUnAffecte()
             throws VerificationException {
         Parametres p = new Parametres(2, 60);
@@ -80,24 +72,24 @@ public class TestGroupeInternat {
     @Test
     public void initialiserPositionAdmission_doit_echouer_si_nbJoursCampagneNegatif()
             throws VerificationException {
-        Parametres p = new Parametres(-1, 60);
+        Parametres p = new Parametres(0, 60);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);
         VerificationException exception = assertThrows(VerificationException.class, () -> gi.initialiserPositionAdmission(p));
         assertSame(VerificationExceptionMessage.GROUPE_INTERNAT_DATE_ANTERIEURE, exception.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void initialiserPositionAdmission_doit_reussir_si_voeuxAuDessusDeLaBarre()
             throws VerificationException {
         // True branch coverage de la ligne 249
         Parametres p = new Parametres(2, 60);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);
-        Voeu v1 = Helpers.creeVoeuAvecInternatEtInjecteDependances(0, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 61, 1);
+        Helpers.creeVoeuAvecInternatEtInjecteDependances(0, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 61, 1);
         gi.initialiserPositionAdmission(p);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void initialiserPositionAdmission_doit_reussir_si_internatDejaObtenu() throws VerificationException {
         // True branch coverage de la ligne 261 et 218
         // Pour qu'elle soit couverte, il faut que le candidat soit à la fois dans candidatsEnAttente et candidatsAffectes du GroupeInternat.
@@ -112,35 +104,37 @@ public class TestGroupeInternat {
         gi.initialiserPositionAdmission(p);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void initialiserPositionAdmission_doit_reussir_si_nbJoursCampagnesSuperieursPivot()
             throws VerificationException {
         Parametres p = new Parametres(61, 60);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);  // Capacite l=1
 
-        Voeu v1 = Helpers.creeVoeuAvecInternatEtInjecteDependances(0, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 1 , 1);
-        Voeu v2 = Helpers.creeVoeuAvecInternatEtInjecteDependances(1, g, gi, Voeu.StatutVoeu.PROPOSITION_DU_JOUR,  2, 2);
-        Voeu v3 = Helpers.creeVoeuAvecInternatEtInjecteDependances(2, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,  3, 3);
+        Helpers.creeVoeuAvecInternatEtInjecteDependances(0, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 1 , 1);
+        Helpers.creeVoeuAvecInternatEtInjecteDependances(1, g, gi, Voeu.StatutVoeu.PROPOSITION_DU_JOUR,  2, 2);
+        Helpers.creeVoeuAvecInternatEtInjecteDependances(2, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,  3, 3);
 
         gi.initialiserPositionAdmission(p);
     }
 
     @Test
-    public void initialiserPositionAdmission_doit_echouer_si_capaciteInternatNegative()
-            throws VerificationException {
-        Parametres p = new Parametres(2, 60);
-        GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);  // La capacité est changée pour du négatif plus bas
-
-        Voeu v1 = Helpers.creeVoeuAvecInternatEtInjecteDependances(0, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 1, 1);
-
-        Whitebox.setInternalState(gi, "capacite", -1);
-        VerificationException exception = assertThrows(VerificationException.class, () -> gi.initialiserPositionAdmission(p));
+    public void constructeur_doit_echouer_si_capaciteInternatNegative() {
+        VerificationException exception = assertThrows(VerificationException.class,
+                () -> new GroupeInternat(new GroupeInternatUID(1, 0), -1));;
         assertSame(VerificationExceptionMessage.GROUPE_INTERNAT_CAPACITE_NEGATIVE, exception.exceptionMessage);
     }
 
     @Test
+    public void setCapacite_doit_echouer_si_capaciteInternatNegative()
+            throws VerificationException {
+        GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);  // La capacité est changée pour du négatif plus bas
+
+        VerificationException exception = assertThrows(VerificationException.class, () -> gi.setCapacite(-1));
+        assertSame(VerificationExceptionMessage.GROUPE_INTERNAT_CAPACITE_NEGATIVE, exception.exceptionMessage);
+    }
+
+    @Test(expected = Test.None.class /* no exception expected */)
     public void initialiserPositionAdmission_doit_reussir_si_candidatSousLaBarreMaisCapaciteNonRemplie()
             throws VerificationException {
         Parametres p = new Parametres(61, 60);
@@ -152,7 +146,7 @@ public class TestGroupeInternat {
         gi.initialiserPositionAdmission(p);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void initialiserPositionAdmission_doit_reussir_si_premierJourDeCampagne()
             throws VerificationException {
         Parametres p = new Parametres(1, 60);
@@ -171,7 +165,7 @@ public class TestGroupeInternat {
         assertSame(VerificationExceptionMessage.GROUPE_INTERNAT_POSITION_NON_INITIALISEE, exception.exceptionMessage);
     }
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourPositionAdmission_doit_reussir_si_memeCandidat() throws VerificationException {
         Parametres p = new Parametres(59, 60);
         GroupeAffectation g1 = new GroupeAffectation(2, new GroupeAffectationUID(0, 0, 0), 10, 10, p);
@@ -194,8 +188,9 @@ public class TestGroupeInternat {
         Voeu v2 = Helpers.creeVoeuAvecInternatEtInjecteDependances(v1.id.gCnCod, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,  v1.ordreAppel, 1);
         Voeu v3 = Helpers.creeVoeuAvecInternatEtInjecteDependances(1, g, gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,  2, 2);
         gi.initialiserPositionAdmission(p);
-        Whitebox.setInternalState(gi, "positionAdmission", 1);
+        Whitebox.setInternalState(gi, "positionAdmission", 99);
         Whitebox.setInternalState(gi, "capacite", 0);
+        v2.proposer();
         assertTrue(gi.mettreAJourPositionAdmission());
         assertEquals(Math.min(v2.rangInternat - 1, v3.rangInternat - 1), gi.getPositionAdmission());
     }

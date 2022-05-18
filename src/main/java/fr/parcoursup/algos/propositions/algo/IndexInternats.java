@@ -4,12 +4,13 @@ import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 
 import static fr.parcoursup.algos.propositions.algo.IndexInternats.TypeInternat.*;
 
-public class IndexInternats {
+public class IndexInternats implements Serializable {
 
     @XmlRootElement
     public enum TypeInternat {

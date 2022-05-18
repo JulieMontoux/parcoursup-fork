@@ -41,7 +41,7 @@ public class VerificationAffichages {
         for (Voeu v1 : groupe.voeuxTriesParOrdreAppel()) {
             if (v1.estEnAttenteDeProposition()
                     && !v1.avecInternatAClassementPropre()) {
-                for (Voeu v2 : groupe.voeuxEnAttente) {
+                for (Voeu v2 : groupe.getVoeuxEnAttente()) {
                     if (v2.estEnAttenteDeProposition()
                             && v2.ordreAppel > v1.ordreAppel
                             && v2.getRangListeAttente() < v1.getRangListeAttente()) {

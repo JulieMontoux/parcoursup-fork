@@ -5,7 +5,7 @@ import org.junit.Test;
 
 public class TestDemoOrdreAppelJson {
 
-    @Test
+    @Test(expected = Test.None.class /* no exception expected */)
     public void test_methode_sexecute() throws Exception {
         String[] args = {"src/test/java/fr/parcoursup/algos/bacasable/algoOrdreAppelEntree.json", "/tmp/sortie.json"};
         DemoOrdreAppelJson.main(args);
