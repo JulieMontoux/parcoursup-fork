@@ -92,11 +92,6 @@ public class AlgoPropositions {
         LOGGER.log(Level.INFO, "Propositions {0}", sortie.nbPropositionsDuJour());
         LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.nbDemissions());
 
-        if (verifier) {
-            LOGGER.log(Level.INFO,
-                    "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
-            new VerificationsResultatsAlgoPropositions().verifier(entree, sortie);
-        }
         return sortie;
 
     }
