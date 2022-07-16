@@ -15,7 +15,7 @@ public class TestAlgoPropositionsEntree {
 
     @Test
     public void constructeur_doit_copier() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsEntree entree1 = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);
@@ -41,7 +41,7 @@ public class TestAlgoPropositionsEntree {
 
     @Test
     public void ajouter_doit_ajouterGroupeAffectation() throws VerificationException {
-        Parametres p = new Parametres(59, 60);
+        Parametres p = new Parametres(59, 60,90);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
@@ -61,7 +61,7 @@ public class TestAlgoPropositionsEntree {
     @Test
     public void deserialiser_doit_DeserialiserLeMemeObjet() throws JAXBException {
         AlgoPropositionsEntree entree1 = new AlgoPropositionsEntree();
-        String testFilename = "/tmp/parcoursup-test-AlgoPropositionsEntree-serialiser_doit_ecrire_fichier.xml";
+        String testFilename = "test-exe/tmp/parcoursup-test-AlgoPropositionsEntree-serialiser_doit_ecrire_fichier.xml";
         
         // Serialise
         Marshaller m = JAXBContext.newInstance(AlgoPropositionsEntree.class).createMarshaller();
@@ -75,7 +75,7 @@ public class TestAlgoPropositionsEntree {
 
     @Test
     public void ajouter_doit_echouer_siGroupeAffectationDejaPresent() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         entree.ajouter(g);
@@ -94,7 +94,7 @@ public class TestAlgoPropositionsEntree {
 
     @Test
     public void ajouter_doit_echouer_siVoeuDejaPresent() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
@@ -104,23 +104,9 @@ public class TestAlgoPropositionsEntree {
     }
 
     @Test
-    public void ajouterOuRemplacer_doit_ajouterUniquementSiVoeuNonPresent() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
-        AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
-        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-
-        assertEquals(0, entree.voeux.size());
-        entree.ajouterOuRemplacer(v);
-        assertEquals(1, entree.voeux.size());
-        entree.ajouterOuRemplacer(v);
-        assertEquals(1, entree.voeux.size());
-    }
-
-    @Test
     public void injecterGroupesEtInternatsDansVoeux_doit_peuplerGroupeEtInternatDansVoeu()
             throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);
@@ -139,7 +125,7 @@ public class TestAlgoPropositionsEntree {
 
     @Test
     public void afterUnmarshal_doit_appeler_injecterGroupeEtInternatsDansVoeux() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree();
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, 0), 1);

@@ -109,40 +109,30 @@ public class DemoPropositionsBdd {
         // Paramétrage et enregistrement des données relatives à la mise en oeuvre de l'application
         //
         
-        ParametreApplication parametreApplication1 = new ParametreApplication(
+        new ParametreApplication(
             31,                 // indexFlagInterruptionDonneesEntrantes
             "1"                 // 0 = flag off
-        );
-    
-        parametreApplication1.insert();
-    
-    
-    
-        ParametreApplication parametreApplication2 = new ParametreApplication(
+        ).insert();
+        new ParametreApplication(
             34,                // indexFlagAlerte
             "0"
-        );
-
-        parametreApplication2.insert();
-
-
-
-        ParametreApplication parametreApplication3 = new ParametreApplication(
+        ).insert();
+        new ParametreApplication(
             35,                // indexDateDebutDeCampagne
             "20/05/2020:0000"  // date et heure du début de la campagne
-        );
-
-        parametreApplication3.insert();
-
-
-
-        ParametreApplication parametreApplication4 = new ParametreApplication(
+        ).insert();
+        new ParametreApplication(
             334,                // indexDateOuvertureCompleteInternats
             "01/07/2020:0000"   // date et heure de l'ouverture complète des internats
-        );
-
-        parametreApplication4.insert();
-
+        ).insert();
+        new ParametreApplication(
+                316,                // indexDateDebutGDD
+                "15/07/2020:0000"   // date et heure de l'ouverture complète des internats
+        ).insert();
+        new ParametreApplication(
+                437,                // indexFinOrdonancementVoeuxGDD
+                "18/07/2020:0000"   // date et heure de la fin d'ordonnacement des voeux GDD
+        ).insert();
         
         //
         // Paramétrage et enregistrement des données relatives aux candidats

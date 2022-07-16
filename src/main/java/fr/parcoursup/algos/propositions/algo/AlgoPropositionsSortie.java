@@ -144,7 +144,7 @@ public class AlgoPropositionsSortie implements Serializable {
      * Utilisé par les désérialisations Json et XML
      */
     private AlgoPropositionsSortie() {
-        parametres = new Parametres(0,0);
+        parametres = new Parametres(0,0,0,0);
     }
 
     /**

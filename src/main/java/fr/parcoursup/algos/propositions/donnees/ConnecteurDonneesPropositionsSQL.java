@@ -33,11 +33,11 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.*;
 import static fr.parcoursup.algos.donnees.SQLStringsConstants.*;
-import static fr.parcoursup.algos.propositions.algo.Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
-import static fr.parcoursup.algos.propositions.algo.Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
+import static fr.parcoursup.algos.propositions.algo.Voeu.StatutVoeu.*;
 
 
 /*
@@ -110,7 +110,22 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 = getNbJoursCampagneDatePivotInternats();
         LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDatePivotInternats);
 
-        Parametres parametres = new Parametres(nbJoursCampagne, nbJoursCampagneDatePivotInternats);
+        LOGGER.info("Récupération de la date de début de la GDD");
+        int nbJoursCampagneDateDebutGDD
+                = getNbJoursCampagneDateDebutGDD();
+        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDateDebutGDD);
+
+        LOGGER.info("Récupération de la date de fin d'ordonnancement des voeux en GDD");
+        int nbJoursCampagneDateFinOrdonnancementGDD
+                = getNbJoursCampagneFinOrdonnancementGDD();
+        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDateFinOrdonnancementGDD);
+
+        Parametres parametres = new Parametres(
+                nbJoursCampagne,
+                nbJoursCampagneDatePivotInternats,
+                nbJoursCampagneDateDebutGDD,
+                nbJoursCampagneDateFinOrdonnancementGDD
+        );
         entree = new AlgoPropositionsEntree(parametres);
 
     }
@@ -143,22 +158,31 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 entree.ajouter(internat);
             }
 
+            boolean seulementVoeuxClotures = entree.getParametres().nbJoursCampagne >= entree.getParametres().nbJoursCampagneDateDebutGDD;
+            if(seulementVoeuxClotures) {
+                LOGGER.info("*******************************************************************************");
+                LOGGER.info("date postérieure au début de la GDD: récupération des voeux clôturés uniquement");
+                LOGGER.info("*******************************************************************************");
+            }
+
             LOGGER.info("Récupération des voeux en attente avec demande internat dans un internat ayant son propre classement");
             recupererVoeuxAvecInternatsAClassementPropre(
                     entree.internatsIndex,
                     config.recupererSeulementVoeuxEnAttente,
-                    config.recupererSeulementVoeuxClasses
+                    config.recupererSeulementVoeuxClasses,
+                    seulementVoeuxClotures
             );
 
             LOGGER.info("Récupération des voeux en attente sans internat, ou avec internat n'ayant pas son propre classemnt");
             recupererVoeuxSansInternatAClassementPropre(
                     config.recupererSeulementVoeuxEnAttente,
-                    config.recupererSeulementVoeuxClasses
+                    config.recupererSeulementVoeuxClasses,
+                    seulementVoeuxClotures
             );
 
             LOGGER.info("Récupération des propositions non refusées ");
             //NB: en simulation, récupérer les propositions après les voeux, i.e. conserver les appels à recupererVoeuxA* et recupererPropositionsActuelles dans cet ordre
-            recupererPropositionsActuelles(entree.internatsIndex);
+            recupererPropositions(entree.internatsIndex, config.inclurePropositionsRefusees);
 
             if (!groupesManquants.isEmpty()) {
                 LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
@@ -325,7 +349,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     }
 
-    private void exporterDemissionsAutomatiques(AlgoPropositionsSortie sortie) throws SQLException {
+    private void exporterDemissionsAutomatiques(AlgoPropositionsSortie sortie) throws SQLException, VerificationException {
 
         if (config.effacerEntreesDuMemeJour) {
             LOGGER.info("Préparation de la table A_ADM_DEM avant export");
@@ -347,7 +371,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 if (voe.estDemissionAutomatique()) {
                     ajouterVoeu(ps, voe, true);
                     ps.setBoolean(7, voe.estDemissionAutomatiqueProposition());
-                    ps.setInt(8, A_AD_TYP_DEM_RA);
+                    ps.setInt(8, voe.getTypeDemissionAutomatique());
                     ps.setInt(9, sortie.parametres.nbJoursCampagne);
                     addToBatchAndExecuteIfCounter(ps, ++count);
                 }
@@ -734,7 +758,10 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        LOGGER.log(Level.INFO,"Récupération du rang du dernier appelé il y a {} jours dans chaque groupe", GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT);
+        LOGGER.log(Level.INFO,
+                "Récupération du rang du dernier appelé il y a "
+                        + GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT
+                        + " jours dans chaque groupe.");
         Map<GroupeAffectationUID,Integer> rangsDernierAppelesReference = new HashMap<>();
         if(parametres.nbJoursCampagne > GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT) {
             try (PreparedStatement stmt = connection.prepareStatement(
@@ -885,7 +912,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
      * @throws SQLException problème SQL
      * @throws AccesDonneesException problème SQL
      */
-    private int getNbJoursCampagne() throws SQLException, AccesDonneesException {
+    public int getNbJoursCampagne() throws SQLException, AccesDonneesException {
 
         Integer nbJours = null;
 
@@ -908,30 +935,27 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         }
     }
 
-    /* Récupère le nombre de jours depuis le début de campagne à la date pivot internat.
-    Vaut 1 si les dates coincident  */
-    private int getNbJoursCampagneDatePivotInternats() throws SQLException, AccesDonneesException {
-
+    private int getNbJoursCampagneEvenement(int gPrCod) throws SQLException, AccesDonneesException {
         Integer nbJours = null;
 
         try (PreparedStatement ps = connection.prepareStatement(
                 SELECT + ""+
                         "TO_DATE(g_par1.g_pr_val, 'DD/MM/YYYY:HH24MI'), " +
                         "TO_DATE(g_par2.g_pr_val, 'DD/MM/YYYY:HH24MI')" +
-                         FROM + " g_par g_par1,g_par g_par2 " +
+                        FROM + " g_par g_par1,g_par g_par2 " +
                         WHERE + " g_par1.g_pr_cod=?" +
                         AND + " g_par2.g_pr_cod=?")) {
             ps.setInt(1, ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_CAMPAGNE);
-            ps.setInt(2, ConnecteurDonneesPropositionsSQL.INDEX_DATE_OUV_COMP_INTERNATS);
+            ps.setInt(2, gPrCod);
 
             try (ResultSet result = ps.executeQuery()) {
                 while (result.next()) {
                     java.sql.Timestamp dateDebutCampagne = result.getTimestamp(1);
-                    java.sql.Timestamp dateOuvertureInternat = result.getTimestamp(2);
-                    if (dateDebutCampagne == null || dateOuvertureInternat == null) {
+                    java.sql.Timestamp dateDebut = result.getTimestamp(2);
+                    if (dateDebutCampagne == null || dateDebut == null) {
                         throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
                     }
-                    nbJours = nbJoursEntre(dateDebutCampagne, dateOuvertureInternat) + 1;
+                    nbJours = nbJoursEntre(dateDebutCampagne, dateDebut) + 1;
                 }
             }
         }
@@ -941,12 +965,32 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         return nbJours;
     }
 
+    private int getNbJoursCampagneDateDebutGDD() throws SQLException, AccesDonneesException {
+        return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_GDD);
+    }
+
+    private int getNbJoursCampagneFinOrdonnancementGDD() throws SQLException, AccesDonneesException {
+        return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_FIN_ORDONNANCEMENT_GDD);
+    }
+
+    /* Récupère le nombre de jours depuis le début de campagne à la date pivot internat.
+    Vaut 1 si les dates coincident  */
+    private int getNbJoursCampagneDatePivotInternats() throws SQLException, AccesDonneesException {
+        return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_OUV_COMP_INTERNATS);
+    }
+
     /* Récupère les voeux sur lesquels il y a une proposition d'admission qui
     bloque une place car elle est soit en attente de réponse du candidat soit 
     acceptée par le candidat. 
      */
-    private void recupererPropositionsActuelles(IndexInternats indexInternats)
+    private void recupererPropositions(IndexInternats indexInternats, boolean inclurePropositionsRefusees)
             throws SQLException, VerificationException {
+
+        Map<VoeuUID, Voeu> voeux
+                = entree.voeux.stream().collect(Collectors.toMap(
+                        voeu -> voeu.id,
+                        voeu -> voeu
+        ));
 
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(100_000);
@@ -966,7 +1010,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     // 8 gestion des démissions (GDD)
                     // 10 inscription par l'établissement
                     + "NVL(voe.a_ve_ord,0), " //ordre du voeu dans le RA
-                    + "NVL(sv.a_sv_flg_oui,1)" //le candidat a t'il accepté la proposition
+                    + "NVL(sv.a_sv_flg_oui,1)," //le candidat a t'il accepté la proposition
+                    + "NVL(sv.a_sv_flg_aff,1)" //le candidat a t'il accepté ou pas refusé la proposition
                     + FROM + " "
                     +  ADMISSIONS_TABLE + " adm "//table des admissions
                     + " LEFT JOIN "
@@ -980,8 +1025,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     + AND + " adm.i_rh_cod=voe.i_rh_cod, "
                     + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
                     + WHERE
-                    + " sv.a_sv_flg_aff=1"
-                    + AND + " adm.g_ti_cod=ti.g_ti_cod"
+                    + (inclurePropositionsRefusees ? "" : " sv.a_sv_flg_aff=1 AND ")
+                    + " adm.g_ti_cod=ti.g_ti_cod"
                     + AND + " adm.a_ta_cod != 2"
                     + (config.sparseDataTestingMode > 0 ? AND + " MOD(adm.g_cn_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO
                             + AND + "MOD(adm.g_ta_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO : "")
@@ -992,13 +1037,14 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     int gCnCod = result.getInt(1);
                     int gTiCod = result.getInt(2);
                     int gTaCod = result.getInt(3);
-                    boolean iRhCod = result.getBoolean(4);
+                    boolean avecInternat = result.getBoolean(4);
                     int cGpCod = result.getInt(5);
                     int cGiCod = result.getInt(6);
                     int aTaCod = result.getInt(7);
                     boolean estAffectationPP = (aTaCod == 1 || aTaCod == 8);
-                    int rangRepondeurAuto = result.getInt(8);
+                    int rangOrdrePreferencesCandidat = result.getInt(8);
                     boolean propositionAcceptee = result.getBoolean(9);
+                    boolean propositionNonRefusee = result.getBoolean(10);
 
                     GroupeAffectationUID groupeId
                             = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
@@ -1006,30 +1052,38 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     GroupeInternatUID internatId
                             = indexInternats.getInternat(cGiCod, groupeId);
 
+                    //Recupere le voeu si il est déjà connu
+                    //pas forcément le cas (propositions en CAES, etc...)
+                    Voeu old = voeux.get(new VoeuUID(gCnCod,gTaCod,avecInternat));
+
                     if (!entree.groupesAffectations.containsKey(groupeId)) {
                         // peut arriver si les classements ou données d'appel ne sont pas renseignées 
                         groupesManquants.add(groupeId);
-                    } else if (!entree.internats.containsKey(internatId)) {
+                    } else if (!avecInternat || !entree.internats.containsKey(internatId)) {
                         Voeu v = new Voeu(
                                 gCnCod,
-                                iRhCod,
+                                avecInternat,
                                 groupeId,
-                                0,
-                                0,
-                                rangRepondeurAuto,
-                                propositionAcceptee ? PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS : PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT,
+                                (old == null) ? 0 : old.ordreAppel,
+                                (old == null) ? 0 : old.ordreAppelAffiche,
+                                rangOrdrePreferencesCandidat,
+                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                                                                : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
                                 !estAffectationPP);
                         entree.ajouterOuRemplacer(v);//Remarque: hors simulation c'est un ajout simple, car les autres voeux sont des voeux en attente
                     } else {
                         Voeu v = new Voeu(
                                 gCnCod,
                                 groupeId,
-                                0,
-                                0,
+                                (old == null) ? 0 : old.ordreAppel,
+                                (old == null) ? 0 : old.ordreAppelAffiche,
                                 internatId,
-                                0,
-                                rangRepondeurAuto,
-                                propositionAcceptee ? PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS : PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT,
+                                (old == null) ? 0 : old.rangInternat,
+                                rangOrdrePreferencesCandidat,
+                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                                        : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
                                 !estAffectationPP);//Remarque: hors simulation c'est un ajout simple, car les autres voeux sont des voeux en attente
                         entree.ajouterOuRemplacer(v);
                     }
@@ -1043,7 +1097,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
     public void recupererVoeuxAvecInternatsAClassementPropre(
             IndexInternats internatsIndex,
             boolean seulementVoeuxEnAttente,
-            boolean recupererSeulementVoeuxClasses
+            boolean recupererSeulementVoeuxClasses,
+            boolean seulementVoeuxClotures
     )
             throws SQLException, VerificationException {
 
@@ -1080,9 +1135,10 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
                     + WHERE
                     + " v.i_rh_cod=1"//voeux avec internat
-                    + (seulementVoeuxEnAttente
-                            ? (AND + " (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)")//voeu en attente ou bien clôturé (GDD)
-                            : AND + " (sv.a_Sv_cod > -40)")//inclus tous les voeux sélectionnés
+                    + AND + (
+                                    (seulementVoeuxEnAttente && seulementVoeuxClotures) ? " sv.a_sv_flg_clo=1 " :
+                                    seulementVoeuxEnAttente ? " (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)" :
+                                            " (sv.a_Sv_cod > -40)" )
                     + (recupererSeulementVoeuxClasses
                             ? (AND + " cg.i_ip_cod=5" //candidat classé
                                 + AND + " c.g_ic_cod >= 0" //dossier non-annulé (décès...)
@@ -1194,7 +1250,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         if (enAttente || cloture) {
            return Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
         } else if (affecte) {
-            return PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
+            return PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
         } else {
             return Voeu.StatutVoeu.REFUS_OU_DEMISSION;
         }
@@ -1202,7 +1258,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     private void recupererVoeuxSansInternatAClassementPropre(
             boolean seulementVoeuxEnAttente,
-            boolean seulementVoeuxClasses)
+            boolean seulementVoeuxClasses,
+            boolean seulementVoeuxClotures)
             throws SQLException, VerificationException {
         int compteur = 0;
         try (Statement stmt = connection.createStatement()) {
@@ -1237,9 +1294,11 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         + AND + " ti.g_ti_eta_cla=2" + AND//classement terminé
                         : ""
                         )
-                    + (seulementVoeuxEnAttente
-                            ? (" (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)" + AND)//voeu en attente ou bien clôturé (GDD)
-                            : " (sv.a_Sv_cod > -40)" + AND)
+                    + (
+                    (seulementVoeuxEnAttente && seulementVoeuxClotures) ? " sv.a_sv_flg_clo=1 " :
+                            seulementVoeuxEnAttente ? " (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)" :
+                                    " (sv.a_Sv_cod > -40)" )
+                    + AND
                     + (config.simulationAvantDebutCampagne ? " " :  " cg.C_CG_ORD_APP is not null" + AND)
                     + " c.g_cn_cod=v.g_cn_cod"
                     + AND + " v.a_sv_cod=sv.a_sv_cod"
@@ -1268,8 +1327,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     int typeMaj = result.getInt(9);
 
                     boolean estEnAttente = result.getBoolean(10);
-                    boolean estCloture = result.getBoolean(11);//GDD
-                    boolean estAffecte = result.getBoolean(12);//GDD
+                    boolean estArchive = result.getBoolean(11);//GDD
+                    boolean estAffecte = result.getBoolean(12);
 
                     GroupeAffectationUID groupeId
                             = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
@@ -1280,7 +1339,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         groupesManquants.add(groupeId);
                         continue;
                     }
-                    Voeu.StatutVoeu statut = getStatut(estEnAttente, estCloture, estAffecte);
+                    Voeu.StatutVoeu statut = getStatut(estEnAttente, estArchive, estAffecte);
                     if(!config.recupererSeulementVoeuxClasses && rangAppel == 0) {
                         statut = Voeu.StatutVoeu.NON_CLASSE;
                     }
@@ -1295,7 +1354,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                             false
                     );
                      voeu.setTypeMaj(typeMaj);
-                     voeu.setEstArchive(estCloture);
+                     voeu.setEstArchive(estArchive);
 
                     compteur++;
                     if (compteur % fetchSize == 0) {
@@ -1386,6 +1445,12 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     /* index de table stockant la date de l'ouverture complète des internats */
     public static final int INDEX_DATE_OUV_COMP_INTERNATS = 334;
+
+    /* Date à partir de la quelle seuls les voeux cloturés sont considérés */
+    public static final int INDEX_DATE_DEBUT_GDD = 316;
+
+    /* Date à partir de la quelle seuls les voeux cloturés sont considérés */
+    public static final int INDEX_DATE_FIN_ORDONNANCEMENT_GDD = 437;
 
     private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesPropositionsSQL.class.getSimpleName());
 

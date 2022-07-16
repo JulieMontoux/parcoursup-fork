@@ -23,7 +23,7 @@ public class TestVerificationAffichages {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void verifier_doit_reussir_si_proprietes_respectees() throws Exception {
-        Parametres p = new Parametres(0, 0);
+        Parametres p = new Parametres(0,0,0);
         GroupeAffectation g
                 = new GroupeAffectation(
                 0,
@@ -36,7 +36,7 @@ public class TestVerificationAffichages {
 
     @Test
     public void verifier_doit_echouer_si_proprietes_non_respectees() throws Exception {
-        Parametres p = new Parametres(0, 0);
+        Parametres p = new Parametres(0,0,0);
         GroupeAffectation g
                 = new GroupeAffectation(
                 0,

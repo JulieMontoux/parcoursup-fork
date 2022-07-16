@@ -4,8 +4,10 @@ import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
 import fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositionsSQL.TestConnecteurDonneesPropositionsSQL;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.ADMISSIONS_TABLE_SORTIE;
+import static org.powermock.api.mockito.PowerMockito.*;
 
 public class TestEnvoiPropositions extends TestConnecteurDonneesPropositionsSQL {
 
@@ -15,10 +17,14 @@ public class TestEnvoiPropositions extends TestConnecteurDonneesPropositionsSQL 
 
     @Test
     public void test_envoi_propositons_jeu_de_tests_doit_peupler_table_propositions() throws Exception {
+
+
         try (ConnecteurSQL connecteurSQL
                      = getConnecteurDonneesProd()) {
+
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
-                    = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
+                    = Mockito.spy(new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection()));
+            Mockito.when(connecteurDonneesPropositions.getNbJoursCampagne()).thenReturn(30);
 
             setValeurFlagInterruptionFluxDonnees(1);
             EnvoiPropositions envoi = new EnvoiPropositions(

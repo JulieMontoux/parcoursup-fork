@@ -12,8 +12,8 @@ Le programme [DemoOrdreAppelJson](src/main/java/fr/parcoursup/algos/bacasable/or
 Il prend en argument le chemin d'un fichier JSON ([exemple](src/test/java/fr/parcoursup/algos/bacasable/algoOrdreAppelEntree.json)) On le lance en effectuant :
 
 ```bash
-mvn exec:java -Dexec.mainClass="fr.parcoursup.algos.bacasable.ordreappel.DemoOrdreAppelJson" -Dexec.args="./src/test/java/fr/parcoursup/algos/bacasable/algoOrdreAppelEntree.json /tmp/sortie.json"
-cat /tmp/sortie.json
+mvn exec:java -Dexec.mainClass="fr.parcoursup.algos.bacasable.ordreappel.DemoOrdreAppelJson" -Dexec.args="./src/test/java/fr/parcoursup/algos/bacasable/algoOrdreAppelEntree.json test-exe/tmp/sortie.json"
+cat test-exe/tmp/sortie.json
 ```
 
 Le programme [DemoPropositionsJson](src/main/java/fr/parcoursup/algos/bacasable/propositions/DemoPropositionsJson.java) donne un aperçu du modèle de données mis en oeuvre pour les calculs liés à l'envoi des propositions.
@@ -21,8 +21,8 @@ Le programme [DemoPropositionsJson](src/main/java/fr/parcoursup/algos/bacasable/
 Il prend en argument le chemin d'un fichier JSON ([exemple](src/test/java/fr/parcoursup/algos/bacasable/algoPropositionsEntree.json)), on le lance en effectuant :
 
 ```bash
-mvn exec:java -Dexec.mainClass="fr.parcoursup.algos.bacasable.propositions.DemoPropositionsJson" -Dexec.args="./src/test/java/fr/parcoursup/algos/bacasable/algoPropositionsEntree.json /tmp/sortie.json"
-cat /tmp/sortie.json
+mvn exec:java -Dexec.mainClass="fr.parcoursup.algos.bacasable.propositions.DemoPropositionsJson" -Dexec.args="./src/test/java/fr/parcoursup/algos/bacasable/algoPropositionsEntree.json test-exe/tmp/sortie.json"
+cat test-exe/tmp/sortie.json
 ```
 
 ## Exemples avec entrées / sorties en base de données

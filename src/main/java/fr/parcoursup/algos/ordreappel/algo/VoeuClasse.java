@@ -64,7 +64,7 @@ public class VoeuClasse implements Serializable, Comparable<VoeuClasse> {
             boolean estDuSecteur) throws VerificationException {
         this.gCnCod = gCnCod;
         if(rang <= 0) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS);
+            throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS, this.gCnCod);
         }
         this.rang = rang;
         if(estBoursier) {

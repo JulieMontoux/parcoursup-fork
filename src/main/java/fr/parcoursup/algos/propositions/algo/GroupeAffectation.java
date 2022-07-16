@@ -245,13 +245,13 @@ public class GroupeAffectation implements Serializable {
             /* On fait une proposition:
                 * si il y a des places libres (aPourvoir > 0)
                 * ou si la formation a positionné un rang limite d'appel supérieur au rang du candidat
-                * ou, après la fin de réservation des places internats, si la formation est déjà obtenue (voeux avec internat)
+                * ou si la formation est déjà obtenue (voeux avec internat)
                 * ou si on vient de faire une proposition à ce candidat, deux voeux consécutifs peuvent concerner un même candidat,
                 (un avec et un sans internat). Les voeux non-consécutifs concernent nécessairement des candidats différents.
              */
             if (aPourvoir > 0
                     || v.ordreAppel <= rangLimite
-                    || (finReservationPlacesInternat && v.formationDejaObtenue())
+                    || v.formationDejaObtenue()
                     || dernierCandidatAvecProposition == v.id.gCnCod) {
 
                 v.proposer();

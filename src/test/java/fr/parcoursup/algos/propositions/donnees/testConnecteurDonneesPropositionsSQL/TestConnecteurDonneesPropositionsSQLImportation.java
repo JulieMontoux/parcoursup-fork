@@ -1,25 +1,20 @@
 package fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositionsSQL;
 
-import java.util.Map;
-import java.util.Set;
-import static org.junit.Assert.assertThrows;
-
 import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.exceptions.AccesDonneesException;
+import fr.parcoursup.algos.propositions.algo.*;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
-import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectationUID;
-import fr.parcoursup.algos.propositions.algo.GroupeInternat;
-import fr.parcoursup.algos.propositions.algo.GroupeInternatUID;
-import fr.parcoursup.algos.propositions.algo.Parametres;
-import fr.parcoursup.algos.propositions.algo.VoeuUID;
+
+import java.util.Map;
+import java.util.Set;
+
+import static org.junit.Assert.assertThrows;
 
 public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnecteurDonneesPropositionsSQL {
 
-    public TestConnecteurDonneesPropositionsSQLImportation(String name) throws Exception {
+    public TestConnecteurDonneesPropositionsSQLImportation(String name) {
 
         super(name);
 
@@ -45,9 +40,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
     @Test
     public void test_recuperation_verification_nombre_jours_depuis_debut_campagne_avec_connecteur_prod_doit_retourner_nombre_superieur_a_zero() throws Exception {
-
         this.setBddDateDebutCampagne("20/05/2020:0000");
-
         int nbJoursCampagne;
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
@@ -56,23 +49,38 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             nbJoursCampagne = this.recupere_nombre_jours_depuis_debut_campagne(connecteurDonneesPropositions);
 
         }
-
         assertTrue(nbJoursCampagne > 0);
-
     }
     
     
     int recupere_nombre_jours_campagne_a_date_pivot_internats(
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
-
         int nbJoursCampagneDatePivotInternats = Whitebox.invokeMethod(
                 connecteurDonneesPropositions,
                 "getNbJoursCampagneDatePivotInternats"
         );
-
         return nbJoursCampagneDatePivotInternats;
+    }
 
+    int recupere_nombre_jours_campagne_debut_gdd(
+            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
+    ) throws Exception {
+        int nbJrs = Whitebox.invokeMethod(
+                connecteurDonneesPropositions,
+                "getNbJoursCampagneDateDebutGDD"
+        );
+        return nbJrs;
+    }
+
+    int recupere_nombre_jours_campagne_fin_ord_gdd(
+            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
+    ) throws Exception {
+        int nbJrs = Whitebox.invokeMethod(
+                connecteurDonneesPropositions,
+                "getNbJoursCampagneFinOrdonnancementGDD"
+        );
+        return nbJrs;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -85,8 +93,12 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         this.setBddDateDebutCampagne("20/05/2020:0000");
         this.setBddDateOuvertureCompleteInternats("21/05/2020:0000");
+        this.setBddDateDebutGDD("22/05/2020:2359");
+        this.setBddDateFinOrdGDD("25/05/2020:0000");
 
         int nbJoursCampagneDatePivotInternats;
+        int nbJoursDebutGDD;
+        int nbJoursFinOrdGDD;
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
@@ -94,9 +106,17 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             nbJoursCampagneDatePivotInternats = this.recupere_nombre_jours_campagne_a_date_pivot_internats(
                     connecteurDonneesPropositions
             );
+            nbJoursDebutGDD = this.recupere_nombre_jours_campagne_debut_gdd(
+                    connecteurDonneesPropositions
+            );
+            nbJoursFinOrdGDD = this.recupere_nombre_jours_campagne_fin_ord_gdd(
+                    connecteurDonneesPropositions
+            );
         }
 
         assertEquals(2, nbJoursCampagneDatePivotInternats);
+        assertEquals(3, nbJoursDebutGDD);
+        assertEquals(6, nbJoursFinOrdGDD);
 
     }
 
@@ -127,7 +147,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -151,7 +172,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -176,7 +198,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         Map<GroupeAffectationUID, GroupeAffectation> groupesAffectation;
@@ -217,7 +240,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         Map<GroupeAffectationUID, GroupeAffectation> groupesAffectation;
@@ -313,7 +337,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 "recupererVoeuxAvecInternatsAClassementPropre",
                 entree.internatsIndex,
                 seulementVoeuxEnAttente,
-                true
+                true,
+                false
         );
 
         return entree;
@@ -325,7 +350,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -350,7 +376,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -375,7 +402,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -400,7 +428,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -454,7 +483,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
                 connecteurDonneesPropositions,
                 "recupererVoeuxSansInternatAClassementPropre",
                 seulementVoeuxEnAttente,
-                true
+                true,
+                false
         );
 
         return entree;
@@ -466,7 +496,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -491,7 +522,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -516,7 +548,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -541,7 +574,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         AlgoPropositionsEntree entree;
@@ -575,8 +609,9 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
         }
         Whitebox.invokeMethod(
                 connecteurDonneesPropositions,
-                "recupererPropositionsActuelles",
-                entree.internatsIndex
+                "recupererPropositions",
+                entree.internatsIndex,
+                false
         );
 
         return entree;
@@ -588,7 +623,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         try (ConnecteurSQL connecteurSQL
@@ -608,7 +644,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         try (ConnecteurSQL connecteurSQL
@@ -649,7 +686,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         try (ConnecteurSQL connecteurSQL
@@ -675,7 +713,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
             Parametres parametres = new Parametres(
                     this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                    this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                    this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                    this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
             );
 
             try (ConnecteurSQL connecteurSQL
@@ -717,7 +756,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         try (ConnecteurSQL connecteurSQL
@@ -737,7 +777,8 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Parametres parametres = new Parametres(
                 this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats()
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
+                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
         );
 
         try (ConnecteurSQL connecteurSQL

@@ -53,6 +53,7 @@ public class ConnecteurSQL implements java.lang.AutoCloseable {
     public static final String G_PAR = " G_PAR " ;
     public static final String A_ADM_DEM = " A_ADM_DEM ";
     public static final int A_AD_TYP_DEM_RA = 1;
+    public static final int A_AD_TYP_DEM_GDD = 2;
     public static final String A_ADM_PRED_DER_APP = " A_ADM_PRED_DER_APP ";
     public static final String A_REC_GRP_INT_PROP = " A_REC_GRP_INT_PROP ";
     public static final String A_VOE_PROP = " A_VOE_PROP ";

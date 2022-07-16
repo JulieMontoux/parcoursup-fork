@@ -42,7 +42,7 @@ public class TestVoeuClasse {
     public void comparateur_doit_comparer_le_type() throws VerificationException {
         VoeuClasse v1 = new VoeuClasse(1, 1, true, true);
         assertThrows(ClassCastException.class, () -> v1.equals(null));
-        assertThrows(ClassCastException.class, () -> v1.equals(Integer.valueOf(1)));
+        assertThrows(ClassCastException.class, () -> v1.equals(1));
     }
 
 }

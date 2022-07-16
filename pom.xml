@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.gouv.education</groupId>
     <artifactId>parcoursup-algos</artifactId>
-    <version>2022-1.1.0</version>
+    <version>2022-1.2.0</version>
     <name>algorithmes-de-parcoursup</name>
     <properties>
         <maven.compiler.source>1.8</maven.compiler.source>
@@ -173,7 +173,7 @@
             </activation>
             <properties>
                  <DRIVER_BDD_BAC_A_SABLE>org.h2.Driver</DRIVER_BDD_BAC_A_SABLE>
-                 <URL_BDD_BAC_A_SABLE>jdbc:h2:${project.basedir}/h2/bacasable;MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_BAC_A_SABLE>
+                 <URL_BDD_BAC_A_SABLE>jdbc:h2:${project.basedir}/h2/bacasable-${project.version};MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_BAC_A_SABLE>
                  <UTILISATEUR_BDD_BAC_A_SABLE>bacasable</UTILISATEUR_BDD_BAC_A_SABLE>
                  <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>
             </properties>
@@ -190,7 +190,7 @@
                         <configuration>
                               <systemPropertyVariables>
                                  <DRIVER_BDD_TEST>org.h2.Driver</DRIVER_BDD_TEST>
-                                 <URL_BDD_TEST>jdbc:h2:${project.basedir}/h2/tests;MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_TEST>
+                                 <URL_BDD_TEST>jdbc:h2:${project.basedir}/h2/tests-${project.version};MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_TEST>
                                  <UTILISATEUR_BDD_TEST>tests</UTILISATEUR_BDD_TEST>
                                  <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>
                               </systemPropertyVariables>

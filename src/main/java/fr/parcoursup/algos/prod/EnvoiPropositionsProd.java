@@ -1,13 +1,6 @@
 package fr.parcoursup.algos.prod;
 
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.time.LocalDateTime;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.xml.bind.JAXBException;
-
+import fr.parcoursup.algos.donnees.Serialisation;
 import fr.parcoursup.algos.exceptions.AccesDonneesException;
 import fr.parcoursup.algos.exceptions.AccesDonneesExceptionMessage;
 import fr.parcoursup.algos.exceptions.VerificationException;
@@ -15,8 +8,13 @@ import fr.parcoursup.algos.propositions.algo.AlgoPropositions;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
-import fr.parcoursup.algos.donnees.Serialisation;
 import oracle.jdbc.pool.OracleDataSource;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EnvoiPropositionsProd {
 
@@ -24,14 +22,12 @@ public class EnvoiPropositionsProd {
 
 	/**
 	 * @param args
-	 * @throws java.io.IOException
-	 * @throws javax.xml.bind.JAXBException
 	 */
-	public static void main(String[] args) throws IOException, JAXBException {
-		String user=null;
-		String tnsAlias=null;
-		String password=null;
-		String outputDir=null;
+	public static void main(String[] args) {
+		String user;
+		String tnsAlias;
+		String password;
+		String outputDir;
 		String fileSuffix = LocalDateTime.now().toString();
 		boolean readOnly=true;
 

@@ -1,5 +1,10 @@
 package fr.parcoursup.algos.propositions.affichages;
 
+import fr.parcoursup.algos.propositions.Helpers;
+import fr.parcoursup.algos.propositions.algo.*;
+import org.junit.Test;
+import org.powermock.reflect.Whitebox;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -7,19 +12,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import static org.junit.Assert.assertTrue;
 
-import fr.parcoursup.algos.propositions.Helpers;
-import org.junit.Test;
-import org.powermock.reflect.Whitebox;
-import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectationUID;
-import fr.parcoursup.algos.propositions.algo.GroupeInternat;
-import fr.parcoursup.algos.propositions.algo.GroupeInternatUID;
-import fr.parcoursup.algos.propositions.algo.Parametres;
-import fr.parcoursup.algos.propositions.algo.Voeu;
-import fr.parcoursup.algos.propositions.algo.VoeuUID;
+import static org.junit.Assert.assertTrue;
 
 public class TestAlgoAffichages {
     
@@ -33,7 +27,7 @@ public class TestAlgoAffichages {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussir() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
@@ -57,12 +51,12 @@ public class TestAlgoAffichages {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussirSiVoeuAffecteJoursPrecedents() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 
-        Voeu v1 = Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, 1);
+        Voeu v1 = Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE, 1);
         Voeu v3 = Helpers.creeVoeuAvecInternatEtInjecteDependances(v1.id.gCnCod, g , gi, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, v1.ordreAppel, 3);
 
         Set<VoeuUID> voeuxAvecPropositionDansMemeFormation = new HashSet<>(Collections.singletonList(v3.id));
@@ -77,7 +71,7 @@ public class TestAlgoAffichages {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangsListeAttente_doit_reussirSiVoeuPasDansVoeuxAvecPropositionDansMemeFormation() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
         AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
@@ -106,7 +100,7 @@ public class TestAlgoAffichages {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangDernierAppeleAffiche_doit_reussirPourGroupeAffectationAvecVoeuEnAttenteSansDemandeInternat() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 

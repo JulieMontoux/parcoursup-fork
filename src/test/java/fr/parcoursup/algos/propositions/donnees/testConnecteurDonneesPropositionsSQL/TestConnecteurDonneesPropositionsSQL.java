@@ -1,15 +1,5 @@
 package fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositionsSQL;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
 import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.donnees.ParametresConnexionBddTest;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionSQLConfig;
@@ -21,6 +11,16 @@ import org.dbunit.dataset.IDataSet;
 import org.dbunit.dataset.xml.FlatXmlDataSetBuilder;
 import org.dbunit.operation.DatabaseOperation;
 import org.junit.Test;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
 
@@ -130,13 +130,7 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(
                     conn,
-                    new ConnecteurDonneesPropositionSQLConfig(
-                            false, //recupererSeulementVoeuxEnAttente
-                            false, //recupererSeulementVoeuxClasses
-                            0, //sparseDataTestingMode
-                            false, //utiliserRangSiPasOrdreAppel
-                            false //ignorerSurbooking
-                    )
+                    new ConnecteurDonneesPropositionSQLConfig(false)
             );
         }
     }
@@ -168,6 +162,10 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
     protected static final int INDEX_FLAG_ALERTE = 34;
 
     protected static final int INDEX_PARAMETRE_DATE_DEBUT_CAMPAGNE = 35;
+
+    protected static final int INDEX_PARAMETRE_DATE_DEBUT_GDD = 316;
+
+    protected static final int INDEX_PARAMETRE_DATE_FIN_ORD_GDD = 437;
 
     protected static final int INDEX_PARAMETRE_DATE_OUV_COMP_INTERNATS = 334;
 
@@ -208,17 +206,33 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
     }
 
     protected LocalDateTime getBddDateDebutCampagne() throws Exception {
-
         String chaineDateDebutCampagne = this.getBddChaineDate(INDEX_PARAMETRE_DATE_DEBUT_CAMPAGNE);
         LocalDateTime dateDebutCampagne = this.getDateFromChaineDate(chaineDateDebutCampagne);
         return dateDebutCampagne;
+    }
 
+    protected LocalDateTime getBddDateDebutGDD() throws Exception {
+        String chaine = this.getBddChaineDate(INDEX_PARAMETRE_DATE_DEBUT_GDD);
+        LocalDateTime date = this.getDateFromChaineDate(chaine);
+        return date;
+    }
+
+    protected LocalDateTime getBddDateFinOrdGDD() throws Exception {
+        String chaine = this.getBddChaineDate(INDEX_PARAMETRE_DATE_FIN_ORD_GDD);
+        LocalDateTime date = this.getDateFromChaineDate(chaine);
+        return date;
     }
 
     protected void setBddDateDebutCampagne(String chaineDateDebutCampagne) throws Exception {
-
         this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_DEBUT_CAMPAGNE);
+    }
 
+    protected void setBddDateDebutGDD(String chaineDateDebutCampagne) throws Exception {
+        this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_DEBUT_GDD);
+    }
+
+    protected void setBddDateFinOrdGDD(String chaineDateDebutCampagne) throws Exception {
+        this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_FIN_ORD_GDD);
     }
 
     protected LocalDateTime getBddDateOuvertureCompleteInternats() throws Exception {
@@ -249,6 +263,24 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
         LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
         LocalDateTime dateOuvertureCompleteInternats = this.getBddDateOuvertureCompleteInternats().toLocalDate().atStartOfDay();
         long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, dateOuvertureCompleteInternats).toDays();
+        return Math.toIntExact(nombreJoursEcoules);
+
+    }
+
+    protected int recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD() throws Exception {
+
+        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
+        LocalDateTime dateDebutGDD = this.getBddDateDebutGDD().toLocalDate().atStartOfDay();
+        long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, dateDebutGDD).toDays();
+        return Math.toIntExact(nombreJoursEcoules);
+
+    }
+
+    protected int recupereBddNombreTotalJoursEntreDebutCampagneEtFinOrdVoeuxGDD() throws Exception {
+
+        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
+        LocalDateTime finOrdGDD = this.getBddDateFinOrdGDD().toLocalDate().atStartOfDay();
+        long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, finOrdGDD).toDays();
         return Math.toIntExact(nombreJoursEcoules);
 
     }

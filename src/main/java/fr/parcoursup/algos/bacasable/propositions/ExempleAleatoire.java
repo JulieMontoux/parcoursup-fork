@@ -268,13 +268,13 @@ public class ExempleAleatoire extends ExemplePropositions {
 
                 int status = random.nextInt(10);
                 Voeu.StatutVoeu statut
-                        = (status == 0) ? Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS
+                        = (status == 0) ? Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
                             : (status <= 3) ? Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
                                 : Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
 
                 if (!avecInternat || (internat == null && internatsCommuns.isEmpty())) {
                     if (rang <= cl.plusHautRangAffecte) {
-                        statut = Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
+                        statut = Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
                     }
                     voeux.add(
                             new Voeu(
@@ -315,7 +315,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
                     if ((rang <= cl.plusHautRangAffecte 
                             && rangInternat <= j.plusHautRangAffecte)) {
-                        statut = Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
+                        statut = Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
                     }
                     
                     voeux.add(
@@ -420,7 +420,7 @@ public class ExempleAleatoire extends ExemplePropositions {
     public ExempleAleatoire(int nbCandidats) {
 
         this.nbCandidats = Math.max(100, nbCandidats);
-        parametres = new Parametres(1,30);
+        parametres = new Parametres(1,30,90, 95);
     }
 
     private static final Random r = new Random();
@@ -482,7 +482,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                     || v.estAffecteHorsPP()) {
                 continue;
             }
-            if (v.estAcceptationAutomatique() || v.estAffecteJoursPrecedents()) {
+            if (v.estProposition()) {
                 if (propositionsAuxCandidatsAvecRepAuto.containsKey(gCnCod)) {
                     v.refuserAutomatiquementParApplicationRepondeurAutomatique();
                 }

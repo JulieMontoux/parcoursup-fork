@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+
 public class VerificationEntreeAlgoPropositions {
 
     /* vérifie l'intégrité des données d'entrée et lève une exception si nécessaire.
@@ -58,10 +59,20 @@ public class VerificationEntreeAlgoPropositions {
             verifierIntegriteInternat(internat);
         }
 
-        VerificationAlgoRepondeurAutomatique.verifier(
-                entree.voeux,
-                entree.candidatsAvecRepondeurAutomatique);
+        if(!desactiverVerifOrdonnancement(entree.getParametres())) {
+            LOGGER.info("Vérification des propriétés du répondeur automatique");
+            VerificationAlgoRepondeurAutomatique.verifier(
+                    entree.voeux,
+                    entree.candidatsAvecRepondeurAutomatique);
 
+            LOGGER.info("Vérification des démissions auto en GDD");
+            VerificationDemAutoGDD.verifier(entree.voeux, entree.getParametres());
+        }
+    }
+
+    public static boolean desactiverVerifOrdonnancement(Parametres p) {
+        return p.nbJoursCampagne >= p.nbJoursCampagneDateDebutGDD
+                && p.nbJoursCampagne < p.nbJoursCampagneDateFinOrdonnancementGDD;
     }
 
     static void verifierGroupesetInternatsDesVoeux(AlgoPropositionsEntree entree) throws VerificationException {

@@ -28,7 +28,9 @@ import fr.parcoursup.algos.propositions.algo.*;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
+
+import static fr.parcoursup.algos.verification.VerificationEntreeAlgoPropositions.desactiverVerifOrdonnancement;
+import static java.util.stream.Collectors.*;
 
 /* Permet de vérifier un certain nombre de propriétés statiques
     des sorties de l'algorithme. Sans garantir la correction du code,
@@ -67,73 +69,48 @@ public class VerificationsResultatsAlgoPropositions {
     private static final Logger LOGGER = Logger.getLogger(VerificationsResultatsAlgoPropositions.class.getSimpleName());
 
     /* Données sur les voeux */
-    final Map<GroupeAffectation, List<Voeu>> voeuxParFormation = new HashMap<>();
-    final Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
+    final Map<GroupeAffectation, List<Voeu>> voeuxParFormation;
+    final Map<GroupeInternat, List<Voeu>> voeuxParInternat;
     final Map<GroupeAffectation, Set<Integer>> initialementAffectesFormations = new HashMap<>();
     final Map<GroupeInternat, Set<Integer>> initialementAffectesInternats = new HashMap<>();
     final Map<GroupeAffectation, Set<Integer>> actuellementAffectesFormations = new HashMap<>();
     final Map<GroupeInternat, Set<Integer>> actuellementAffectesInternats = new HashMap<>();
-    final Map<GroupeAffectation, Integer> rangsDernierAppeleParFormation = new HashMap<>();
     final Set<GroupeAffectation> formationsAvecRangLimiteEffectif = new HashSet<>();
+    private final AlgoPropositionsSortie sortie;
+    private final Set<Integer> candidatsAvecRepAuto;
+    private final Parametres parametres;
 
-    /* Vérifie les résultats du calcul et supprime de la sortie les groupes
-    ne passant pas la vérification. En cas d'alerte ou d'avertissement,
-    positionne les flags correspondants dans sortie.
-     */
-    public void verifier(AlgoPropositionsEntree entree, AlgoPropositionsSortie sortie) throws VerificationException {
-        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions "
-                + "pour les {0} groupes d''affectation", entree.groupesAffectations.size());
+    public VerificationsResultatsAlgoPropositions(AlgoPropositionsEntree entree, AlgoPropositionsSortie sortie) throws VerificationException {
 
         entree.injecterGroupesEtInternatsDansVoeux();
 
-        int step = Integer.max(1, entree.groupesAffectations.size() / 50);
-        int count = 0;
+        Set<VoeuUID> voeuxEntree = entree.voeux.stream().map(v -> v.id).collect(toSet());
+        Set<VoeuUID> voeuxSortie = sortie.voeux.stream().map(v -> v.id).collect(toSet());
+        if (!voeuxEntree.containsAll(voeuxSortie) || !voeuxSortie.containsAll(voeuxEntree)) {
+            throw new VerificationException(VerificationExceptionMessage.MESSAGE, "Les voeux en entree ne correspondent pas aux voeux en sortie");
+        }
 
-        groupesNonValides.clear();
-        voeuxParFormation.clear();
-        voeuxParInternat.clear();
-        initialementAffectesFormations.clear();
-        initialementAffectesInternats.clear();
-        actuellementAffectesFormations.clear();
-        actuellementAffectesInternats.clear();
-        rangsDernierAppeleParFormation.clear();
-        formationsAvecRangLimiteEffectif.clear();
+        voeuxParFormation = entree.voeux.stream().collect(groupingBy(Voeu::getGroupeAffectation));
+        voeuxParInternat = entree.voeux.stream().filter(v -> v.getInternat() != null).collect(groupingBy(Voeu::getInternat));
 
         entree.groupesAffectations.values().forEach(groupe -> {
-            voeuxParFormation.put(groupe, new ArrayList<>());
             initialementAffectesFormations.put(groupe, new HashSet<>());
             actuellementAffectesFormations.put(groupe, new HashSet<>());
-            rangsDernierAppeleParFormation.put(groupe, 0);
         });
-
         entree.internats.values().forEach(internat -> {
-            voeuxParInternat.put(internat, new ArrayList<>());
             initialementAffectesInternats.put(internat, new HashSet<>());
             actuellementAffectesInternats.put(internat, new HashSet<>());
         });
 
         sortie.voeux.forEach(v -> {
-
             GroupeAffectation groupe = v.getGroupeAffectation();
             GroupeInternat internat = v.getInternat();
-            voeuxParFormation.get(groupe).add(v);
-
-            if (internat != null) {
-                voeuxParInternat.get(internat).add(v);
-            }
-
             if (v.estProposition()) {
                 actuellementAffectesFormations.get(groupe).add(v.id.gCnCod);
                 if (internat != null) {
                     actuellementAffectesInternats.get(internat).add(v.id.gCnCod);
                 }
-                if (v.estPropositionDuJour()) {
-                    int rangActuel = rangsDernierAppeleParFormation.get(v.getGroupeAffectation());
-                    if (v.ordreAppel > rangActuel) {
-                        rangsDernierAppeleParFormation.put(groupe, v.ordreAppel);
-                    }
-                }
-                if (v.estAffecteJoursPrecedents()) {
+                if (v.aEteProposeJoursPrecedents()) {
                     initialementAffectesFormations.get(groupe).add(v.id.gCnCod);
                     if (internat != null) {
                         initialementAffectesInternats.get(internat).add(v.id.gCnCod);
@@ -146,8 +123,30 @@ public class VerificationsResultatsAlgoPropositions {
             }
         });
 
-        for (GroupeAffectation groupe : voeuxParFormation.keySet()) {
+        this.sortie = sortie;
+        this.parametres = entree.getParametres();
+        this.candidatsAvecRepAuto = entree.candidatsAvecRepondeurAutomatique;
+    }
 
+    /* Vérifie les résultats du calcul et supprime de la sortie les groupes
+    ne passant pas la vérification. En cas d'alerte ou d'avertissement,
+    positionne les flags correspondants dans sortie.
+     */
+    public void verifier() throws VerificationException {
+        LOGGER.log(Level.INFO, "Vérification des propriétés attendues des propositions "
+                + "pour les {0} groupes d''affectation", voeuxParFormation.size());
+
+        int step = Integer.max(1, initialementAffectesFormations.size() / 50);
+        int count = 0;
+
+        groupesNonValides.clear();
+
+        if(!desactiverVerifOrdonnancement(sortie.parametres)) {
+            VerificationAlgoRepondeurAutomatique.verifier(sortie.voeux, candidatsAvecRepAuto);
+            VerificationDemAutoGDD.verifier(sortie.voeux, parametres);
+        }
+
+        for (GroupeAffectation groupe : voeuxParFormation.keySet()) {
             if (count++ % step == 0) {
                 LOGGER.log(Level.INFO, "verification effectu\u00e9e de {0} groupes ", count);
             }
@@ -159,23 +158,19 @@ public class VerificationsResultatsAlgoPropositions {
                 LOGGER.warning(e.getMessage());
                 invalider(groupe);
             }
-
         }
 
         LOGGER.info("");
-        LOGGER.log(Level.INFO, "V\u00e9rification des propri\u00e9t\u00e9s attendues des propositions dans les {0} internats", entree.internats.size());
+        LOGGER.log(Level.INFO, "V\u00e9rification des propri\u00e9t\u00e9s attendues des propositions dans les {0} internats", voeuxParInternat.size());
 
-        step = Integer.max(1, entree.internats.size() / 50);
+        step = Integer.max(1, initialementAffectesInternats.size() / 50);
         count = 0;
 
         for (GroupeInternat internat : voeuxParInternat.keySet()) {
-
             if (count++ % step == 0) {
                 LOGGER.log(Level.INFO, "verification effectu\u00e9e de {0} internats ", count);
             }
-
             try {
-
                 if (internat.getPositionAdmission() > internat.getPositionMaximaleAdmission()) {
                     alerter("Violation limite position maximale admission "
                             + internat.getPositionAdmission() + " > " + internat.getPositionMaximaleAdmission()
@@ -285,7 +280,9 @@ public class VerificationsResultatsAlgoPropositions {
 
         for (Voeu v1 : voeux) {
             if (v1.estEnAttenteDeProposition()
-                    && v1.avecInternatAClassementPropre()) {
+                    && v1.avecInternatAClassementPropre()
+                    && !v1.ignoreDansLeCalculDesRangSurListesDattente() //évite les fausses alertes en cas de correction d'erreur de classement internat
+            ) {
                 GroupeInternat internat = v1.getInternat();
                 Set<Integer> dejaAffectesInternat = initialementAffectesInternats.get(internat);
                 for (Voeu v2 : voeux) {
@@ -297,6 +294,7 @@ public class VerificationsResultatsAlgoPropositions {
                             && !initialementAffectesFormation.contains(v2.id.gCnCod)
                             && v2.rangInternat > v1.rangInternat
                             && !dejaAffectesInternat.contains(v2.id.gCnCod)
+                            && !v2.ignoreDansLeCalculDesRangSurListesDattente() //évite les fausses alertes en cas de correction d'erreur de classement internat
                             ) {
                         alerter(
                                 "Violation respect ordre et classement "
@@ -328,6 +326,10 @@ public class VerificationsResultatsAlgoPropositions {
      */
     private void verifierRespectClassementInternat(GroupeInternat internat) throws VerificationException {
 
+        if(internat.getPositionAdmission() > internat.getPositionMaximaleAdmission()) {
+            alerter("Position d'admission strictement supérieure à la valeur limite dans l'internat " + internat.id);
+        }
+
         List<Voeu> voeux = voeuxParInternat.get(internat);
         Set<Integer> initialementAffectesInternat = initialementAffectesInternats.get(internat);
 
@@ -343,11 +345,15 @@ public class VerificationsResultatsAlgoPropositions {
         for (Voeu v1 : voeux) {
             Set<Integer> actuellementAffectesFormation = actuellementAffectesFormations.get(v1.getGroupeAffectation());
             if (v1.estEnAttenteDeProposition()
-                    && actuellementAffectesFormation.contains(v1.id.gCnCod)) {
+                    && actuellementAffectesFormation.contains(v1.id.gCnCod)
+                    && !v1.ignoreDansLeCalculDesRangSurListesDattente()//évite les fausses alertes en cas de correction d'erreur de classement internat
+            ) {
                 for (Voeu v2 : voeux) {
                     if (v2.estPropositionDuJour()
                             && v2.rangInternat > v1.rangInternat
-                            && !initialementAffectesInternat.contains(v2.id.gCnCod)) {
+                            && !initialementAffectesInternat.contains(v2.id.gCnCod)
+                            && !v2.ignoreDansLeCalculDesRangSurListesDattente()//évite les fausses alertes en cas de correction d'erreur de classement internat
+                    ) {
                         alerter("Violation respect ordre appel pour les attributions d'internat"
                                 + "pour les voeux avec demande internat"
                                 + V1_FLOUE_PAR_V2
@@ -474,10 +480,10 @@ public class VerificationsResultatsAlgoPropositions {
             GroupeAffectation ga = aTraiter.get(0);
             List<Voeu> voeuxDuGroupe = voeuxParFormation.get(ga);
             if(voeuxDuGroupe != null) {
-                for (GroupeInternat internat : voeuxDuGroupe.stream().map(Voeu::getInternat).collect(Collectors.toSet())) {
+                for (GroupeInternat internat : voeuxDuGroupe.stream().map(Voeu::getInternat).collect(toSet())) {
                     List<Voeu> voeuxInternat = voeuxParInternat.get(internat);
                     if(voeuxInternat != null) {
-                        aTraiter.addAll(voeuxInternat.stream().map(Voeu::getGroupeAffectation).collect(Collectors.toSet()));
+                        aTraiter.addAll(voeuxInternat.stream().map(Voeu::getGroupeAffectation).collect(toSet()));
                     }
                 }
             }

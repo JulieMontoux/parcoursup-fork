@@ -48,6 +48,8 @@ public abstract class ExemplePropositions {
 
         int nbJours = entree.getParametres().nbJoursCampagne;
         int datePivot = entree.getParametres().nbJoursCampagneDateFinReservationInternats;
+        int dateGDD = entree.getParametres().nbJoursCampagneDateDebutGDD;
+        int dateFinArchivage = entree.getParametres().nbJoursCampagneDateFinOrdonnancementGDD;
 
         try {
             while (true) {
@@ -73,7 +75,7 @@ public abstract class ExemplePropositions {
                 }
 
                 nbJours++;
-                entree.setParametres(new Parametres(nbJours, datePivot));
+                entree.setParametres(new Parametres(nbJours, datePivot, dateGDD, dateFinArchivage));
 
             }
             LOGGER.log(Level.INFO, "Termin\u00e9 le {0} jour de campagne",
@@ -100,22 +102,13 @@ public abstract class ExemplePropositions {
                     .serialiserEtCompresser(sortie, AlgoPropositionsSortie.class);
         }
 
-        VerificationsResultatsAlgoPropositions verif
-                = new VerificationsResultatsAlgoPropositions();
-        verif.verifier(entree, sortie);
+        new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
 
         if (sortie.getAlerte() || sortie.getAvertissement()) {
             throw new VerificationException(VerificationExceptionMessage.EXEMPLE_PROPOSITIONS_ERREUR_VERIFICATION);
         }
 
-        boolean propositionDuJour = false;
-        for (Voeu v : entree.voeux) {
-            if (v.estPropositionDuJour()) {
-                propositionDuJour = true;
-            }
-        }
-
-        return propositionDuJour;
+        return entree.voeux.stream().anyMatch(Voeu::estPropositionDuJour);
     }
 
     void simulerReponses() {
@@ -126,7 +119,7 @@ public abstract class ExemplePropositions {
                 boolean refuse = (random.nextInt(3) == 0);
                 if (refuse) {
                     nbRefus++;
-                    v.simulerRefus();
+                    v.simulerRefusProposition();
                 }
             }
         }
@@ -142,7 +135,7 @@ public abstract class ExemplePropositions {
         Map<Integer, List<Voeu>> candidates = new HashMap<>();
         for (Voeu v : entree.voeux) {
             int gCnCod = v.id.gCnCod;
-            if (v.rangPreferencesCandidat > 0
+            if (v.getRangPreferencesCandidat() > 0
                     && !entree.candidatsAvecRepondeurAutomatique.contains(gCnCod)) {
                 if (!candidates.containsKey(gCnCod)) {
                     candidates.put(gCnCod, new ArrayList<>());
@@ -160,8 +153,8 @@ public abstract class ExemplePropositions {
                 Collections.shuffle(voeux);
                 boolean propositionTrouvee = false;
                 for (Voeu v : voeux) {
-                    if (propositionTrouvee && (v.estProposition() || v.rangPreferencesCandidat == 0)) {
-                        v.simulerRefus();
+                    if (propositionTrouvee && (v.estProposition() || v.getRangPreferencesCandidat() == 0)) {
+                        v.simulerRefusProposition();
                     } else if (v.estProposition()) {
                         propositionTrouvee = true;
                     }

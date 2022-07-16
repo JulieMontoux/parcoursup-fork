@@ -20,7 +20,7 @@ import org.powermock.reflect.Whitebox;
 
 public class TestConnecteurDonneesAppelSQLExportation extends TestConnecteurDonneesAppelSQL {
 
-    public TestConnecteurDonneesAppelSQLExportation(String name) throws Exception {
+    public TestConnecteurDonneesAppelSQLExportation(String name) {
 
         super(name);
 

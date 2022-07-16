@@ -20,11 +20,12 @@
 
 package fr.parcoursup.algos.prod;
 
-import java.io.*;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.io.*;
+import java.nio.file.Files;
 
 @XmlRootElement
 public class ExecutionParams implements Serializable {
@@ -37,7 +38,7 @@ public class ExecutionParams implements Serializable {
         File file = new File(filename);
         if (file.exists()) {
             try (BufferedInputStream in = new BufferedInputStream(
-                    new FileInputStream(file))) {
+                    Files.newInputStream(file.toPath()))) {
                 Unmarshaller m = JAXBContext.newInstance(ExecutionParams.class).createUnmarshaller();
                 return (ExecutionParams) m.unmarshal(in);
             }

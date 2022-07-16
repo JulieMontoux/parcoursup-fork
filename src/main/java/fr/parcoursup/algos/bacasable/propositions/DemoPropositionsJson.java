@@ -6,6 +6,7 @@ import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositions;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
+import fr.parcoursup.algos.propositions.algo.Parametres;
 
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -20,7 +21,7 @@ public class DemoPropositionsJson {
 
     public static void main(String[] args) throws VerificationException, IOException {
 
-        if(args.length <= 2 ) {
+        if(args.length < 2 ) {
             LOGGER.log(Level.INFO, "Usage: {0}} [input_file] [output_file]", DemoPropositionsJson.class.getSimpleName());
             return;
         }
@@ -30,6 +31,8 @@ public class DemoPropositionsJson {
 
         try(Reader reader = new FileReader(entreeFilepath)) {
             AlgoPropositionsEntree entree = new Gson().fromJson(reader, AlgoPropositionsEntree.class);
+            //mock the date
+            entree.setParametres(new Parametres(1, 20, 40, 45));
             entree.injecterGroupesEtInternatsDansVoeux();
 
             AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);

@@ -25,6 +25,7 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,7 +47,7 @@ public class ExecutionParams implements Serializable {
         File file = new File(filename);
         if (file.exists()) {
             try (BufferedInputStream in = new BufferedInputStream(
-                    new FileInputStream(file))) {
+                    Files.newInputStream(file.toPath()))) {
                 Unmarshaller m = JAXBContext.newInstance(ExecutionParams.class).createUnmarshaller();
                 return (ExecutionParams) m.unmarshal(in);
             }

@@ -28,6 +28,8 @@ import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -45,12 +47,12 @@ public class Serialisation<T> {
     
     public void serialiserEtCompresser(String filename, T o , Class[] c, int level) throws AccesDonneesException {
         if (filename == null) {
-            filename = "entree_" + LocalDateTime.now().toString().replace(':','_') + ".xml";
+            filename = o.getClass().getSimpleName() + LocalDateTime.now().toString().replace(':','_') + ".xml";
         }
         String outfilename = filename + ".zip";
 
         try (ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(
-                new FileOutputStream(outfilename)))) {        
+                Files.newOutputStream(Paths.get(outfilename))))) {
             Marshaller m = JAXBContext.newInstance(c).createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             out.setMethod(ZipOutputStream.DEFLATED);
@@ -76,7 +78,7 @@ public class Serialisation<T> {
     
     public T decompresserEtDeserialiser(String filename, Class<T> c) throws IOException, JAXBException {
         try (ZipInputStream in = new ZipInputStream(new BufferedInputStream(
-                new FileInputStream(filename)))) { 
+                Files.newInputStream(Paths.get(filename))))) {
             Unmarshaller m = JAXBContext.newInstance(c).createUnmarshaller();
             in.getNextEntry();
             Object o = m.unmarshal(in);
@@ -90,7 +92,7 @@ public class Serialisation<T> {
 
     public T deserialiser(String filename,Class<T> c) throws IOException, JAXBException {
         try (BufferedInputStream in = new BufferedInputStream(
-                new FileInputStream(filename))) {
+                Files.newInputStream(Paths.get(filename)))) {
             Unmarshaller m = JAXBContext.newInstance(c).createUnmarshaller();
             Object o = m.unmarshal(in);
             if(c.isInstance(o)) {

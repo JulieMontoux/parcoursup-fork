@@ -22,23 +22,64 @@ package fr.parcoursup.algos.propositions.algo;
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * Cette classe contient l'implémentation du répondeur automatique.
+ *
+ * Un candidat ayant activé son répondeur automatique
+ * et recevant une nouvelle proposition démissionne automatiquement des propositions
+ * antérieures et des voeux en attente qui ont un rang plus élevé dans son ordre de préférence.
+ *
+ * Voir le document de présetation des algorithmes pour plus de détails.
+ */
 public class RepondeurAutomatique {
 
     private static final Logger LOGGER = Logger.getLogger(RepondeurAutomatique.class.getSimpleName());
 
     /**
+     * Applique le répondeur automatique.
      *
-     * @param voeux tous les voeux de tous les candidats, ayant activé ou non leur répondeur
+     * @param entree les données d'entrée
+     * @return le nombre de places libérées par le repondeur automatique
+     * @throws VerificationException en cas de problème d'intégrité des données d'entrée
+     */
+    static long appliquerRepondeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
+        if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
+            LOGGER.log(Level.INFO, "{0} candidats ont activé le répondeur automatique",
+                    entree.candidatsAvecRepondeurAutomatique.size()
+            );
+            final long placesLibereesParRepAuto
+                    = appliquerRepondeurAutomatique(entree.voeux, entree.candidatsAvecRepondeurAutomatique);
+
+            if (placesLibereesParRepAuto == 0) {
+                LOGGER.info("Aucune place libérée par le répondeur automatique");
+            } else {
+                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
+                        placesLibereesParRepAuto);
+            }
+
+            return placesLibereesParRepAuto;
+        } else {
+            LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
+            return 0;
+        }
+    }
+
+    /**
+     * Applique le répondeur automatique pour les candidats l'ayant activé.
+     *
+     * @param voeux                             tous les voeux de tous les candidats, ayant activé ou non leur répondeur
      * @param candidatsAvecRepondeurAutomatique liste des candidats ayant activé leur répondeur
      * @return le nombre de places libérées par le répondeur
-     * @throws VerificationException en cas de problème de cohérence des données
+     * @throws VerificationException en cas de problème d'intégrité des données d'entrée
      */
-    public static long appliquerRepondeurAutomatique(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws VerificationException {
+    static long appliquerRepondeurAutomatique(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws VerificationException {
 
         Collection<Voeu> voeuxDesCandidatsAvecRepAuto =
                 voeux.stream()
@@ -61,24 +102,29 @@ public class RepondeurAutomatique {
         des candidats ayant activé le répondeur automatique. */
         Map<Integer, Integer> rangPreferenceMeilleurePropositionDuJour =
                 voeuxDesCandidatsAvecRepAuto.stream()
-                        //.filter(v -> v.estEnAttenteDeProposition() || v.estProposition())
                         .filter(Voeu::estPropositionDuJour)
                         .collect(Collectors.groupingBy(v -> v.id.gCnCod))
                         .entrySet().stream()
                         .collect(Collectors.toMap(
                                 Map.Entry::getKey,
-                                e -> e.getValue().stream().mapToInt(v -> v.rangPreferencesCandidat).min().orElse(Integer.MAX_VALUE)
+                                e -> e.getValue().stream().mapToInt(Voeu::getRangPreferencesCandidat).min().orElse(Integer.MAX_VALUE)
                         ));
 
+        Set<Integer> candidatsAvecRepAutoEtPropCeJour = rangPreferenceMeilleurePropositionDuJour.keySet();
+
         long placesLiberees = 0;
-        /* candidat par candidat, on applique le répondeur automatique */
+        /* démission automatique des voeux moins bien classés qu'une nouvelle proposition
+        et des anciennes propositions */
         for (Voeu v : voeuxDesCandidatsAvecRepAuto) {
-            int rangMeilleureProposition = rangPreferenceMeilleurePropositionDuJour.getOrDefault(v.id.gCnCod, Integer.MAX_VALUE);
-            if(v.rangPreferencesCandidat > rangMeilleureProposition) {
-                if (v.estProposition()) {
-                    placesLiberees++;
+            int gCnCod = v.id.gCnCod;
+            if (candidatsAvecRepAutoEtPropCeJour.contains(gCnCod)) {
+                int rangMeilleureProposition = rangPreferenceMeilleurePropositionDuJour.get(gCnCod);
+                if (v.aEteProposeJoursPrecedents() || v.getRangPreferencesCandidat() > rangMeilleureProposition) {
+                    if (v.estProposition()) {
+                        placesLiberees++;
+                    }
+                    v.refuserAutomatiquementParApplicationRepondeurAutomatique();
                 }
-                v.refuserAutomatiquementParApplicationRepondeurAutomatique();
             }
         }
 
@@ -88,32 +134,5 @@ public class RepondeurAutomatique {
     private RepondeurAutomatique() {
     }
 
-    /**
-     *
-     * @param entree les données d'entrée
-     * @return le nombre de places liberees par le repondeur automatique
-     * @throws VerificationException en cas d'incohérence des données
-     */
-    public static long appliquerRepondeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
-        if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
-            LOGGER.log(Level.INFO, "{0} candidats ont activé le répondeur automatique",
-                    entree.candidatsAvecRepondeurAutomatique.size()
-            );
-            final long placesLibereesParRepAuto
-                    = appliquerRepondeurAutomatique(entree.voeux, entree.candidatsAvecRepondeurAutomatique);
-
-            if (placesLibereesParRepAuto == 0) {
-                LOGGER.info("Aucune place libérée par le répondeur automatique");
-            } else {
-                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
-                        placesLibereesParRepAuto);
-            }
-
-            return placesLibereesParRepAuto;
-        } else {
-            LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
-            return 0;
-        }
-    }
 
 }

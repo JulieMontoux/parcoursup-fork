@@ -14,6 +14,12 @@ public class ConnecteurDonneesPropositionSQLConfig {
     final boolean recupererSeulementVoeuxEnAttente;
 
     /**
+     * flag activé en simulation
+     * Désactivé en prod.
+     */
+    final boolean inclurePropositionsRefusees;
+
+    /**
      * flag activé en simulation, sur des données avec une remontée des classements partielle ou inexistante.
      * Désactivé en prod.
      */
@@ -59,10 +65,11 @@ public class ConnecteurDonneesPropositionSQLConfig {
         this.simulerNbJrs = -1;
         this.effacerEntreesDuMemeJour = false;
         this.ignorerSurbooking = false;
+        this.inclurePropositionsRefusees = false;
     }
 
     /**
-     * Constructeuyr utilisé en simulation et par certains tests
+     * Constructeur utilisé en simulation et par certains tests
      */
     public ConnecteurDonneesPropositionSQLConfig(
             boolean recupererSeulementVoeuxEnAttente,
@@ -74,6 +81,7 @@ public class ConnecteurDonneesPropositionSQLConfig {
     ) {
         this.verifierInterruptionFluxDonneesEntrantes = false;
         this.recupererSeulementVoeuxEnAttente = recupererSeulementVoeuxEnAttente;
+        this.inclurePropositionsRefusees = !recupererSeulementVoeuxEnAttente;
         this.recupererSeulementVoeuxClasses = recupererSeulementVoeuxClasses;
         this.sparseDataTestingMode = sparseDataTestingMode;
         this.simulationAvantDebutCampagne = simulationAvantDebutCampagne;
@@ -83,23 +91,18 @@ public class ConnecteurDonneesPropositionSQLConfig {
     }
 
     /**
-     * Constructeuyr utilisé par les tests unitaires
+     * Constructeur utilisé par les tests unitaires
      */
-    public ConnecteurDonneesPropositionSQLConfig(
-            boolean recupererSeulementVoeuxEnAttente,
-            boolean recupererSeulementVoeuxClasses,
-            int sparseDataTestingMode,
-            boolean simulationAvantDebutCampagne,
-            boolean ignorerSurbooking
-    ) {
-        this.verifierInterruptionFluxDonneesEntrantes = false;
-        this.recupererSeulementVoeuxEnAttente = recupererSeulementVoeuxEnAttente;
-        this.recupererSeulementVoeuxClasses = recupererSeulementVoeuxClasses;
-        this.sparseDataTestingMode = sparseDataTestingMode;
-        this.simulationAvantDebutCampagne = simulationAvantDebutCampagne;
+    public ConnecteurDonneesPropositionSQLConfig(boolean verifierInterruptionFluxDonneesEntrantes) {
+        this.verifierInterruptionFluxDonneesEntrantes = verifierInterruptionFluxDonneesEntrantes;
+        this.recupererSeulementVoeuxEnAttente = true;
+        this.recupererSeulementVoeuxClasses = true;
+        this.sparseDataTestingMode = 0;
+        this.simulationAvantDebutCampagne = false;
         this.simulerNbJrs = -1;
         this.effacerEntreesDuMemeJour = false;
-        this.ignorerSurbooking = ignorerSurbooking;
+        this.ignorerSurbooking = false;
+        this.inclurePropositionsRefusees = false;
     }
 
 }

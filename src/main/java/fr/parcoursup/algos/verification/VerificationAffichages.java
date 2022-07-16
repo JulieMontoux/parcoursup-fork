@@ -54,7 +54,7 @@ public class VerificationAffichages {
         }
     }
 
-    VerificationAffichages() {
+    private VerificationAffichages() {
     }
 
 }

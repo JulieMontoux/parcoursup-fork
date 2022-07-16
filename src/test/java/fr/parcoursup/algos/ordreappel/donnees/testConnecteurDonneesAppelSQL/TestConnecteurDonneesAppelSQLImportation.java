@@ -1,8 +1,5 @@
 package fr.parcoursup.algos.ordreappel.donnees.testConnecteurDonneesAppelSQL;
 
-import java.util.Optional;
-import static org.junit.Assert.assertThrows;
-
 import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.exceptions.AccesDonneesException;
 import fr.parcoursup.algos.ordreappel.algo.AlgoOrdreAppelEntree;
@@ -11,9 +8,13 @@ import fr.parcoursup.algos.ordreappel.donnees.ConnecteurDonneesAppelSQL;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+import java.util.Optional;
+
+import static org.junit.Assert.assertThrows;
+
 public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonneesAppelSQL {
 
-    public TestConnecteurDonneesAppelSQLImportation(String name) throws Exception {
+    public TestConnecteurDonneesAppelSQLImportation(String name) {
 
         super(name);
 
@@ -54,7 +55,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
 
             try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {
                 ConnecteurDonneesAppelSQL connecteurDonneesAppel = new ConnecteurDonneesAppelSQL(connecteurSQL.connection());
-                GroupeClassement groupeClassement = connecteurDonneesAppel.recupererDonneesOrdreAppelGroupe(999_999);
+                connecteurDonneesAppel.recupererDonneesOrdreAppelGroupe(999_999);
             }
 
         });

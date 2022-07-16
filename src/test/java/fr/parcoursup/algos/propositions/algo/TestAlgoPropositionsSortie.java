@@ -20,7 +20,7 @@ public class TestAlgoPropositionsSortie {
 
     @Test
     public void setAvertissement_doit_changerAvertissementATrueSiNonAlerte() {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         assertFalse(sortie.getAvertissement());
         sortie.setAvertissement();
@@ -29,7 +29,7 @@ public class TestAlgoPropositionsSortie {
 
     @Test
     public void setAvertissement_doit_laisserAvertissementAFalseSiAlerte() {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         assertFalse(sortie.getAvertissement());
         sortie.setAlerte();

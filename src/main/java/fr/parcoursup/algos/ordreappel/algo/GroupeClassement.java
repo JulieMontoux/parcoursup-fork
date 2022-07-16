@@ -143,8 +143,7 @@ public class GroupeClassement implements Serializable {
             throw new VerificationException(VerificationExceptionMessage.GROUPE_CLASSEMENT_POSSIBLE_DEPASSEMENT_ARITHMETIQUE);
         }
 
-        /* on crée autant de listes de candidats que de types de candidats, 
-            triées par ordre de classement */
+        /* on crée autant de listes de candidats que de types de candidats */
         EnumMap<VoeuClasse.TypeCandidat, Queue<VoeuClasse>> filesAttente
                 = new EnumMap<>(VoeuClasse.TypeCandidat.class);
 

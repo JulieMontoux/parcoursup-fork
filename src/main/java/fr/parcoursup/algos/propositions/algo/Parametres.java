@@ -31,19 +31,46 @@ public class Parametres implements Serializable {
     /* le nombre de jours de campagne à la date de fin de réservation des places internats */
     public final int nbJoursCampagneDateFinReservationInternats;
 
-    public Parametres(int nbJoursCampagne, int nbJoursCampagneDateFinReservationInternats) {
+    /* le nombre de jours de campagne à la date de début GDD */
+    public final int nbJoursCampagneDateDebutGDD;
+
+    public final int nbJoursCampagneDateFinOrdonnancementGDD;
+
+    public Parametres(
+            int nbJoursCampagne,
+            int nbJoursCampagneDateFinReservationInternats,
+            int nbJoursCampagneDateDebutGDD,
+            int nbJoursCampagneDateFinOrdonnancementGDD
+            ) {
         this.nbJoursCampagne = nbJoursCampagne;
         this.nbJoursCampagneDateFinReservationInternats = nbJoursCampagneDateFinReservationInternats;
+        this.nbJoursCampagneDateDebutGDD = nbJoursCampagneDateDebutGDD;
+        this.nbJoursCampagneDateFinOrdonnancementGDD = nbJoursCampagneDateFinOrdonnancementGDD;
     }
  
     public Parametres(Parametres p) {
         this.nbJoursCampagne = p.nbJoursCampagne;
         this.nbJoursCampagneDateFinReservationInternats = p.nbJoursCampagneDateFinReservationInternats;
+        this.nbJoursCampagneDateDebutGDD = p.nbJoursCampagneDateDebutGDD;
+        this.nbJoursCampagneDateFinOrdonnancementGDD = p.nbJoursCampagneDateFinOrdonnancementGDD;
     }
     
     private Parametres() {
         this.nbJoursCampagne = 0;
         this.nbJoursCampagneDateFinReservationInternats = 0;
+        this.nbJoursCampagneDateDebutGDD = 0;
+        this.nbJoursCampagneDateFinOrdonnancementGDD = 0;
     }
-    
+
+    public Parametres(
+            int nbJoursCampagne,
+            int nbJoursCampagneDateFinReservationInternats,
+            int nbJoursCampagneDateDebutGDD
+    ) {
+        this.nbJoursCampagne = nbJoursCampagne;
+        this.nbJoursCampagneDateFinReservationInternats = nbJoursCampagneDateFinReservationInternats;
+        this.nbJoursCampagneDateDebutGDD = nbJoursCampagneDateDebutGDD;
+        this.nbJoursCampagneDateFinOrdonnancementGDD = nbJoursCampagneDateDebutGDD;
+    }
+
 }

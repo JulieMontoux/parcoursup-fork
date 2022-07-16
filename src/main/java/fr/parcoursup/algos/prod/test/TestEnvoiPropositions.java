@@ -30,20 +30,14 @@ public class TestEnvoiPropositions {
             ConnecteurDonneesPropositionsSQL connecteurSQLIn
                     = new ConnecteurDonneesPropositionsSQL(
                     connecteurOracleIn.connection(),
-                    new ConnecteurDonneesPropositionSQLConfig(
-                            true, //recupererSeulementVoeuxEnAttente
-                            true, //recupererSeulementVoeuxClasses
-                            0, //sparseDataTestingMode
-                            false, //utiliserRangSiPasOrdreAppel
-                            false //ignorerSurbooking
-                    )
+                    new ConnecteurDonneesPropositionSQLConfig(false)
             );
             EnvoiPropositions envoiPropositions = new EnvoiPropositions(
                     connecteurSQLIn,
                     new ConnecteurDonneesPropositionsSQL(connecteurOracleOut.connection())
             );
 
-            boolean logDonnees = true;
+            boolean logDonnees = false;
             envoiPropositions.execute(logDonnees);
         }
     }

@@ -1,10 +1,10 @@
 package fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositionsSQL;
 
-import java.util.HashMap;
-
 import fr.parcoursup.algos.bacasable.peuplementbdd.*;
 import org.dbunit.PropertiesBasedJdbcDatabaseTester;
 import org.javalite.activejdbc.DB;
+
+import java.util.HashMap;
 
 
 
@@ -28,40 +28,30 @@ public class JeuDonneesBaseTestPropositions {
                 System.getProperty(PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD)
             );   
 
-        
-            ParametreApplication parametreApplication1 = new ParametreApplication(
-                31,                 // indexFlagInterruptionDonneesEntrantes
-                "0"                 // 0 = flag off
-            );
-
-            this.scenario.ajouteEntite(parametreApplication1);
-
-
-
-            ParametreApplication parametreApplication2 = new ParametreApplication(
+            this.scenario.ajouteEntite(new ParametreApplication(
+                    31,                 // indexFlagInterruptionDonneesEntrantes
+                    "0"                 // 0 = flag off
+            ));
+            this.scenario.ajouteEntite(new ParametreApplication(
                 34,                // indexFlagAlerte
                 "0"
-            );
-
-            this.scenario.ajouteEntite(parametreApplication2);
-
-
-
-            ParametreApplication parametreApplication3 = new ParametreApplication(
+            ));
+            this.scenario.ajouteEntite(new ParametreApplication(
                 35,                // indexDateDebutDeCampagne
                 "20/05/2020:0000"  // date et heure du début de la campagne
-            );
-
-            this.scenario.ajouteEntite(parametreApplication3);
-
-
-
-            ParametreApplication parametreApplication4 = new ParametreApplication(
+            ));
+            this.scenario.ajouteEntite(new ParametreApplication(
                 334,                // indexDateOuvertureCompleteInternats
                 "01/07/2020:0000"   // date et heure de l'ouverture complète des internats
-            );
-
-            this.scenario.ajouteEntite(parametreApplication4);
+            ));
+            this.scenario.ajouteEntite(new ParametreApplication(
+                    316,                // indexDateDebutGDD
+                    "15/07/2020:2359"   // date et heure du début GDD
+            ));
+            this.scenario.ajouteEntite(new ParametreApplication(
+                    437,                // indexDateFinOrdGDD
+                    "18/07/2020:0000"   //
+            ));
 
             
             // Candidats
@@ -640,7 +630,8 @@ public class JeuDonneesBaseTestPropositions {
                 1,                                 // identifiant numérique
                 1,                                 // code 1 = voeu en attente 
                 0,                                 // code 0 = voeu non affecte 
-                0                                  // code 0 = voeu non clôturé 
+                0,                                  // code 0 = voeu non clôturé
+                    0                               // codeVoeuPropAcceptee
             );
 
             this.scenario.ajouteEntite(situationVoeuEnAttente);
@@ -650,7 +641,8 @@ public class JeuDonneesBaseTestPropositions {
                 2,                                // identifiant numérique
                 0,                                // code 0 = voeu en attente 
                 1,                                // code 1 = voeu affecte 
-                0                                 // code 0 = voeu non clôturé 
+                0,                                 // code 0 = voeu non clôturé
+                    1                               //codeVoeuPropAcceptee
             );
 
             this.scenario.ajouteEntite(situationVoeuAffecte);

@@ -23,7 +23,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
     @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_memeSiAucunMeilleurBachelier() throws Exception {
         // True branch coverage de la ligne 75
-        Parametres p = new Parametres(1, 10);
+        Parametres p = new Parametres(1, 10, 90);
 
         final GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
         final GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
@@ -45,7 +45,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siVerifierEstFalse() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
 
         final GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
         final GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
@@ -67,7 +67,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siCandidatsAvecRepondeurAutomatique() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
 
         final GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
         final GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
@@ -92,7 +92,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siCandidatsAvecRepondeurAutomatiqueEtAutreCandidatAffecteHorsPP() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
 
         final GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
         final GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
@@ -101,7 +101,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
         final GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
 
         final List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(1, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 1, Voeu.StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS, true));
+        voeux.add(new Voeu(1, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 1, Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE, true));
         voeux.add(new Voeu(2, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 2, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
         voeux.add(new Voeu(3, groupeAffectation.id, 3, 3, groupeInternat.id, 3, 3, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
@@ -118,7 +118,7 @@ public class TestAlgoPropositions { // A terme, il faudra peut-être inclure les
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void calcule_doit_reussir_siRepondeurLiberePlaces() throws Exception {
-        Parametres p = new Parametres(1, 60);
+        Parametres p = new Parametres(1, 60, 90);
 
         final GroupeAffectation g1 = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         final GroupeAffectation g2 = new GroupeAffectation(1, new GroupeAffectationUID(1, 1, 1), 1, 1, p);

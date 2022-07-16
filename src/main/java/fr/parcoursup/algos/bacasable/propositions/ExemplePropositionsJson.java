@@ -25,7 +25,7 @@ public class ExemplePropositionsJson {
         String entreeFilepath = args[0];
 
         //crée un exemple et le sérialize en json
-        Parametres parametres = new Parametres(1, 60);
+        Parametres parametres = new Parametres(1, 60, 90, 95);
 
         AlgoPropositionsEntree entree
                 = new AlgoPropositionsEntree(parametres);

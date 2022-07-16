@@ -48,6 +48,20 @@ public enum VerificationExceptionMessage {
     VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_5("RepAuto violation P7.5: 'Si un candidat a activé son RA alors tous ses voeux ont un rang différent dans le RA.'. Voeu en cause %s"),
     VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_6("RepAuto violation P7.6: 'Si un voeu du RA est une proposition alors les voeux du RA encore en attente ont un meilleur rang dans le RA. Candidat en cause %s"),
 
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_1("DemAuto violation P8.1: 'Pour chaque candidat, soit tous les voeux en attente sont archivés, soit aucun voeu en attente n'est archivé. Candidat en cause: %s"),
+
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_2_a("DemAuto violation P8.2.a: 'En GDD, tous les voeux en attente, les propositions du jour et les demissions auto du jour ont un rang dans l'ordre de préférence du candidat'.  Voeu en cause: %s"),
+
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_2_b("DemAuto violation P8.2.b: 'En GDD, chacun des voeux a un rang différent dans l'ordre des préférences du candidat'. Voeu en cause: %s"),
+
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_3_a("DemAuto violation P8.3.a: 'En GDD, au plus deux propositions par candidat'.  Candidat en cause: gCnCod=%s"),
+
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_3_b("DemAuto violation P8.3.b: 'En GDD, si un candidat a deux propositions alors\n" +
+            "    une est acceptée et l'autre est une proposition du jour. Candidat en cause: gCnCod=%s"),
+    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_4("DemAuto violation P8.4: 'En GDD, si un candidat a une proposition dont l'ordre de préférence a été spécifié\n" +
+            "    alors les voeux encore en attente ont un rang strictement inférieur dans les préférences du candidat'. Candidat en cause: gCnCod=%s"),
+     VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8_5("DemAuto violation P8.5: 'En GDD, si un voeu a été démissionné automatiquement le jour même, alors le candidat concerné\n" +
+            "    a une nouvelle proposition du jour, de rang strictement inférieur.'. Candidat en cause: gCnCod=%s"),
     VERIFICATION_ENTREE_ALGO_PROPOSITIONS_VOEU_NON_RECENSE("Voeu non recensé en entrée"),
     VERIFICATION_ENTREE_ALGO_PROPOSITIONS_DONNEES_NON_INTEGRES("Données d'entrée non intègres: %s"),
 
@@ -80,15 +94,16 @@ public enum VerificationExceptionMessage {
     VOEU_SANS_RANG_NON_REFUSABLE_AUTOMATIQUEMENT("Le voeu %s sans rang dans le rep auto ne peut être refusé automatiquement"),
     VOEU_AVEC_REPONDEUR_NON_REFUSABLE_PAR_DEM_AUTO_GDD("Le voeu %s n'est pas refusable automatiquement en GDD, il doit être traité par le répondeur automatique"),
     VOEU_REFUS_AUTOMATIQUE_IMPOSSIBLE("Le statut du voeu %s ne permet pas le refus automatique"),
+    VOEU_PROPOSITION_IMPOSSIBLE("Le statut du voeu %s ne permet pas une proposition automatique"),
     VOEU_SANS_STATUT_DEMISSION_AUTOMATIQUE("Ce voeu n'est pas une démission automatique et n'a donc pas de statut associé"),
-    VOEU_INCONSISTENCE_STATUT_HORS_PP("Inconsistence logique: un voeu hors PP doit avoir le statut affecteJoursPrecedents"),
-    VOEU_RANGS_NEGATIFS("Rangs négatifs"),
-    VOEU_ORDRE_APPEL_MANQUANT("Ordre appel manquant"),
+    VOEU_INCONSISTENCE_STATUT_HORS_PP("Inconsistence logique: un voeu hors PP doit avoir le statut affecteJoursPrecedents %s"),
+    VOEU_RANGS_NEGATIFS("Rangs négatifs pour voeu %s"),
+    VOEU_ORDRE_APPEL_MANQUANT("Ordre appel manquant pour voeu %s"),
     VOEU_INCOHERENCE_PARAMETRES("Incohérence dans les paramètres du constructeur de Voeu"),
     VOEU_INJECTION_GROUPE("Injection d'un groupe dont l'id ne correspond pas au voeu"),
     VOEU_INJECTION_INERNAT("Injection d'un internat dont l'id ne correspond pas au voeu"),
     VOEU_GROUPE_NULL("Un voeu ne peut avoir un groupeUID null"),
-    VOEU_INTERNAT_NULL("Un voeu avec internat ne peut avoir un internatUID null"),
+    VOEU_INTERNAT_NULL("Un voeu avec internat ne peut avoir un internatUID null pour voeu %s"),
     VOEU_TYPE_MAJ_INCONNUE("valeur de a_ve_typ_maj inconnue %s"),
     PARAMETRES_NULL("Passage de paramètres nuls")
     ;

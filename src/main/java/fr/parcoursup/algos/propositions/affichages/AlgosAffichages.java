@@ -25,7 +25,7 @@ public class AlgosAffichages {
         Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
 
         for (Voeu v : sortie.voeux) {
-            if (v.estAffecteJoursPrecedents() || v.estAffecteHorsPP()) {
+            if (v.aEteProposeJoursPrecedents() || v.estAffecteHorsPP()) {
                 continue;
             }
             if (!voeuxParGroupes.containsKey(v.getGroupeAffectation())) {
@@ -134,7 +134,8 @@ public class AlgosAffichages {
 
         for (Voeu voe : voeux) {
             if (voe.estProposition()) {
-                groupe.setRangDernierAppeleAffiche(voe.ordreAppelAffiche);
+                int aff = Math.max(groupe.getRangDernierAppeleAffiche(), voe.ordreAppelAffiche);
+                groupe.setRangDernierAppeleAffiche(aff);
             } else if (
                     voe.estEnAttenteDeProposition()
                     && !voe.ignoreDansLeCalculDesRangSurListesDattente()
@@ -194,7 +195,8 @@ public class AlgosAffichages {
                     //voeu hors groupe: on ignore
                 } else if (voe.estProposition()) {
                     //proposition: on augmente la barre affichée
-                    internat.barresAppelAffichees.put(g.id, voe.ordreAppelAffiche);
+                    int aff = Math.max(internat.barresAppelAffichees.getOrDefault(g.id,0), voe.ordreAppelAffiche);
+                    internat.barresAppelAffichees.put(g.id, aff);
                 } else if (voe.ignoreDansLeCalculDesRangSurListesDattente()) {
                     //cas exceptionnels: on continue
                 } else if (voe.estEnAttenteDeProposition()

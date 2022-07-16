@@ -146,7 +146,7 @@ public final class AlgoPropositionsEntree implements Serializable {
 
     /* for deserialization */
     AlgoPropositionsEntree() {
-        parametres = new Parametres(0, 0);
+        parametres = new Parametres(0, 0, 0, 0);
     }
 
     public void injecterGroupesEtInternatsDansVoeux() throws VerificationException {

@@ -7,34 +7,37 @@ Le dépôt contient les algorithmes et le code Java permettant
       - le calcul de l'ordre d'appel
       - le calcul des propositions de formations
       - le calcul des propositions d'hébergement en internat
-      - l'application du répondeur automatique.
+      - l'application du répondeur automatique
+      - l'application des démissions automatiques des voeux archivés pendant la phase de gestion des démissions (GDD).
 
 Un document synthétique de présentation est accessible sur le site du MESRI : http://www.enseignementsup-recherche.gouv.fr/
 
 Le dépôt contient également le code PL/SQL permettant
 la vérification de certains des calculs effectués par l'implémentation Java.
 
-Le dépôt est organisé en plusieurs dossiers :
+Le dépôt est organisé en plusieurs dossiers :
 
     doc/presentation_algorithmes.pdf		présentation des algorithmes
-    doc/implementation.txt			description synthétique de l'implémentation des algorithmes
-    doc/exemples/				exemples au format XML
-    src/main/java/					code Java
-    src/test/java/					tests du code Java
-    plsql/					code PL/SQL
+    doc/implementation.txt			        description synthétique de l'implémentation des algorithmes
+    doc/exemples/				            exemples au format XML
+    src/main/java/					        code Java
+    src/test/java/					        tests du code Java
+    plsql/					                code PL/SQL
 
 Calcul de l'ordre d'appel:
 
-    CalculOrdreAppelProd		procédure principale (main) utilisée dans Parcoursup
-    fr.parcoursup.algos.ordreappel.algo.*		implémentation Java de l'algorithme de calcul de l'ordre d'appel
-    fr.parcoursup.algos.ordreappel.exemples.*			exemples
-    fr.parcoursup.algos.ordreappel.donnees.*				accès aux données (Oracle ou XML)
+    CalculOrdreAppelProd		                    procédure principale (main) utilisée dans Parcoursup
+    fr.parcoursup.algos.ordreappel.algo.*		    implémentation Java de l'algorithme de calcul de l'ordre d'appel
+    fr.parcoursup.algos.ordreappel.exemples.*		exemples
+    fr.parcoursup.algos.ordreappel.donnees.*		accès aux données (Oracle ou XML)
 
-Calcul des propositions à envoyer :
+Calcul des propositions à envoyer :
 
-    EnvoiPropositionsProd    	        procédure principale (main) utilisée dans Parcoursup
-    fr.parcoursup.algos.propositions.algo.*				implémentation Java de l'algorithme de calcul des propositions à envoyer
-    fr.parcoursup.algos.propositions.repondeur.*		        implémentation Java du répondeur automatique
+    EnvoiPropositionsProd    	                                       procédure principale (main) utilisée dans Parcoursup
+    fr.parcoursup.algos.propositions.algo.*				               implémentation Java de l'algorithme de calcul des propositions à envoyer
+    fr.parcoursup.algos.propositions.algo.RepondeurAutomatique.java    implémentation Java du répondeur automatique
+    fr.parcoursup.algos.propositions.algo.DémissionAutoGDD.java        implémentation Java de la démission auto des voeux archivés 
+    .java 		            
     fr.parcoursup.algos.propositions.exemples.*			exemples, y compris le générateur d'exemples aléatoires
     fr.parcoursup.algos.propositions.donnees.*			accès aux donnees (Oracle ou XML)
 
@@ -48,7 +51,7 @@ Ce dépôt intègre également le code d'outils permettant de tester les algorit
 
 Les paquets logiciels suivants sont requis pour la compilation du projet et la mise en oeuvre du bac à sable et de la suite de tests :
 
-- java8
+- java11
 - maven
 
 Un accès à un terminal graphique est également recommandé pour la consultation des rapports relatifs à la couverture de code.

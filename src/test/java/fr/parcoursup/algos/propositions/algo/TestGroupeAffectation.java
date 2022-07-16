@@ -1,14 +1,14 @@
 package fr.parcoursup.algos.propositions.algo;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.util.Random;
-
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 import fr.parcoursup.algos.propositions.Helpers;
 import org.junit.Test;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.util.Random;
 
 import static fr.parcoursup.algos.propositions.algo.GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT;
 import static org.junit.Assert.*;
@@ -25,7 +25,7 @@ public class TestGroupeAffectation {
 
     @Test
     public void constructeur_doit_copier() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         GroupeAffectation g1 = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         GroupeAffectation g2 = new GroupeAffectation(g1);
         assertTrue(
@@ -39,7 +39,7 @@ public class TestGroupeAffectation {
     @Test
     public void constructeur_doit_echouer_si_parametresNegatifs() {
         // False branch coverage de la ligne 55
-        Parametres p = new Parametres(1, 1);
+        Parametres p = new Parametres(1, 1, 90);
         VerificationException exception1 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, null, 1, 1, p));
         VerificationException exception2 = assertThrows(VerificationException.class, () -> new GroupeAffectation(-1, new GroupeAffectationUID(0, 0, 0), 1, 1, p));
         VerificationException exception3 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), -1, 1, p));
@@ -52,14 +52,14 @@ public class TestGroupeAffectation {
     @Test(expected = Test.None.class /* no exception expected */)
     public void constructeur_doit_reussir_si_milieuCampagne() throws Exception {
         // True branch coverage de la ligne 63
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 2, 2, p);
     }
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourPropositions_doit_reussir_si_aucunePlacePossible() throws VerificationException {
         // False branch coverage de la ligne 128
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         GroupeAffectation g = new GroupeAffectation(0, new GroupeAffectationUID(0, 0, 0), 0, 2, p);
         Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 1);
         g.mettreAJourPropositions();
@@ -67,7 +67,7 @@ public class TestGroupeAffectation {
 
     @Test
     public void setRangLimite_doit_changerLeRangLimite() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         assertEquals(1, g.getRangLimite());
         g.setRangLimite(2);
@@ -76,7 +76,7 @@ public class TestGroupeAffectation {
 
     @Test
     public void getRangDernierAppeleAffiche_retourne_rangDernierAppeleAffiche() throws VerificationException {
-        Parametres p = new Parametres(2, 60);
+        Parametres p = new Parametres(2, 60, 90);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
         assertEquals(0, g.getRangDernierAppeleAffiche());
         g.setRangDernierAppeleAffiche(1);
@@ -84,10 +84,10 @@ public class TestGroupeAffectation {
     }
 
     @Test
-    public void calculerEstimationRangDernierAppeleADateFinReservationInternat_doit_echouer_si_valeurs_incoherentes() throws VerificationException {
+    public void calculerEstimationRangDernierAppeleADateFinReservationInternat_doit_echouer_si_valeurs_incoherentes() {
         GroupeAffectationUID gid = new GroupeAffectationUID(0, 0, 0);
         VerificationException verif = assertThrows(VerificationException.class,
-                () -> new GroupeAffectation(0, gid, 1, 10, 11, new Parametres(1, 60))
+                () -> new GroupeAffectation(0, gid, 1, 10, 11, new Parametres(1, 60, 90))
                         .getEstimationRangDernierAppeleADateFinReservationInternats()
         );
         assertEquals(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_RANG_DERNIER_APPELE, verif.exceptionMessage);
@@ -106,7 +106,7 @@ public class TestGroupeAffectation {
                         10,
                         0,
                         500,
-                        new Parametres(1, 12)
+                        new Parametres(1, 12,90)
                 )
         );
         //pas d'estimation après la date pivot
@@ -116,7 +116,7 @@ public class TestGroupeAffectation {
                         10,
                         0,
                         555,
-                        new Parametres(13, 12)
+                        new Parametres(13, 12,90)
                 )
         );
         //pas d'estimation après la date pivot
@@ -126,7 +126,7 @@ public class TestGroupeAffectation {
                         777,
                         100,
                         555,
-                        new Parametres(13, 12)
+                        new Parametres(13, 12,90)
                 )
         );
         //avant la date pivot, au moins le rang limite d'appel par bloc
@@ -136,7 +136,7 @@ public class TestGroupeAffectation {
                         10,
                         0,
                         500,
-                        new Parametres(10, 12)
+                        new Parametres(10, 12,90)
                 )
         );
         //avant la date pivot, au moins le rang d'appelé actuel
@@ -146,7 +146,7 @@ public class TestGroupeAffectation {
                         777,
                         777,
                         50,
-                        new Parametres(10, 13)
+                        new Parametres(10, 13, 90)
                 )
         );
         //avant la date pivot, interpolation linéaire si rangAppelelAnterieur non disponible
@@ -156,7 +156,7 @@ public class TestGroupeAffectation {
                         500,
                         0,
                         50,
-                        new Parametres(11, 21)
+                        new Parametres(11, 21, 90)
                 )
         );
         //avant la date pivot, interpolation affine si rangAppelelAnterieur est disponible
@@ -171,7 +171,7 @@ public class TestGroupeAffectation {
                         rangDernierAppeleActuel,
                         rangDernierAppeleAnterieur,
                         50,
-                        new Parametres(11, 11 + nbJourstoGo)
+                        new Parametres(11, 11 + nbJourstoGo, 11 + 80)
                 )
         );
 

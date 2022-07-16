@@ -1,7 +1,5 @@
 package fr.parcoursup.algos.ordreappel.algo;
 
-import static org.junit.Assert.assertTrue;
-
 import fr.parcoursup.algos.verification.VerificationsResultatsAlgoOrdreAppel;
 import org.junit.Test;
 

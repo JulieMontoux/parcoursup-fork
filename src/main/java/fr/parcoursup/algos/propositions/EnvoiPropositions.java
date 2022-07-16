@@ -78,7 +78,6 @@ public class EnvoiPropositions {
 
         LOGGER.info("Export des données");
         output.exporterDonnees(sortie);
-
     }
 
 }

@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static fr.parcoursup.algos.donnees.ConnecteurSQL.A_AD_TYP_DEM_GDD;
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.A_AD_TYP_DEM_RA;
 import static fr.parcoursup.algos.exceptions.VerificationExceptionMessage.VOEU_SANS_STATUT_DEMISSION_AUTOMATIQUE;
 
@@ -81,7 +82,10 @@ public class Voeu implements Serializable {
     public final int rangInternat;
 
     /* la position du voeu dans la liste de voeux hiérarchisés du candidat (0 = pas de hiérarchisation, 1 = voeu préféré). Calculé en SQL par NVL(A_VOE.a_ve_ord,0). */
-    public final int rangPreferencesCandidat;
+    private int rangPreferencesCandidat;
+
+    public int getRangPreferencesCandidat() { return rangPreferencesCandidat; }
+    public void setRangPreferencesCandidat(int rangPreferencesCandidat) { this.rangPreferencesCandidat = rangPreferencesCandidat; }
 
     /* est-ce que le répondeur automatique est activé.
     * Utilisé pour les vérifications des données. */
@@ -131,16 +135,35 @@ public class Voeu implements Serializable {
     public final GroupeInternatUID internatUID;
 
 
+    /***
+     *
+     * @return le type de démission automatique
+     * @throws VerificationException si le voeu n'est pas une démission automatique
+     */
+    public int getTypeDemissionAutomatique() throws VerificationException {
+        if(!estDemissionAutomatique()) {
+            throw new VerificationException(VOEU_SANS_STATUT_DEMISSION_AUTOMATIQUE, this);
+        }
+        return (statut == StatutVoeu.GDD_DEMISSION_ATTENTE || statut == StatutVoeu.GDD_DEMISSION_PROP) ? A_AD_TYP_DEM_GDD : A_AD_TYP_DEM_RA;
+    }
+
+    public boolean estDemissionGDD() {
+        return (statut == StatutVoeu.GDD_DEMISSION_ATTENTE || statut == StatutVoeu.GDD_DEMISSION_PROP);
+    }
+
     /* les différents statuts d'un voeu */
     @XmlRootElement
     public enum StatutVoeu {
         EN_ATTENTE_DE_PROPOSITION,
         PROPOSITION_DU_JOUR,
         REP_AUTO_DEMISSION_ATTENTE, //démission auto d'un voeu en attente par le répondeur automatique
+        GDD_DEMISSION_ATTENTE, //démission auto d'un voeu en attente par la règle de GDD
+        GDD_DEMISSION_PROP, //démission auto d'une propositions par la règle de GDD
         REP_AUTO_ACCEPTE,
-        PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT,
-        PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS,
         REP_AUTO_REFUS_PROPOSITION, //refus automatique d'une proposition via le répondeur automatique
+        PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT,
+        PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE,
+        PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
         REFUS_OU_DEMISSION,              //refus proposition ou demission voeu en attente (utilisé en simulation)
         NON_CLASSE              //voeu n'ayant pas encore été classé par la formation (utilisé en simulation)
     }
@@ -156,6 +179,8 @@ public class Voeu implements Serializable {
     public boolean estDemissionAutomatique() {
         return statut == StatutVoeu.REP_AUTO_DEMISSION_ATTENTE
                 || statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION
+                || statut == StatutVoeu.GDD_DEMISSION_ATTENTE
+                || statut == StatutVoeu.GDD_DEMISSION_PROP
                 ;
     }
 
@@ -164,29 +189,36 @@ public class Voeu implements Serializable {
     }
 
     public boolean estDemissionAutomatiqueProposition() {
-        return statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION;
+        return statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION
+                || statut == StatutVoeu.GDD_DEMISSION_PROP;
     }
 
     public boolean estAcceptationAutomatique() {
         return statut == StatutVoeu.REP_AUTO_ACCEPTE;
     }
 
-    public boolean estProposition() {
-        return statut == StatutVoeu.REP_AUTO_ACCEPTE
-                || statut == StatutVoeu.PROPOSITION_DU_JOUR
-                || statut == StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
-    }
-
-    public boolean estRefus() {
-        return statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION
-                || statut == StatutVoeu.REP_AUTO_DEMISSION_ATTENTE
-                || statut == StatutVoeu.REFUS_OU_DEMISSION;
-    }
-
     public boolean estPropositionDuJour() {
         return statut == StatutVoeu.REP_AUTO_ACCEPTE
                 || statut == StatutVoeu.PROPOSITION_DU_JOUR;
     }
+
+    public boolean estProposition() {
+        return statut == StatutVoeu.REP_AUTO_ACCEPTE
+                || statut == StatutVoeu.PROPOSITION_DU_JOUR
+                || statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                || statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
+    }
+
+    /**
+     *
+     * @return true si une proposo=tiion sur ce voeu a été faite les jours précédents
+     */
+    public boolean aEteProposeJoursPrecedents() {
+        return statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                || statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                || statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_REFUSEE;
+    }
+
 
     public boolean estEnAttenteDeProposition() {
         return statut == StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
@@ -196,13 +228,12 @@ public class Voeu implements Serializable {
         return statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
     }
 
-    public boolean estAffecteJoursPrecedents() {
-        return statut == StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS
-                || statut == StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
-    }
-
     public StatutVoeu getStatut() {
         return statut;
+    }
+
+    public void setStatut(StatutVoeu s) {
+        this.statut = s;
     }
 
     public void refuserAutomatiquementParApplicationRepondeurAutomatique() throws VerificationException {
@@ -219,9 +250,23 @@ public class Voeu implements Serializable {
         }
     }
 
+    public void refuserAutomatiquementParApplicationDemissionGdd() throws VerificationException {
+        if(!estPropositionDuJour() && !estEnAttenteDeProposition() && !estPropJoursPrecedentsEnAttenteDeReponseCandidat()) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_NON_REFUSABLE_AUTOMATIQUEMENT_HORS_REP_AUTO, this);
+        } else if (!aEteProposeJoursPrecedents() && rangPreferencesCandidat <= 0) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_SANS_RANG_NON_REFUSABLE_AUTOMATIQUEMENT, this);
+        } else if (repondeurActive) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_AVEC_REPONDEUR_NON_REFUSABLE_PAR_DEM_AUTO_GDD, this);
+        } else if(estEnAttenteDeProposition()){
+            statut = StatutVoeu.GDD_DEMISSION_ATTENTE;
+        } else {
+            statut = StatutVoeu.GDD_DEMISSION_PROP;
+        }
+    }
+
     public void proposer() throws VerificationException {
         if (statut != StatutVoeu.EN_ATTENTE_DE_PROPOSITION) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_REFUS_AUTOMATIQUE_IMPOSSIBLE, this);
+            throw new VerificationException(VerificationExceptionMessage.VOEU_PROPOSITION_IMPOSSIBLE, this);
         }
         statut = repondeurActive ? StatutVoeu.REP_AUTO_ACCEPTE : StatutVoeu.PROPOSITION_DU_JOUR;
     }
@@ -252,15 +297,6 @@ public class Voeu implements Serializable {
             StatutVoeu statut,
             boolean affecteHorsPP
     ) throws VerificationException {
-        if (affecteHorsPP && (statut != StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS)) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP);
-        }
-        if (ordreAppel < 0 || rangPreferencesCandidat < 0) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS);
-        }
-        if (ordreAppel == 0 && statut != StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT);
-        }
 
         this.id = new VoeuUID(gCnCod, groupeUID.gTaCod, avecInternat);
         this.groupeUID = groupeUID;
@@ -273,6 +309,17 @@ public class Voeu implements Serializable {
         this.statut = statut;
         this.affecteHorsPP = affecteHorsPP;
         this.estArchive = false;
+
+        if (affecteHorsPP && !aEteProposeJoursPrecedents()) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP, this.id);
+        }
+        if (ordreAppel < 0 || rangPreferencesCandidat < 0) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS, this.id);
+        }
+        if (ordreAppel == 0 && !aEteProposeJoursPrecedents()) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT, this.id);
+        }
+
     }
 
     /* constructeur d'un voeu avec internat à classement propre */
@@ -287,18 +334,7 @@ public class Voeu implements Serializable {
             StatutVoeu statut,
             boolean affecteHorsPP
     ) throws VerificationException {
-        if (affecteHorsPP && (statut != StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS)) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP);
-        }
-        if (ordreAppel < 0 || rangPreferencesCandidat < 0 || rangInternat < 0) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_INCOHERENCE_PARAMETRES);
-        }
-        if (ordreAppel == 0 && statut != StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_INCOHERENCE_PARAMETRES);
-        }
-        if(internatUID == null) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_INTERNAT_NULL);
-        }
+
         this.id = new VoeuUID(gCnCod, groupeUID.gTaCod, true);
         this.groupeUID = groupeUID;
         this.ordreAppel = ordreAppel;
@@ -309,6 +345,19 @@ public class Voeu implements Serializable {
         this.statut = statut;
         this.affecteHorsPP = affecteHorsPP;
         this.estArchive = false;
+
+        if (affecteHorsPP && !aEteProposeJoursPrecedents()) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP, this.id);
+        }
+        if (ordreAppel < 0 || rangPreferencesCandidat < 0 || rangInternat < 0) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS, this.id);
+        }
+        if (ordreAppel == 0 && !aEteProposeJoursPrecedents()) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT, this.id);
+        }
+        if(internatUID == null) {
+            throw new VerificationException(VerificationExceptionMessage.VOEU_INTERNAT_NULL, this.id);
+        }
     }
 
     public Voeu(Voeu o) {
@@ -363,26 +412,30 @@ public class Voeu implements Serializable {
     /* utilisé par le simulateur */
     public void simulerEtape() {
         if (estPropositionDuJour()) {
-            statut = StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
+            statut = StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
         }
     }
 
     /* utilisé par le simulateur */
-    public void simulerRefus() {
+    public void simulerRefusProposition() {
+        statut = StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_REFUSEE;
+    }
+
+    public void simulerRefusAvantProposition() {
         statut = StatutVoeu.REFUS_OU_DEMISSION;
     }
 
     /* utilisé par le simulateur */
     public void simulerAcceptation() {
-        statut = StatutVoeu.PROPOSITION_ACCEPTEE_JOURS_PRECEDENTS;
+        statut = StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
     }
 
     /* utilisé par le simulateur */
-    public void simulerEnAttente() {
+    public void simulerEnAttenteSaufSiNonClasse() {
         if (ordreAppel > 0 && (internatUID == null || rangInternat > 0)) {
             statut = StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
         } else {
-            statut = StatutVoeu.REFUS_OU_DEMISSION;
+            statut = StatutVoeu.NON_CLASSE;
         }
     }
 

@@ -57,9 +57,16 @@ public class AlgoPropositions {
         /* chaque passage dans cette boucle correspond à un calcul des propositions
         à envoyer suivi d'une étape de réponse automatique par les candidats
         ayant activé leur répondeur automatique */
+        int nbIterations = 0;
         while (true) {
+            nbIterations++;
 
-            LOGGER.info("Préparation des groupes");
+            LOGGER.info("***********************************************\n" +
+                    "*********  Itération " + nbIterations + "   *******\n" +
+                    "***********************************************"
+            );
+
+            LOGGER.info("Préparation des groupes ");
             preparerGroupes(entree);
 
             /* vérification de l'intégrité des données d'entrée */
@@ -71,9 +78,17 @@ public class AlgoPropositions {
 
             calculerNouvellesPropositions(entree);
 
+            long placesLibereesParDemAutoGDD = 0;
+            boolean appliquerdemAutoGDD =
+                    entree.parametres.nbJoursCampagne >= entree.parametres.nbJoursCampagneDateDebutGDD;
+            if(appliquerdemAutoGDD) {
+                LOGGER.info("Application des démissions automatiques des voeux en attente en GDD");
+                placesLibereesParDemAutoGDD = DemissionAutoGDD.appliquerDemissionAutomatiqueGDD(entree);
+            }
+
             long placesLibereesParRepAuto = RepondeurAutomatique.appliquerRepondeurAutomatique(entree);
 
-            if (placesLibereesParRepAuto == 0) {
+            if (placesLibereesParRepAuto == 0 && placesLibereesParDemAutoGDD == 0) {
                 break;
             }
 
@@ -84,16 +99,15 @@ public class AlgoPropositions {
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(entree);
 
-        if (verifier) {
-            LOGGER.log(Level.INFO, "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
-            new VerificationsResultatsAlgoPropositions().verifier(entree, sortie);
-        }
-
         LOGGER.log(Level.INFO, "Propositions {0}", sortie.nbPropositionsDuJour());
         LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.nbDemissions());
 
+        if (verifier) {
+            LOGGER.log(Level.INFO,
+                    "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
+            new VerificationsResultatsAlgoPropositions(entree, sortie).verifier();
+        }
         return sortie;
-
     }
 
     /* ventile les voeux encore en attente dans les groupes concernés */
@@ -108,7 +122,7 @@ public class AlgoPropositions {
 
         /* ajout des voeux aux groupes */
         for (Voeu v : entree.voeux) {
-            v.setRepondeurActive((v.rangPreferencesCandidat > 0)
+            v.setRepondeurActive((v.getRangPreferencesCandidat() > 0)
                     && entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod));
             v.ajouterAuxGroupes();
         }
