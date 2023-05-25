@@ -51,7 +51,7 @@ Ce dépôt intègre également le code d'outils permettant de tester les algorit
 
 Les paquets logiciels suivants sont requis pour la compilation du projet et la mise en oeuvre du bac à sable et de la suite de tests :
 
-- java11
+- java17
 - maven
 
 Un accès à un terminal graphique est également recommandé pour la consultation des rapports relatifs à la couverture de code.

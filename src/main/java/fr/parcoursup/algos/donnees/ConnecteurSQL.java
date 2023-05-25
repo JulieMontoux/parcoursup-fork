@@ -58,7 +58,20 @@ public class ConnecteurSQL implements java.lang.AutoCloseable {
     public static final String A_REC_GRP_INT_PROP = " A_REC_GRP_INT_PROP ";
     public static final String A_VOE_PROP = " A_VOE_PROP ";
     public static final String A_REC_GRP_INT = " A_REC_GRP_INT ";
-    public static final String G_TRI_INS = " G_TRI_INS ";
+    public static final String V_PROP_RAN_DER_APP = "V_PROP_RAN_DER_APP";
+    public static final String V_PROP_REC_GRP = "V_PROP_REC_GRP";
+    public static final String V_PROP_REC_GRP_INT = "V_PROP_REC_GRP_INT";
+    public static final String V_PROP_CAN_RA = "V_PROP_CAN_RA";
+
+    public static final String V_PROP_PROP = "V_PROP_PROP";
+
+    public static final String V_PROP_ADM = "V_PROP_ADM";
+
+    public static final String V_PROP_VOE = "V_PROP_VOE";
+
+    public static final String V_PROP_VOE_INT = "V_PROP_VOE_INT";
+
+    public static final String V_PROP_ATT_PROP_ANT = "V_PROP_ATT_PROP_ANT";
 
     /* connexion à la base de données */
     private final Connection conn;

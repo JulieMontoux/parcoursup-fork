@@ -10,13 +10,6 @@ import static org.junit.Assert.*;
 
 public class TestAlgoPropositionsSortie {
 
-    @Test
-    public void testConstructorIsPrivate() throws NoSuchMethodException, IllegalAccessException, InvocationTargetException, InstantiationException {
-        Constructor<AlgoPropositionsSortie> constructor = AlgoPropositionsSortie.class.getDeclaredConstructor();
-        assertTrue(Modifier.isPrivate(constructor.getModifiers()));
-        constructor.setAccessible(true);
-        constructor.newInstance();
-    }
 
     @Test
     public void setAvertissement_doit_changerAvertissementATrueSiNonAlerte() {

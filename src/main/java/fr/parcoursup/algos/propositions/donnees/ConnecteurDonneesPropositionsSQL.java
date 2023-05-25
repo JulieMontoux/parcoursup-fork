@@ -20,7 +20,6 @@ l'Innovation,
  */
 package fr.parcoursup.algos.propositions.donnees;
 
-import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.exceptions.AccesDonneesException;
 import fr.parcoursup.algos.exceptions.AccesDonneesExceptionMessage;
 import fr.parcoursup.algos.exceptions.VerificationException;
@@ -137,7 +136,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
             initialiserAlgoPropositionsEntree();
 
-            LOGGER.info("Récupération des candidats ayant activé le répondeur automatique");
+            LOGGER.info("Récupération des candidats ayant activé le répondeur automatique (vue " + V_PROP_CAN_RA + ")");
             recupererCandidatsAvecRepondeurAutomatique();
 
             LOGGER.info("Récupération des groupes d'affectation");
@@ -158,26 +157,17 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 entree.ajouter(internat);
             }
 
-            boolean seulementVoeuxClotures = entree.getParametres().nbJoursCampagne >= entree.getParametres().nbJoursCampagneDateDebutGDD;
-            if(seulementVoeuxClotures) {
-                LOGGER.info("*******************************************************************************");
-                LOGGER.info("date postérieure au début de la GDD: récupération des voeux clôturés uniquement");
-                LOGGER.info("*******************************************************************************");
-            }
-
             LOGGER.info("Récupération des voeux en attente avec demande internat dans un internat ayant son propre classement");
             recupererVoeuxAvecInternatsAClassementPropre(
                     entree.internatsIndex,
                     config.recupererSeulementVoeuxEnAttente,
-                    config.recupererSeulementVoeuxClasses,
-                    seulementVoeuxClotures
+                    config.recupererSeulementVoeuxClasses
             );
 
             LOGGER.info("Récupération des voeux en attente sans internat, ou avec internat n'ayant pas son propre classemnt");
             recupererVoeuxSansInternatAClassementPropre(
                     config.recupererSeulementVoeuxEnAttente,
-                    config.recupererSeulementVoeuxClasses,
-                    seulementVoeuxClotures
+                    config.recupererSeulementVoeuxClasses
             );
 
             LOGGER.info("Récupération des propositions non refusées ");
@@ -418,8 +408,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     private void exporterBarresAfficheesVoeuxAvecInternat(AlgoPropositionsSortie sortie) throws SQLException, VerificationException {
 
-        LOGGER.info("Récupération des rangs des dernier appelés au jour n-1");
-        /* Dans chaque groupe internat, tous les candidats inclus strictement 
+        /* Dans chaque groupe internat, tous les candidats inclus strictement
         dans le rectangle délimité par
         internat.nouvelleBarreAppel et 
         internat.nouvelleBarreInternat et 
@@ -483,8 +472,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
         /* on compare avec les valeurs au jour n-1 et on met à jour
                 si la relation d'inclusion est vérifiée */
-        try (PreparedStatement stmt = connection.prepareStatement(
-                SELECT + " C_GI_COD,"
+        String sql = SELECT + " C_GI_COD,"
                 + "g_ta_cod,"
                 + "prop.G_TI_COD,"
                 + "C_GP_COD,"
@@ -493,8 +481,9 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 + FROM + A_REC_GRP_INT_PROP + " prop"
                 + WHERE + "(NB_JRS < ?)"
                 + AND + "C_GI_COD != 0"
-                + GROUP_BY + "C_GI_COD,g_ta_cod,prop.G_TI_COD,C_GP_COD"
-        )) {
+                + GROUP_BY + "C_GI_COD,g_ta_cod,prop.G_TI_COD,C_GP_COD";
+        LOGGER.info(sql);
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
             stmt.setFetchSize(100_000);
             stmt.setInt(1, sortie.parametres.nbJoursCampagne);
 
@@ -555,12 +544,12 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         }
 
         /* on compare avec les valeurs au jour n-1 et on met à jour pour garantir la monotonie */
-        try (PreparedStatement stmt = connection.prepareStatement(
-                SELECT + "g_ta_cod,G_TI_COD,C_GP_COD,MAX(A_RG_RAN_DER)"
+        String sql = SELECT + "g_ta_cod,G_TI_COD,C_GP_COD,MAX(A_RG_RAN_DER)"
                         + FROM + A_REC_GRP_INT_PROP
                         + WHERE + "(NB_JRS < ?)"
                         + AND + "C_GI_COD " + EQUALS_ZERO
-                        + GROUP_BY + "C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD")) {
+                        + GROUP_BY + "C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD";
+        try (PreparedStatement stmt = connection.prepareStatement(sql)) {
 
             stmt.setInt(1, sortie.parametres.nbJoursCampagne);
             stmt.setFetchSize(100_000);
@@ -670,11 +659,13 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     boolean checkColumnExists(String tableName, String colName) throws SQLException {
         try (Statement stmt = connection.createStatement()) {
-            try (ResultSet result
-                         = stmt.executeQuery(
+            String sql =
                     SELECT + "* FROM user_tab_cols "
-                            + WHERE + "upper(column_name) = '" + colName.toUpperCase() + "'"
-                            + AND + "upper(table_name) = '" + tableName.toUpperCase() + "'")) {
+                            + WHERE + "upper(column_name) = '" + colName.trim().toUpperCase() + "'"
+                            + AND + "upper(table_name) = '" + tableName.trim().toUpperCase() + "'";
+            LOGGER.info(sql);
+            try (ResultSet result
+                         = stmt.executeQuery(sql)) {
                 return result.next();
             }
             catch (org.h2.jdbc.JdbcSQLSyntaxErrorException ex) {
@@ -710,43 +701,22 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         boolean colFinReservationInternatExists = true;
 
         /* Ce mode, désactivé par défaut,
-        * permet d'exécuter l'algorithme d'appel
-        * et les simulations sur des bases archivées.
-        */
+         * permet d'exécuter l'algorithme d'appel
+         * et les simulations sur des bases archivées.
+         */
         if (retroCompatibitilite) {
             colAdmStopExists = checkColumnExists(RECRUTEMENTS_GROUPES_TABLE, "a_rg_flg_adm_stop");
             colFinReservationInternatExists = checkColumnExists(RECRUTEMENTS_FORMATIONS_TABLE, "a_rc_flg_fin_res_pla");
-        } 
+        }
 
 
-        LOGGER.info("Récupération du rang du dernier appelé dans chaque groupe");
-        Map<GroupeAffectationUID,Integer> rangsDernierAppeles = new HashMap<>();
+        LOGGER.info("Récupération du rang du dernier appelé dans chaque groupe (vue " + V_PROP_RAN_DER_APP + ")");
+        Map<GroupeAffectationUID, Integer> rangsDernierAppeles = new HashMap<>();
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(1_000_000);
-            String sql =
-                    SELECT + "rec.g_ta_cod," +
-                            "rec.g_ti_cod," +
-                            "rec.c_gp_cod," +
-                            " MAX(NVL(C_CG_ORD_APP ,-1)) \n" +
-                            FROM + ADMISSIONS_TABLE_SORTIE + " adm, " +
-                            CLASSEMENTS_TABLE + " cla, " +
-                            RECRUTEMENTS_GROUPES_TABLE + " rec " +
-                            WHERE +
-                            "adm.g_cn_cod=cla.g_cn_cod \n" +
-                            AND + "adm.c_gp_cod=cla.c_gp_cod\n" +
-                            AND + "adm.c_gp_cod=rec.c_gp_cod\n" +
-                            AND + "adm.g_ta_cod=rec.g_ta_cod\n" +
-                            AND + "adm.g_ti_cod=rec.g_ti_cod\n" +
-                            AND + " rec.a_rg_nbr_sou > 0 \n" +
-                            AND + " cla.i_ip_cod=5 \n" +
-                            AND + " cla.c_cg_ord_app is not null\n" +
-                            GROUP_BY + " rec.g_ta_cod,rec.g_ti_cod,rec.c_gp_cod";
-
-            LOGGER.info(sql);
+            String sql = SELECT + "g_ta_cod,g_ti_cod,c_gp_cod,ran_der_app " + FROM + V_PROP_RAN_DER_APP;
             try (ResultSet result = stmt.executeQuery(sql)) {
-
                 while (result.next()) {
-
                     int gTaCod = result.getInt(1);
                     int gTiCod = result.getInt(2);
                     int cGpCod = result.getInt(3);
@@ -758,36 +728,23 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        LOGGER.log(Level.INFO,
-                "Récupération du rang du dernier appelé il y a "
-                        + GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT
-                        + " jours dans chaque groupe.");
-        Map<GroupeAffectationUID,Integer> rangsDernierAppelesReference = new HashMap<>();
-        if(parametres.nbJoursCampagne > GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT) {
-            try (PreparedStatement stmt = connection.prepareStatement(
-                    SELECT + "rec.g_ta_cod," +
-                                "rec.g_ti_cod," +
-                                "rec.c_gp_cod," +
-                                " MAX(NVL(C_CG_ORD_APP ,-1)) \n" +
-                                FROM + ADMISSIONS_TABLE_SORTIE + " adm, " +
-                                CLASSEMENTS_TABLE + " cla, " +
-                                RECRUTEMENTS_GROUPES_TABLE + " rec " +
-                                WHERE +
-                                "adm.g_cn_cod=cla.g_cn_cod \n" +
-                                AND + "adm.c_gp_cod=cla.c_gp_cod\n" +
-                                AND + "adm.c_gp_cod=rec.c_gp_cod\n" +
-                                AND + "adm.g_ta_cod=rec.g_ta_cod\n" +
-                                AND + "adm.g_ti_cod=rec.g_ti_cod\n" +
-                                AND + " rec.a_rg_nbr_sou > 0 \n" +
-                                AND + " cla.i_ip_cod=5 \n" +
-                                AND + " cla.c_cg_ord_app is not null\n" +
-                                AND + " adm.nb_jrs <= ?" +
-                                GROUP_BY + " rec.g_ta_cod,rec.g_ti_cod,rec.c_gp_cod"
-            )) {
-                 stmt.setFetchSize(1_000_000);
-                 int dernierJoursCampagneAvecPropositions = parametres.nbJoursCampagne - 1;
-                 stmt.setInt(1, dernierJoursCampagneAvecPropositions - GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT);
-                 try (ResultSet result = stmt.executeQuery()) {
+        Map<GroupeAffectationUID, Integer> rangsDernierAppelesReference = new HashMap<>();
+        if (parametres.nbJoursCampagne > GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT) {
+            LOGGER.log(Level.INFO,
+                    "Récupération du rang du dernier appelé il y a "
+                            + GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT
+                            + " jours dans chaque groupe depuis la vue " + V_PROP_ADM);
+
+            String sql = SELECT + "g_ta_cod,g_ti_cod,c_gp_cod,max(c_cg_ord_app) " +
+                    FROM + V_PROP_ADM + " where nb_jrs <= ? "
+                    + GROUP_BY + "g_ta_cod,g_ti_cod,c_gp_cod";
+            LOGGER.info(sql);
+
+            try (PreparedStatement stmt = connection.prepareStatement(sql)) {
+                int dernierJoursCampagneAvecPropositions = parametres.nbJoursCampagne - 1;
+                stmt.setInt(1, dernierJoursCampagneAvecPropositions - GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT);
+                stmt.setFetchSize(1_000_000);
+                try (ResultSet result = stmt.executeQuery()) {
                     while (result.next()) {
                         int gTaCod = result.getInt(1);
                         int gTiCod = result.getInt(2);
@@ -801,41 +758,41 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        try (Statement stmt = connection.createStatement()) {
-            stmt.setFetchSize(1_000_000);
-            String sql = SELECT + "C_GP_COD,"
-                    + " rec.G_TI_COD,"
-                    + " rec.g_ta_cod,"
-                    + (config.ignorerSurbooking ? "A_RG_PLA capacite,"
+        /*"V_PROP_REC_GRP"
+("C_GP_COD", "G_TI_COD", "G_TA_COD", "CAPACITE", "A_RG_RAN_LIM", "A_RG_FLG_ADM_STOP", "A_RC_FLG_FIN_RES_PLA"*/
+        final String sql;
+        if (colAdmStopExists && colFinReservationInternatExists && !config.simulationAvantDebutCampagne) {
+            LOGGER.info("Récupération des groupes et capacités (vue V_PROP_REC_GRP)");
+            sql = SELECT + "C_GP_COD,G_TI_COD,g_ta_cod, capacite," +
+                    "a_rg_ran_lim,a_rc_flg_fin_res_pla"
+                    + FROM + V_PROP_REC_GRP;
+        } else {
+            LOGGER.info("Récupération des groupes et capacités");
+            sql = SELECT + "C_GP_COD,"
+                        + " rec.G_TI_COD,"
+                        + " rec.g_ta_cod,"
+                        + (config.ignorerSurbooking ? "A_RG_PLA capacite,"
                         : config.simulationAvantDebutCampagne ? " NVL(A_RG_NBR_SOU,A_RG_PLA) capacite,"
                         : " A_RG_NBR_SOU capacite,")
-                    + " NVL(a_rg_ran_lim,0),"
-                    + (colAdmStopExists ? "NVL(rec.a_rg_flg_adm_stop,0)," : "0,")
-                    + (colFinReservationInternatExists ? "NVL(r.a_rc_flg_fin_res_pla,0)" : "0")
-                    + FROM
-                    + RECRUTEMENTS_GROUPES_TABLE + " rec, "
-                    + RECRUTEMENTS_FORMATIONS_TABLE +  " r "
-                    + WHERE + "rec.g_ta_cod=r.g_ta_cod";
-
-            LOGGER.warning(sql);
+                        + " NVL(a_rg_ran_lim,0),"
+                        + (colFinReservationInternatExists ? "NVL(r.a_rc_flg_fin_res_pla,0)" : "0") + " a_rc_flg_fin_res_pla "
+                        + FROM
+                        + RECRUTEMENTS_GROUPES_TABLE + " rec, "
+                        + RECRUTEMENTS_FORMATIONS_TABLE + " r "
+                        + WHERE + "rec.g_ta_cod=r.g_ta_cod";
+            }
+            LOGGER.info(sql);
+        try (Statement stmt = connection.createStatement()) {
+            stmt.setFetchSize(1_000_000);
             try (ResultSet result = stmt.executeQuery(sql)) {
-
                 while (result.next()) {
-
-                    int cGpCod = result.getInt(1);
-                    int gTiCod = result.getInt(2);
-                    int gTaCod = result.getInt(3);
-                    int nbRecrutementsSouhaite = result.getInt(4);
-                    int rangLimite = result.getInt(5);/* peut être null, vaut 0 dans ce cas */
-                    int blocageAdmissionGroupe = result.getInt(6);
-                    boolean finReservationPlacesInternat = (result.getInt(7) == 1);
-                    if (blocageAdmissionGroupe != 0) {
-                        nbRecrutementsSouhaite = 0;
-                        rangLimite = 0;
-                    }
-
-                    GroupeAffectationUID id
-                            = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
+                    int cGpCod = result.getInt("c_gp_cod");
+                    int gTiCod = result.getInt("g_ti_cod");
+                    int gTaCod = result.getInt("g_ta_cod");
+                    int nbRecrutementsSouhaite = result.getInt("capacite");
+                    int rangLimite = result.getInt("a_rg_ran_lim");/* peut être null, vaut 0 dans ce cas */
+                    boolean finReservationPlacesInternat = (result.getInt("a_rc_flg_fin_res_pla") == 1);
+                    GroupeAffectationUID id = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
 
                     int rangDernierAppele = rangsDernierAppeles.getOrDefault(id, 0);
                     int rangDernierAppeleReference = rangsDernierAppelesReference.getOrDefault(id, 0);
@@ -847,7 +804,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                             rangDernierAppele,
                             rangDernierAppeleReference,
                             parametres);
-                    if(finReservationPlacesInternat) {
+                    if (finReservationPlacesInternat) {
                         g.setFinDeReservationPlacesInternats();
                     }
                     resultat.put(id, g);
@@ -863,9 +820,10 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(100_000);
 
-            try (ResultSet result = stmt.executeQuery(
-                    SELECT + "C_GI_COD, NVL(g_ta_cod,0), NVL(g_ti_cod,0),A_RI_NBR_SOU "
-                    + FROM + A_REC_GRP_INT)) {
+            String sql = SELECT + "C_GI_COD, g_ta_cod, g_ti_cod,A_RI_NBR_SOU "
+                            + FROM + V_PROP_REC_GRP_INT;
+            LOGGER.info(sql);
+            try (ResultSet result = stmt.executeQuery(sql)) {
                 while (result.next()) {
                     int cGiCod = result.getInt(1);
                     int gTaCod = result.getInt(2);
@@ -887,6 +845,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
 
     /**
+<<<<<<< HEAD
+=======
      * @param debutInclus date de début de la période, inclus
      * @param finExclus date de fin de la période, exclus
      * @return le nombre de jours dans l'intervalle entre les deux dates des deux timestamps en entrée,
@@ -896,7 +856,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
      * Exemple: si la date de debutInclus est la veille de finExclus alors le résultat est 1.
      * @throws AccesDonneesException problème SQL
      */
-    private static int nbJoursEntre(java.sql.Timestamp debutInclus, java.sql.Timestamp finExclus) throws AccesDonneesException {
+    public static int nbJoursEntre(java.sql.Timestamp debutInclus, java.sql.Timestamp finExclus) throws AccesDonneesException {
         if (finExclus == null || debutInclus == null) {
             throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
         }
@@ -907,301 +867,257 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
     }
 
     /**
+>>>>>>> fix_h2_tests
      * @return le nombre de jours depuis le début de la campagne, valant 1 le premier jour,
      * incréméneté à chaque changement de date
      * @throws SQLException problème SQL
      * @throws AccesDonneesException problème SQL
      */
     public int getNbJoursCampagne() throws SQLException, AccesDonneesException {
-
-        Integer nbJours = null;
-
-        try (PreparedStatement ps = connection.prepareStatement(
-                SELECT + "SYSDATE,TO_DATE(g_par.g_pr_val, 'DD/MM/YYYY:HH24MI')" +
-                FROM + G_PAR + WHERE + "g_pr_cod=?")) {
-            ps.setInt(1, ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_CAMPAGNE);
-            try (ResultSet result = ps.executeQuery()) {
-                while (result.next()) {
-                    java.sql.Timestamp maintenant = result.getTimestamp(1);
-                    java.sql.Timestamp  dateDebutCampagne = result.getTimestamp(2);
-                    nbJours = nbJoursEntre(dateDebutCampagne, maintenant) + 1;
-                }
+        try(CallableStatement cs = connection.prepareCall("{? = call f_propGetNbJrsNow()}")) {
+            cs.registerOutParameter(1,Types.INTEGER);
+            cs.execute();
+            int nbJrs = cs.getInt(1);
+            if(cs.wasNull()) {
+                throw new AccesDonneesException(
+                        AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE_INCONNUE, 0);
             }
-        }
-        if(nbJours == null) {
-            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
-        } else {
-            return nbJours;
+            LOGGER.info(String.format("nb_jrs=%d", nbJrs));
+            return nbJrs;
         }
     }
 
     private int getNbJoursCampagneEvenement(int gPrCod) throws SQLException, AccesDonneesException {
-        Integer nbJours = null;
-
-        try (PreparedStatement ps = connection.prepareStatement(
-                SELECT + ""+
-                        "TO_DATE(g_par1.g_pr_val, 'DD/MM/YYYY:HH24MI'), " +
-                        "TO_DATE(g_par2.g_pr_val, 'DD/MM/YYYY:HH24MI')" +
-                        FROM + " g_par g_par1,g_par g_par2 " +
-                        WHERE + " g_par1.g_pr_cod=?" +
-                        AND + " g_par2.g_pr_cod=?")) {
-            ps.setInt(1, ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_CAMPAGNE);
-            ps.setInt(2, gPrCod);
-
-            try (ResultSet result = ps.executeQuery()) {
-                while (result.next()) {
-                    java.sql.Timestamp dateDebutCampagne = result.getTimestamp(1);
-                    java.sql.Timestamp dateDebut = result.getTimestamp(2);
-                    if (dateDebutCampagne == null || dateDebut == null) {
-                        throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
-                    }
-                    nbJours = nbJoursEntre(dateDebutCampagne, dateDebut) + 1;
-                }
+        try(CallableStatement cs = connection.prepareCall("{? = call f_PropGetNbJrsFromParam(?)}")) {
+            cs.registerOutParameter(1,Types.INTEGER);
+            cs.setInt(2,gPrCod);
+            cs.execute();
+            int nbJrs = cs.getInt(1);
+            if(cs.wasNull()) {
+                throw new AccesDonneesException(
+                        AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE_INCONNUE, gPrCod);
             }
+            LOGGER.info(
+                    String.format("g_pr_cod=%d correspond à %d nb_jrs", nbJrs, gPrCod)
+            );
+            return nbJrs;
         }
-        if (nbJours == null) {
-            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
-        }
-        return nbJours;
     }
 
-    private int getNbJoursCampagneDateDebutGDD() throws SQLException, AccesDonneesException {
+    public int getNbJoursCampagneDateDebutGDD() throws SQLException, AccesDonneesException {
         return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_GDD);
     }
 
-    private int getNbJoursCampagneFinOrdonnancementGDD() throws SQLException, AccesDonneesException {
+    public int getNbJoursCampagneFinOrdonnancementGDD() throws SQLException, AccesDonneesException {
         return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_FIN_ORDONNANCEMENT_GDD);
     }
 
     /* Récupère le nombre de jours depuis le début de campagne à la date pivot internat.
     Vaut 1 si les dates coincident  */
-    private int getNbJoursCampagneDatePivotInternats() throws SQLException, AccesDonneesException {
+    public int getNbJoursCampagneDatePivotInternats() throws SQLException, AccesDonneesException {
         return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_OUV_COMP_INTERNATS);
     }
 
-    /* Récupère les voeux sur lesquels il y a une proposition d'admission qui
-    bloque une place car elle est soit en attente de réponse du candidat soit 
-    acceptée par le candidat. 
-     */
-    private void recupererPropositions(IndexInternats indexInternats, boolean inclurePropositionsRefusees)
+
+    private Voeu.StatutVoeu getStatut(boolean enAttente, boolean affecte, boolean estAccepte) {
+        if (enAttente) {
+           return Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+        } else if (estAccepte) {
+            return PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
+        } else if (affecte) {
+            return PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT;
+        } else {
+            return Voeu.StatutVoeu.REFUS_OU_DEMISSION;
+        }
+    }
+
+    public void recupererVoeuxSansInternatAClassementPropre(
+            boolean seulementVoeuxEnAttente,
+            boolean seulementVoeuxClasses)
             throws SQLException, VerificationException {
+        int compteur = 0;
+        String requete
+                = SELECT
+                + "g_cn_cod,"//id candidat
+                + "g_ta_cod,"//id affectation
+                + "i_rh_cod,"//demande internat (1) ou pas (0)
+                + "a_ve_ord,"//rang du voeu dans le répondeur automatique (0 si désactivé)
+                + "g_ti_cod,"//id inscription
+                + "c_gp_cod,"//groupe de classement pédagogique
+                + "c_cg_ord_app,"//ordre d'appel.
+                + "c_cg_ord_app_aff,"//ordre d'appel affiché.
+                + "rang,"//classement avant calcul de l'ordre d'appel si pas encore calculé
+                + "a_sv_flg_att_clo,"//voeu en attente ou cloture
+                + "a_sv_flg_aff," //proposition non refusée
+                + "a_sv_flg_oui," //proposition acceptée
+                + "flg_ign_rang_att," //voeux ignorés pour le calcul du rang sur liste d'attente
+                + "flg_ign_bar_int" //voeux ignorés pour le calcul des barres internat
+                + FROM + V_PROP_VOE
+                + WHERE
+                + "flg_cla >= ?"
+                + AND + "a_sv_flg_att_clo >= ?"
+                + AND + "flg_valid >= ?"
+                + AND + "flg_ord_app >= ?"
+                + AND + "(i_rh_cod=0 or flg_int_cla_prop = 0)";//pas d'internat ou internat sans classement propre
 
-        Map<VoeuUID, Voeu> voeux
-                = entree.voeux.stream().collect(Collectors.toMap(
-                        voeu -> voeu.id,
-                        voeu -> voeu
-        ));
+        LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
 
-        try (Statement stmt = connection.createStatement()) {
-            stmt.setFetchSize(100_000);
-            try (ResultSet result = stmt.executeQuery(SELECT
-                    + "adm.G_CN_COD,"//id candidat
-                    + "adm.G_TI_COD, "//id formation affectation
-                    + "adm.g_ta_cod, "//id formation affectation
-                    + "adm.I_RH_COD, "//proposition avec internat
-                    + "adm.C_GP_COD, "
-                    + "adm.C_GI_COD, "
-                    + "adm.A_TA_COD, "
-                    // A_TA_CODs
-                    // 1 admission en PP 
-                    // 2 apprentissage 
-                    // 3 admission en PC 
-                    // 5 admission en CAES
-                    // 8 gestion des démissions (GDD)
-                    // 10 inscription par l'établissement
-                    + "NVL(voe.a_ve_ord,0), " //ordre du voeu dans le RA
-                    + "NVL(sv.a_sv_flg_oui,1)," //le candidat a t'il accepté la proposition
-                    + "NVL(sv.a_sv_flg_aff,1)" //le candidat a t'il accepté ou pas refusé la proposition
-                    + FROM + " "
-                    +  ADMISSIONS_TABLE + " adm "//table des admissions
-                    + " LEFT JOIN "
-                    + STATUTS_VOEUX_TABLE + " sv "//statut du voeu
-                    + " ON "
-                    + " adm.a_sv_cod=sv.a_sv_cod"
-                    + " LEFT JOIN "
-                    + VOEUX_TABLE + " voe "
-                    + " ON adm.g_cn_cod=voe.g_cn_cod "
-                    + AND + " adm.g_ta_cod=voe.g_ta_cod "
-                    + AND + " adm.i_rh_cod=voe.i_rh_cod, "
-                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
-                    + WHERE
-                    + (inclurePropositionsRefusees ? "" : " sv.a_sv_flg_aff=1 AND ")
-                    + " adm.g_ti_cod=ti.g_ti_cod"
-                    + AND + " adm.a_ta_cod != 2"
-                    + (config.sparseDataTestingMode > 0 ? AND + " MOD(adm.g_cn_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO
-                            + AND + "MOD(adm.g_ta_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO : "")
+        try (PreparedStatement stmt = connection.prepareStatement(requete)) {
+            int fetchSize = 500_000;
+            stmt.setFetchSize(fetchSize);
 
-            )) {
+            /* en prod admission seul les voeux classés sont récupérés */
+            stmt.setInt(1, seulementVoeuxClasses ? 1 : 0);
+
+            /* récupère soit uniquement les voeux en attente (prod admission)
+            soit tous les voeux sélectionnés (simus) */
+            stmt.setInt(2, seulementVoeuxEnAttente ? 1 : 0);
+            stmt.setInt(3, seulementVoeuxEnAttente ? 0 : 1);
+
+            /* après le début de campagne, si seulement voeux classés alors les
+            ordres d'appels doivent être non nuls
+             */
+            stmt.setInt(4, config.simulationAvantDebutCampagne  || !seulementVoeuxClasses  ? 0 : 1);
+
+            try (ResultSet result = stmt.executeQuery()) {
                 while (result.next()) {
+                    int gCnCod = result.getInt("g_cn_cod");
+                    int gTaCod = result.getInt("g_ta_cod");
+                    boolean avecInternat = result.getBoolean("i_rh_cod");
+                    int ordrePref = result.getInt("a_ve_ord");
+                    int gTiCod = result.getInt("g_ti_cod");
+                    int cGpCod = result.getInt("c_gp_cod");
+                    int rangAppel = result.getInt("c_cg_ord_app");
+                    int rangAppelAffiche = result.getInt("c_cg_ord_app_aff");
+                    if(config.simulationAvantDebutCampagne) {
+                        int rangOuOrdApp = result.getInt("rang");
+                        rangAppel = rangOuOrdApp;
+                    }
 
-                    int gCnCod = result.getInt(1);
-                    int gTiCod = result.getInt(2);
-                    int gTaCod = result.getInt(3);
-                    boolean avecInternat = result.getBoolean(4);
-                    int cGpCod = result.getInt(5);
-                    int cGiCod = result.getInt(6);
-                    int aTaCod = result.getInt(7);
-                    boolean estAffectationPP = (aTaCod == 1 || aTaCod == 8);
-                    int rangOrdrePreferencesCandidat = result.getInt(8);
-                    boolean propositionAcceptee = result.getBoolean(9);
-                    boolean propositionNonRefusee = result.getBoolean(10);
+                    boolean estEnAttente = result.getBoolean("a_sv_flg_att_clo");
+                    boolean estAffecte = result.getBoolean("a_sv_flg_aff");
+                    boolean estAccepte = result.getBoolean("a_sv_flg_oui");
+
+                    boolean  flgIgnRangAtt = result.getBoolean("flg_ign_rang_att");
+                    boolean  flgIgnBarInt = result.getBoolean("flg_ign_bar_int");
+
+                    if(seulementVoeuxEnAttente && !estEnAttente) continue;
 
                     GroupeAffectationUID groupeId
                             = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
 
-                    GroupeInternatUID internatId
-                            = indexInternats.getInternat(cGiCod, groupeId);
-
-                    //Recupere le voeu si il est déjà connu
-                    //pas forcément le cas (propositions en CAES, etc...)
-                    Voeu old = voeux.get(new VoeuUID(gCnCod,gTaCod,avecInternat));
-
-                    if (!entree.groupesAffectations.containsKey(groupeId)) {
-                        // peut arriver si les classements ou données d'appel ne sont pas renseignées 
+                     if (!entree.groupesAffectations.containsKey(groupeId)) {
+                        /* peut arriver si les classements 
+                        ou données d'appel ne sont pas renseignées */
                         groupesManquants.add(groupeId);
-                    } else if (!avecInternat || !entree.internats.containsKey(internatId)) {
-                        Voeu v = new Voeu(
-                                gCnCod,
-                                avecInternat,
-                                groupeId,
-                                (old == null) ? 0 : old.ordreAppel,
-                                (old == null) ? 0 : old.ordreAppelAffiche,
-                                rangOrdrePreferencesCandidat,
-                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
-                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
-                                                                : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
-                                !estAffectationPP);
-                        entree.ajouterOuRemplacer(v);//Remarque: hors simulation c'est un ajout simple, car les autres voeux sont des voeux en attente
-                    } else {
-                        Voeu v = new Voeu(
-                                gCnCod,
-                                groupeId,
-                                (old == null) ? 0 : old.ordreAppel,
-                                (old == null) ? 0 : old.ordreAppelAffiche,
-                                internatId,
-                                (old == null) ? 0 : old.rangInternat,
-                                rangOrdrePreferencesCandidat,
-                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
-                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
-                                        : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
-                                !estAffectationPP);//Remarque: hors simulation c'est un ajout simple, car les autres voeux sont des voeux en attente
-                        entree.ajouterOuRemplacer(v);
+                        continue;
+                    }
+                    Voeu.StatutVoeu statut = getStatut(estEnAttente, estAffecte, estAccepte);
+                    if(!config.recupererSeulementVoeuxClasses && rangAppel == 0) {
+                        statut = Voeu.StatutVoeu.NON_CLASSE;
+                    }
+                    Voeu voeu = new Voeu(
+                            gCnCod,
+                            avecInternat,
+                            groupeId,
+                            rangAppel,
+                            rangAppelAffiche,
+                            ordrePref,
+                            statut,
+                            false,
+                            flgIgnRangAtt,
+                            flgIgnBarInt
+                    );
+
+                    entree.ajouter(voeu);
+
+                    if (compteur++ % fetchSize == 0) {
+                        LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
                     }
 
                 }
             }
         }
-
+        LOGGER.log(Level.INFO, "{0} voeux en attente sans internat a classement propre", compteur);
     }
 
     public void recupererVoeuxAvecInternatsAClassementPropre(
             IndexInternats internatsIndex,
             boolean seulementVoeuxEnAttente,
-            boolean recupererSeulementVoeuxClasses,
-            boolean seulementVoeuxClotures
+            boolean seulementVoeuxClasses
     )
             throws SQLException, VerificationException {
 
         int compteur = 0;
         int compteurIgnores = 0;
 
-        try (Statement stmt = connection.createStatement()) {
-            stmt.setFetchSize(100_000);
-            String requete
-                    = SELECT
-                    + "v.g_cn_cod,"//id candidat
-                    + "v.g_ta_cod,"//id affectation
-                    + "ti.g_ti_cod,"//id inscription
-                    + "cg.c_gp_cod,"//groupe de classement pédagogique
-                    + (config.simulationAvantDebutCampagne
-                            ? "NVL(cg.c_cg_ord_app,cg.c_cg_ran) rang,"
-                            : "cg.c_cg_ord_app rang,")//ordre d'appel.
-                    + "cg.c_cg_ord_app_aff,"//ordre d'appel
-                    + "cgi.c_gi_cod,"//id internat
-                    + "cgi.c_ci_ran,"//rang de classement internat
-                    + "NVL(v.a_ve_typ_maj,0),"//code modification (annulation démission, modification classements erronés)
-                    + "NVL(v.a_ve_ord,0),"//rang du voeu dans le répondeur automatique (null si désactivé)
-                    + " sv.a_sv_flg_att,"
-                    + " sv.a_sv_flg_clo,"
-                    + " sv.a_sv_flg_aff"
-                    + FROM
-                    + CANDIDATS_TABLE + " c,"//candidats
-                    + VOEUX_TABLE + " v,"//voeux
-                    + STATUTS_VOEUX_TABLE + " sv,"//codes situations des voeuxEnAttente
-                    + ConnecteurSQL.RECRUTEMENTS_GROUPES_TABLE + " rg,"//groupes de classement pédagogique
-                    + ConnecteurSQL.CLASSEMENTS_TABLE + " cg,"//classements pédagogiques
-                    + A_REC_GRP_INT + " rgi,"//groupes de classement internats
-                    + CLASSEMENTS_INTERNATS_TABLE + " cgi,"//classements internats
-                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
-                    + WHERE
-                    + " v.i_rh_cod=1"//voeux avec internat
-                    + AND + (
-                                    (seulementVoeuxEnAttente && seulementVoeuxClotures) ? " sv.a_sv_flg_clo=1 " :
-                                    seulementVoeuxEnAttente ? " (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)" :
-                                            " (sv.a_Sv_cod > -40)" )
-                    + (recupererSeulementVoeuxClasses
-                            ? (AND + " cg.i_ip_cod=5" //candidat classé
-                                + AND + " c.g_ic_cod >= 0" //dossier non-annulé (décès...)
-                                + AND + " ti.g_ti_eta_cla=2") //classement terminé
-                            :""
-                    )
-                    + AND + " c.g_cn_cod=v.g_cn_cod"
-                    + (config.simulationAvantDebutCampagne ? " " : AND + " cg.C_CG_ORD_APP is not null")
-                    + AND + " v.a_sv_cod=sv.a_sv_cod"
-                    + AND + " v.g_cn_cod=cg.g_cn_cod"
-                    + AND + " cg.c_gp_cod=rg.c_gp_cod"
-                    + AND + " rg.g_ta_cod=v.g_ta_cod"
-                    + AND + " rg.g_ti_cod=ti.g_ti_cod"
-                    + AND + " v.g_cn_cod=cgi.g_cn_cod"
-                    + AND + " cgi.c_gi_cod=rgi.c_gi_cod"
-                    + AND + " "
-                    + "( "
-                    + "   (     " + //internat par établissement identifié par code établissement g_ea_cod_ins
-                                    // -> un seul groupe de classement
-                    "           rgi.g_ta_cod is null " +
-                    "           AND rgi.g_ti_cod is null" +
-                    "           AND rgi.g_ea_cod_ins is not null " +
-                    "           AND rgi.g_ea_cod_ins=ti.g_ea_cod_ins " +
-                    "           AND rg.g_ti_cod=ti.g_ti_cod" +
-                    "       ) "
-                    + "   OR "
-                    + "   (     " + //internat par établissement identifié par code inscription g_ti_cod
-                                    // -> un seul groupe de classement
-                    "           rgi.g_ta_cod is null " +
-                    "           AND rgi.g_ti_cod is not null" +
-                    "           AND rgi.g_ea_cod_ins is null " +
-                    "           AND rgi.g_ti_cod=ti.g_ti_cod " +
-                    "           AND rg.g_ti_cod=ti.g_ti_cod" +
-                    "       ) "
-                    + "   OR "
-                    + "   (     " + //internat par formation
-                    "           rgi.g_ta_cod is not null " +
-                    "           AND rgi.g_ta_cod=v.g_ta_cod " +
-                    "           AND rgi.g_ti_cod=ti.g_ti_cod" +
-                    "       )"
-                    + " )"
-                    + AND + " ti.g_ti_cla_int_uni IN (0,1)" //restriction aux internats à classement propre
-                    + ((config.sparseDataTestingMode > 0) ? (AND + " MOD(v.g_cn_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO
-                            + AND + "MOD(v.g_ta_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO) : "");
+        String requete
+                = SELECT
+                + "g_cn_cod,"//id candidat
+                + "g_ta_cod,"//id affectation
+                + "a_ve_ord,"//rang du voeu dans le répondeur automatique (null di désactivé)
+                + "g_ti_cod,"//id inscription
+                + "c_gp_cod,"//groupe de classement pédagogique
+                + "c_cg_ord_app,"//ordre d'appel.
+                + "c_cg_ord_app_aff,"//ordre d'appel affiché.
+                + "c_gi_cod,"//id internat
+                + "c_ci_ran,"//rang de classement internat
+                + "rang,"//classement avant calcul de l'ordre d'appel si pas encore calculé
+                + "a_sv_flg_att_clo,"//voeu en attente ou cloture
+                + "a_sv_flg_aff," //proposition non refusée
+                + "a_sv_flg_oui," //proposition acceptée
+                + "flg_ign_rang_att," //voeux ignorés pour le calcul du rang sur liste d'attente
+                + "flg_ign_bar_int" //voeux ignorés pour le calcul des barres internat
+                + FROM + V_PROP_VOE_INT
+                + WHERE
+                + " flg_cla >= ? "
+                + AND + "a_sv_flg_att_clo >= ?"
+                + AND + "flg_valid >= ?"
+                + AND + "flg_ord_app >= ?";
+
+        try (PreparedStatement stmt = connection.prepareStatement(requete)) {
+
+            /* en prod admission seul les voeux classés sont récupérés */
+            stmt.setInt(1, seulementVoeuxClasses ? 1 : 0);
+
+            /* récupère soit uniquement les voeux en attente (prod admission)
+            soit tous les voeux sélectionnés (simus) */
+            stmt.setInt(2, seulementVoeuxEnAttente ? 1 : 0);
+            stmt.setInt(3, seulementVoeuxEnAttente ? 0 : 1);
+
+            /* après le début de campagne, si seulement voeux classés alors les
+            ordres d'appels doivent être non nuls
+             */
+            stmt.setInt(4, config.simulationAvantDebutCampagne  || !seulementVoeuxClasses  ? 0 : 1);
+
 
             LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
 
-            try (ResultSet result = stmt.executeQuery(requete)) {
+            stmt.setFetchSize(100_000);
+            try (ResultSet result = stmt.executeQuery()) {
                 while (result.next()) {
-                    int gCnCod = result.getInt(1);
-                    int gTaCod = result.getInt(2);
-                    int gTiCod = result.getInt(3);
-                    int cGpCod = result.getInt(4);
-                    int rangAppel = result.getInt(5);
-                    int rangAppelAffiche = result.getInt(6);
-                    int cGiCod = result.getInt(7);
-                    int cCiRan = result.getInt(8);
-                    int typeMaj = result.getInt(9);
-                    int rangRepondeurAutomatique = result.getInt(10);
+                    int gCnCod = result.getInt("g_cn_cod");
+                    int gTaCod = result.getInt("g_ta_cod");
+                    int ordrePref = result.getInt("a_ve_ord");
+                    int gTiCod = result.getInt("g_ti_cod");
+                    int cGpCod = result.getInt("c_gp_cod");
+                    int cGiCod = result.getInt("c_gi_cod");
+                    int rangClassementInternat = result.getInt("c_ci_ran");
+                    int rangAppel = result.getInt("c_cg_ord_app");
+                    int rangAppelAffiche = result.getInt("c_cg_ord_app_aff");
+                    if(config.simulationAvantDebutCampagne) {
+                        int rangOuOrdApp = result.getInt("rang");
+                        rangAppel = rangOuOrdApp;
+                    }
 
-                    boolean estEnAttente = result.getBoolean(11);
-                    boolean estCloture = result.getBoolean(12);//GDD
-                    boolean estAffecte = result.getBoolean(13);//GDD
+                    boolean estEnAttente = result.getBoolean("a_sv_flg_att_clo");
+                    boolean estAffecte = result.getBoolean("a_sv_flg_aff");
+                    boolean estAccepte = result.getBoolean("a_sv_flg_oui");
+
+                    boolean  flgIgnRangAtt = result.getBoolean("flg_ign_rang_att");
+                    boolean  flgIgnBarInt = result.getBoolean("flg_ign_bar_int");
+
+                    if(seulementVoeuxEnAttente && !estEnAttente) continue;
 
                     GroupeAffectationUID groupeId
                             = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
@@ -1216,8 +1132,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         internatsManquants.add(internatId);
                         compteurIgnores++;
                     } else {
-                        Voeu.StatutVoeu statut = getStatut(estEnAttente, estCloture, estAffecte);
-                        if(!recupererSeulementVoeuxClasses && rangAppel == 0) {
+                        Voeu.StatutVoeu statut = getStatut(estEnAttente, estAffecte, estAccepte);
+                        if(!seulementVoeuxClasses && rangAppel == 0) {
                             statut = Voeu.StatutVoeu.NON_CLASSE;
                         }
                         Voeu v = new Voeu(
@@ -1226,18 +1142,17 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                                 rangAppel,
                                 rangAppelAffiche,
                                 internatId,
-                                cCiRan,
-                                rangRepondeurAutomatique,
+                                rangClassementInternat,
+                                ordrePref,
                                 statut,
-                                false
+                                false,
+                                flgIgnRangAtt,
+                                flgIgnBarInt
                         );
-                        v.setTypeMaj(typeMaj);
-                        v.setEstArchive(estCloture);
-                        compteur++;
-                        if (compteur % 100_000 == 0) {
+                        entree.ajouter(v);
+                        if (++compteur % 100_000 == 0) {
                             LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
                         }
-                        entree.ajouter(v);
                     }
                 }
             }
@@ -1246,127 +1161,105 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         LOGGER.log(Level.INFO, "{0} voeux en attente avec internat à classement propre ignorés", compteurIgnores);
     }
 
-    private Voeu.StatutVoeu getStatut(boolean enAttente, boolean cloture, boolean affecte) {
-        if (enAttente || cloture) {
-           return Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
-        } else if (affecte) {
-            return PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
-        } else {
-            return Voeu.StatutVoeu.REFUS_OU_DEMISSION;
-        }
-    }
-
-    private void recupererVoeuxSansInternatAClassementPropre(
-            boolean seulementVoeuxEnAttente,
-            boolean seulementVoeuxClasses,
-            boolean seulementVoeuxClotures)
+    /* Récupère les voeux sur lesquels il y a une proposition d'admission qui
+    bloque une place car elle est soit en attente de réponse du candidat soit
+    acceptée par le candidat.
+     */
+    private void recupererPropositions(IndexInternats indexInternats, boolean inclurePropositionsRefusees)
             throws SQLException, VerificationException {
-        int compteur = 0;
-        try (Statement stmt = connection.createStatement()) {
-            int fetchSize = 500_000;
-            stmt.setFetchSize(fetchSize);
-            String requete
-                    = SELECT
-                    + "v.g_cn_cod,"//id candidat
-                    + "v.g_ta_cod,"//id affectation
-                    + "v.i_rh_cod,"//demande internat (1) ou pas (0)
-                    + "NVL(v.a_ve_ord,0),"//rang du voeu dans le répondeur automatique (null di désactivé)
-                    + "ti.g_ti_cod,"//id inscription
-                    + "cg.c_gp_cod,"//groupe de classement pédagogique
-                    + (config.simulationAvantDebutCampagne
-                            ? "NVL(cg.c_cg_ord_app,cg.c_cg_ran) rang,"
-                            : "cg.c_cg_ord_app rang,")//ordre d'appel.
-                    + "cg.c_cg_ord_app_aff rang_aff,"//ordre d'appel affiché.
-                    + "NVL(v.a_ve_typ_maj,0),"//code modification (annulation démission, modification classements erronés)
-                    + " sv.a_sv_flg_att,"
-                    + " sv.a_sv_flg_clo,"
-                    + " sv.a_sv_flg_aff"
-                    + FROM
-                    + CANDIDATS_TABLE +  " c,"//candidats
-                    + VOEUX_TABLE + " v,"//voeux
-                    + STATUTS_VOEUX_TABLE + " sv,"//codes situations des voeuxEnAttente
-                    + ConnecteurSQL.RECRUTEMENTS_GROUPES_TABLE + " rg,"//groupes de classement pédagogique
-                    + ConnecteurSQL.CLASSEMENTS_TABLE + " cg,"//classements pédagogiques
-                    + FOR_INSCRIPTIONS_TABLE + " ti"//données formations inscriptions
-                    + WHERE
-                    + (seulementVoeuxClasses ? " cg.i_ip_cod=5" //candidat classé
-                        + AND + " c.g_ic_cod >= 0" //dossier non-annulé (décès...)
-                        + AND + " ti.g_ti_eta_cla=2" + AND//classement terminé
-                        : ""
-                        )
-                    + (
-                    (seulementVoeuxEnAttente && seulementVoeuxClotures) ? " sv.a_sv_flg_clo=1 " :
-                            seulementVoeuxEnAttente ? " (sv.a_sv_flg_att=1 or sv.a_sv_flg_clo=1)" :
-                                    " (sv.a_Sv_cod > -40)" )
-                    + AND
-                    + (config.simulationAvantDebutCampagne ? " " :  " cg.C_CG_ORD_APP is not null" + AND)
-                    + " c.g_cn_cod=v.g_cn_cod"
-                    + AND + " v.a_sv_cod=sv.a_sv_cod"
-                    + AND + " v.g_cn_cod=cg.g_cn_cod"
-                    + AND + " cg.c_gp_cod=rg.c_gp_cod"
-                    + AND + " rg.g_ta_cod=v.g_ta_cod"
-                    + AND + " rg.g_ti_cod=ti.g_ti_cod"
-                    //exclut les formations d'inscriptions avec internat à classement propre
-                    + AND + " (v.i_rh_cod =0 or ti.g_ti_cla_int_uni NOT IN (0,1)) "
-                    + ((config.sparseDataTestingMode > 0) ? (AND + " MOD(v.g_cn_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO
-                            + AND + "MOD(v.g_ta_cod," + config.sparseDataTestingMode + ")" + EQUALS_ZERO) : "");
 
-            LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
+        Map<VoeuUID, Voeu> voeux
+                = entree.voeux.stream().collect(Collectors.toMap(
+                voeu -> voeu.id,
+                voeu -> voeu
+        ));
 
-            try (ResultSet result = stmt.executeQuery(requete)) {
+        LOGGER.info("Récupération des propositions non refusées via la vue " + V_PROP_PROP);
+        try (PreparedStatement stmt = connection.prepareStatement(
+                SELECT + "g_cn_cod," +
+                        "g_ti_cod," +
+                        "g_ta_cod," +
+                        "i_rh_cod," +
+                        "c_gp_cod," +
+                        "c_gi_cod," +
+                        "flg_adm_pp," +
+                        "a_ve_ord, " +
+                        "a_sv_flg_oui, " +
+                        "a_sv_flg_aff"
+                        + FROM + V_PROP_PROP
+                        + WHERE + " a_sv_flg_aff >= ?"
+        )) {
+            stmt.setInt(1, inclurePropositionsRefusees ? 0 : 1);
+            stmt.setFetchSize(1_000_000);
+            try (ResultSet result = stmt.executeQuery()) {
                 while (result.next()) {
-                    int gCnCod = result.getInt(1);
-                    int gTaCod = result.getInt(2);
-                    boolean avecInternat = result.getBoolean(3);
-                    int rangRepondeurAutomatique = result.getInt(4);
-                    int gTiCod = result.getInt(5);
-                    int cGpCod = result.getInt(6);
-                    int rangAppel = result.getInt(7);
-                    int rangAppelAffiche = result.getInt(8);
 
-                    int typeMaj = result.getInt(9);
-
-                    boolean estEnAttente = result.getBoolean(10);
-                    boolean estArchive = result.getBoolean(11);//GDD
-                    boolean estAffecte = result.getBoolean(12);
+                    int gCnCod = result.getInt("g_cn_cod");
+                    int gTiCod = result.getInt("g_ti_cod");
+                    int gTaCod = result.getInt("g_ta_cod");
+                    boolean avecInternat = result.getBoolean("i_rh_cod");
+                    int cGpCod = result.getInt("c_gp_cod");
+                    int cGiCod = result.getInt("c_gi_cod");
+                    boolean estAffectationPP = result.getBoolean("flg_adm_pp");
+                    int rangOrdrePreferencesCandidat = result.getInt("a_ve_ord");
+                    boolean propositionAcceptee = result.getBoolean("a_sv_flg_oui");
+                    boolean propositionNonRefusee = result.getBoolean("a_sv_flg_aff");
 
                     GroupeAffectationUID groupeId
                             = new GroupeAffectationUID(cGpCod, gTiCod, gTaCod);
 
-                     if (!entree.groupesAffectations.containsKey(groupeId)) {
-                        /* peut arriver si les classements 
-                        ou données d'appel ne sont pas renseignées */
+                    GroupeInternatUID internatId
+                            = indexInternats.getInternat(cGiCod, groupeId);
+
+                    //Recupere le voeu si il est déjà connu
+                    //pas forcément le cas (propositions en CAES, etc...)
+                    Voeu old = voeux.get(new VoeuUID(gCnCod,gTaCod,avecInternat));
+
+                    if (!entree.groupesAffectations.containsKey(groupeId)) {
+                        // peut arriver si les classements ou données d'appel ne sont pas renseignées
                         groupesManquants.add(groupeId);
-                        continue;
+                    } else if (!avecInternat || !entree.internats.containsKey(internatId)) {
+                        Voeu v = new Voeu(
+                                gCnCod,
+                                avecInternat,
+                                groupeId,
+                                (old == null) ? 0 : old.ordreAppel,
+                                (old == null) ? 0 : old.ordreAppelAffiche,
+                                rangOrdrePreferencesCandidat,
+                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                                        : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
+                                !estAffectationPP,
+                                old != null && old.ignorerDansLeCalculRangsListesAttente,
+                                old != null && old.ignorerDansLeCalculBarresInternatAffichees
+                                );
+                        entree.ajouterOuRemplacer(v);//Remarque: hors simulation c'est un ajout simple, car les autres voeux sont des voeux en attente
+                    } else {
+                        Voeu v = new Voeu(
+                                gCnCod,
+                                groupeId,
+                                (old == null) ? 0 : old.ordreAppel,
+                                (old == null) ? 0 : old.ordreAppelAffiche,
+                                internatId,
+                                (old == null) ? 0 : old.rangInternat,
+                                rangOrdrePreferencesCandidat,
+                                propositionAcceptee ? PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                                        : propositionNonRefusee ? PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                                        : PROPOSITION_JOURS_PRECEDENTS_REFUSEE,
+                                !estAffectationPP,
+                                old != null && old.ignorerDansLeCalculRangsListesAttente,
+                                old != null && old.ignorerDansLeCalculBarresInternatAffichees
+                        );
+                        //Remarque: en prod admission c'est un ajout simple,
+                        //car les autres voeux sont des voeux en attente
+                        entree.ajouterOuRemplacer(v);
                     }
-                    Voeu.StatutVoeu statut = getStatut(estEnAttente, estArchive, estAffecte);
-                    if(!config.recupererSeulementVoeuxClasses && rangAppel == 0) {
-                        statut = Voeu.StatutVoeu.NON_CLASSE;
-                    }
-                    Voeu voeu = new Voeu(
-                            gCnCod,
-                            avecInternat,
-                            groupeId,
-                            rangAppel,
-                            rangAppelAffiche,
-                            rangRepondeurAutomatique,
-                            statut,
-                            false
-                    );
-                     voeu.setTypeMaj(typeMaj);
-                     voeu.setEstArchive(estArchive);
-
-                    compteur++;
-                    if (compteur % fetchSize == 0) {
-                        LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
-                    }
-
-                    entree.ajouter(voeu);
                 }
             }
         }
-        LOGGER.log(Level.INFO, "{0} voeux en attente sans internat a classement propre", compteur);
+
     }
+
 
     private void recupererCandidatsAvecRepondeurAutomatique() throws SQLException {
 
@@ -1374,14 +1267,9 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(100_000);
-            try (ResultSet result = stmt.executeQuery(SELECT
-                    + " G_CN_COD"//id candidat
-                    + FROM + " G_CAN can"//table des candidats
-                    + WHERE
-                    + " NVL(can.g_cn_flg_ra,0) = 1"
-                    + (config.sparseDataTestingMode > 0 ? AND + " MOD(can.g_cn_cod," + config.sparseDataTestingMode + ") =0 " : "")
-            )) {
-
+            String sql = SELECT + " G_CN_COD " + FROM + V_PROP_CAN_RA;
+            try (ResultSet result = stmt.executeQuery(sql)) {
+                LOGGER.info(sql);
                 while (result.next()) {
                     int gCnCod = result.getInt(1);
                     entree.candidatsAvecRepondeurAutomatique.add(gCnCod);
@@ -1405,26 +1293,20 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(100_000);
             String sql = SELECT
-                    + " v.G_CN_COD,v.g_ta_cod,v.I_RH_COD"
+                    + " G_CN_COD," +
+                    "g_ta_cod," +
+                    "I_RH_COD"
                     + FROM
-                    + VOEUX_TABLE + "v,"//voeu
-                    + STATUTS_VOEUX_TABLE +  "sv,"//etat voeu
-                    + ADMISSIONS_TABLE +  "adm"//proposition d'admission
-                    + WHERE
-                    + " v.a_sv_cod = sv.a_sv_cod"
-                    + AND + " sv.a_sv_flg_att=1"
-                    + AND + " v.G_CN_COD=adm.G_CN_COD"
-                    + AND + " v.g_ta_cod=adm.g_ta_cod"
-                    + AND + " adm.A_TA_COD=1"; //admission en procédure normale
+                    + V_PROP_ATT_PROP_ANT;
 
             LOGGER.info(sql);
 
             try (ResultSet result = stmt.executeQuery(sql)) {
 
                 while (result.next()) {
-                    int gCnCod = result.getInt(1);
-                    int gTaCod = result.getInt(2);
-                    boolean iRhCod = result.getBoolean(3);
+                    int gCnCod = result.getInt("g_cn_cod");
+                    int gTaCod = result.getInt("g_ta_cod");
+                    boolean iRhCod = result.getBoolean("i_rh_cod");
                     voeux.add(new VoeuUID(gCnCod, gTaCod, iRhCod));
                 }
             }
@@ -1439,9 +1321,6 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
     /* flag permettant de signaler un problème lors du calcul des propositions */
     private static final int INDEX_FLAG_ALERTE = 34;
-
-    /* index de table stockant la date du début de campagen */
-    public static final int INDEX_DATE_DEBUT_CAMPAGNE = 35;
 
     /* index de table stockant la date de l'ouverture complète des internats */
     public static final int INDEX_DATE_OUV_COMP_INTERNATS = 334;

@@ -249,7 +249,7 @@ Exemple de valeurs possibles :
 		
 |G_PR_COD|G_PR_VAL|Description|
 | --- | --- | --- |
-|35|19/05/2020:0000|Date du début de la campagne|
+|35|19/05/2023:0000|Date du début de la campagne|
 
 ## G_TRI_INS
 

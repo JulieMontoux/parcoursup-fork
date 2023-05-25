@@ -11,6 +11,7 @@ import fr.parcoursup.algos.propositions.Helpers;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 import static org.junit.Assert.*;
 
 public class TestGroupeInternat {

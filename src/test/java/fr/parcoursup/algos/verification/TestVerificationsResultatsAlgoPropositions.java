@@ -5,9 +5,8 @@ import fr.parcoursup.algos.propositions.algo.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.powermock.core.classloader.annotations.PrepareForTest;
-import org.powermock.modules.junit4.PowerMockRunner;
 import org.powermock.reflect.Whitebox;
+
 
 import java.util.*;
 import java.util.logging.LogManager;
@@ -15,8 +14,7 @@ import java.util.logging.LogManager;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(PowerMockRunner.class)
-@PrepareForTest(VerificationsResultatsAlgoPropositions.class)
+
 public class TestVerificationsResultatsAlgoPropositions {
 
     @BeforeClass
@@ -42,7 +40,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.injecterGroupesEtInternatsDansVoeux();
 
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
 
@@ -71,7 +69,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -101,7 +99,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -130,7 +128,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -157,7 +155,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -185,7 +183,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -213,7 +211,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -241,7 +239,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
         entree.injecterGroupesEtInternatsDansVoeux();
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
@@ -271,7 +269,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         entree.groupesAffectations.put(groupeValide.id, groupeValide);
         entree.injecterGroupesEtInternatsDansVoeux();
 
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.groupes.add(groupeValide);
@@ -284,7 +282,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
 
         for (int i=0; i<125; i++){
             GroupeInternatUID groupeInternatUID = new GroupeInternatUID(i, i);
@@ -302,7 +300,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
 
         for (int i=0; i<125; i++){
             GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(i, i, i);
@@ -326,7 +324,7 @@ public class TestVerificationsResultatsAlgoPropositions {
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.internats.add(groupeInternat);
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
@@ -338,7 +336,7 @@ public class TestVerificationsResultatsAlgoPropositions {
         //On doit être en mode nePasEchouerSiLoggerOuAfficher et on doit faire une exception/passer par alerter entre 114 et 307
         Parametres p = new Parametres(1, 0, 90);
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }

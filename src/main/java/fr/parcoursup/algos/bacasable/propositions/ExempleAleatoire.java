@@ -285,7 +285,9 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     rang,
                                     rangRepondeurAutomatique1,
                                     statut,
-                                    (status == 0)
+                                    (status == 0),
+                                    false,
+                                    false
                             )
                     );
                     return 1;
@@ -328,7 +330,9 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     rangInternat,
                                     rangRepondeurAutomatique1,
                                     statut,
-                                    (status == 0)
+                                    (status == 0),
+                                    false,
+                                    false
                             )
                     );
 
@@ -342,7 +346,9 @@ public class ExempleAleatoire extends ExemplePropositions {
                                         rang,
                                         rangRepondeurAutomatique2,
                                         statut,
-                                        (status == 0)
+                                        (status == 0),
+                                        false,
+                                        false
                                 )
                         );
                         return 2;

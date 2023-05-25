@@ -101,7 +101,7 @@ public class AlgosAffichages {
                         && !propositionsDuJour.contains(
                                 new VoeuUID(voeu.id.gCnCod, voeu.id.gTaCod, !voeu.id.iRhCod)
                         )
-                        && !voeu.ignoreDansLeCalculDesRangSurListesDattente()
+                        && !voeu.ignorerDansLeCalculRangsListesAttente
                         && voeu.id.gCnCod != dernierCandidatEnAttente) {
                     nbCandidatsEnAttente++;
                     dernierCandidatEnAttente = voeu.id.gCnCod;
@@ -138,7 +138,7 @@ public class AlgosAffichages {
                 groupe.setRangDernierAppeleAffiche(aff);
             } else if (
                     voe.estEnAttenteDeProposition()
-                    && !voe.ignoreDansLeCalculDesRangSurListesDattente()
+                    && !voe.ignorerDansLeCalculRangsListesAttente
                     && !(voe.avecInternatAClassementPropre()
                             && voe.estDesactiveParPositionAdmissionInternat())
                     ) {
@@ -166,13 +166,13 @@ public class AlgosAffichages {
             /* parmi les propositions, on cherche celle qui a le plus haut
             rang dans le classement internat. On trie les voeux internats du moins bien classé 
             au mieux classé, c'est à dire les plus hauts rangs en tête de liste. */
-            OptionalInt rangDernierAppeleInternat 
+            OptionalInt rangDernierAppeleInternat
                     = voeux.stream()
-                            .filter(Voeu::estProposition)
-                            .filter(v -> v.groupeUID.equals(g.id))
-                            .mapToInt(v -> v.rangInternat)
-                            .max();
-            if(rangDernierAppeleInternat.isPresent()) {
+                    .filter(Voeu::estProposition)
+                    .filter(v -> v.groupeUID.equals(g.id))
+                    .mapToInt(v -> v.rangInternat)
+                    .max();
+            if (rangDernierAppeleInternat.isPresent()) {
                 internat.barresInternatAffichees.put(g.id, rangDernierAppeleInternat.getAsInt());
             }
 
@@ -195,9 +195,11 @@ public class AlgosAffichages {
                     //voeu hors groupe: on ignore
                 } else if (voe.estProposition()) {
                     //proposition: on augmente la barre affichée
-                    int aff = Math.max(internat.barresAppelAffichees.getOrDefault(g.id,0), voe.ordreAppelAffiche);
+                    int aff = Math.max(internat.barresAppelAffichees.getOrDefault(g.id, 0), voe.ordreAppelAffiche);
                     internat.barresAppelAffichees.put(g.id, aff);
-                } else if (voe.ignoreDansLeCalculDesRangSurListesDattente()) {
+                } else if (voe.ignorerDansLeCalculRangsListesAttente) {
+                    //cas exceptionnels: on continue
+                } else if (voe.ignorerDansLeCalculBarresInternatAffichees) {
                     //cas exceptionnels: on continue
                 } else if (voe.estEnAttenteDeProposition()
                         && (voe.rangInternat <= internat.barresInternatAffichees.get(g.id))) {
@@ -205,9 +207,7 @@ public class AlgosAffichages {
                     break;
                 }
             }
-
         }
-
     }
 
     private AlgosAffichages() {

@@ -7,6 +7,7 @@ import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.*;
@@ -97,10 +98,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
             gTiCod = 1;
             gTacod = 1;
             cGpCod = 1;
@@ -181,11 +179,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 1;
             int gTacod = 1;
@@ -275,11 +269,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 1;
             int gTacod = 1;
@@ -446,11 +436,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
             int cGpCod = 1;
             int cGiCod = 1;
 
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             GroupeAffectation groupeAffectation = creeGroupeAffectation(
                     parametres,
@@ -535,11 +521,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
             int cGpCod = 1;
             int cGiCod = 1;
 
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             GroupeAffectation groupeAffectation = creeGroupeAffectation(
                     parametres,
@@ -618,11 +600,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
                     = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 1;
             int gTacod = 1;
@@ -696,11 +674,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                     = new ConnecteurDonneesPropositionsSQL(co.connection());
             co.connection().setAutoCommit(false);
 
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 761;
             int gTacod = 761;
@@ -786,11 +760,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                     = new ConnecteurDonneesPropositionsSQL(co.connection());
             co.connection().setAutoCommit(false);
 
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 111;
             int gTacod = 111;
@@ -874,11 +844,7 @@ public class TestConnecteurDonneesPropositionsSQLExportation extends TestConnect
                     = new ConnecteurDonneesPropositionsSQL(co.connection());
             co.connection().setAutoCommit(false);
 
-            AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(
-                    AlgoPropositionsSortie.class
-            );
-
-            Whitebox.setInternalState(sortie, "parametres", parametres);
+            AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(parametres);
 
             int gTiCod = 1;
             int gTacod = 1;

@@ -36,7 +36,7 @@ public class AlgoPropositionsSortie implements Serializable {
     @NotNull
     public final Parametres parametres;
     
-    AlgoPropositionsSortie(@NotNull Parametres parametres) {
+    public AlgoPropositionsSortie(@NotNull Parametres parametres) {
         this.parametres = parametres;
     }
 
@@ -143,7 +143,7 @@ public class AlgoPropositionsSortie implements Serializable {
     /**
      * Utilisé par les désérialisations Json et XML
      */
-    private AlgoPropositionsSortie() {
+    public AlgoPropositionsSortie() {
         parametres = new Parametres(0,0,0,0);
     }
 

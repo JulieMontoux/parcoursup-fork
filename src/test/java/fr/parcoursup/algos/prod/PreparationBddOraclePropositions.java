@@ -77,7 +77,7 @@ public class PreparationBddOraclePropositions {
 
         ParametreApplication parametreApplication2 = new ParametreApplication(
             35,                // indexDateDebutDeCampagne
-            "20/05/2020:0000"  // date et heure du début de la campagne
+            "20/05/2023:0000"  // date et heure du début de la campagne
         );
 
         parametreApplication2.insert();
@@ -86,7 +86,7 @@ public class PreparationBddOraclePropositions {
 
         ParametreApplication parametreApplication3 = new ParametreApplication(
             334,                // indexDateOuvertureCompleteInternats
-            "01/07/2020:0000"   // date et heure de l'ouverture complète des internats
+            "01/07/2023:0000"   // date et heure de l'ouverture complète des internats
         );
 
         parametreApplication3.insert();

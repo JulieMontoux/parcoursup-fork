@@ -35,7 +35,7 @@ public class TestRecupVoeuxInternats {
             }
 
             /* récup desvoeux */
-            connecteurSQL.recupererVoeuxAvecInternatsAClassementPropre(index, true, true, false);
+            connecteurSQL.recupererVoeuxAvecInternatsAClassementPropre(index, true, true);
 
         }
     }

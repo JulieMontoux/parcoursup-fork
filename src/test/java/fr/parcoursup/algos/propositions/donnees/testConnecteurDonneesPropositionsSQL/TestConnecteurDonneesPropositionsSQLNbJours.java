@@ -2,7 +2,7 @@ package fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositio
 
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
 import org.junit.Test;
-import org.powermock.reflect.Whitebox;
+
 
 import java.sql.Timestamp;
 
@@ -26,64 +26,15 @@ public class TestConnecteurDonneesPropositionsSQLNbJours {
         Timestamp instantneg_1 = Timestamp.valueOf("2021-05-19 01:00:00");
         Timestamp instantneg_2 = Timestamp.valueOf("2021-05-19 23:00:00");
 
-        assertEquals(0,
-                (int) Whitebox.invokeMethod(
-                ConnecteurDonneesPropositionsSQL.class,
-                "nbJoursEntre",
-                debutCampagne,
-                instant0_1));
-        assertEquals(0,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant0_2));
-        assertEquals(1,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant1_1));
-        assertEquals(1,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant1_2));
-        assertEquals(31,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant31_1));
-        assertEquals(31,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant31_2));
-        assertEquals(365,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant365_1));
-        assertEquals(365,
-                (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instant365_2));
-        assertTrue( (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instantneg_1) < 0);
-        assertTrue( (int) Whitebox.invokeMethod(
-                        ConnecteurDonneesPropositionsSQL.class,
-                        "nbJoursEntre",
-                        debutCampagne,
-                        instantneg_2) < 0);
-
+        assertEquals(0,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant0_1));
+        assertEquals(0,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant0_2));
+        assertEquals(1,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant1_1));
+        assertEquals(1,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant1_2));
+        assertEquals(31,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant31_1));
+        assertEquals(31,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant31_2));
+        assertEquals(365,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant365_1));
+        assertEquals(365,ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instant365_2));
+        assertTrue(ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instantneg_1) < 0);
+        assertTrue(ConnecteurDonneesPropositionsSQL.nbJoursEntre(debutCampagne, instantneg_2) < 0);
     }
 }

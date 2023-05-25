@@ -281,7 +281,7 @@ public class VerificationsResultatsAlgoPropositions {
         for (Voeu v1 : voeux) {
             if (v1.estEnAttenteDeProposition()
                     && v1.avecInternatAClassementPropre()
-                    && !v1.ignoreDansLeCalculDesRangSurListesDattente() //évite les fausses alertes en cas de correction d'erreur de classement internat
+                    && !v1.ignorerDansLeCalculRangsListesAttente //évite les fausses alertes en cas de correction d'erreur de classement internat
             ) {
                 GroupeInternat internat = v1.getInternat();
                 Set<Integer> dejaAffectesInternat = initialementAffectesInternats.get(internat);
@@ -294,7 +294,7 @@ public class VerificationsResultatsAlgoPropositions {
                             && !initialementAffectesFormation.contains(v2.id.gCnCod)
                             && v2.rangInternat > v1.rangInternat
                             && !dejaAffectesInternat.contains(v2.id.gCnCod)
-                            && !v2.ignoreDansLeCalculDesRangSurListesDattente() //évite les fausses alertes en cas de correction d'erreur de classement internat
+                            && !v2.ignorerDansLeCalculRangsListesAttente //évite les fausses alertes en cas de correction d'erreur de classement internat
                             ) {
                         alerter(
                                 "Violation respect ordre et classement "
@@ -346,13 +346,13 @@ public class VerificationsResultatsAlgoPropositions {
             Set<Integer> actuellementAffectesFormation = actuellementAffectesFormations.get(v1.getGroupeAffectation());
             if (v1.estEnAttenteDeProposition()
                     && actuellementAffectesFormation.contains(v1.id.gCnCod)
-                    && !v1.ignoreDansLeCalculDesRangSurListesDattente()//évite les fausses alertes en cas de correction d'erreur de classement internat
+                    && !v1.ignorerDansLeCalculRangsListesAttente//évite les fausses alertes en cas de correction d'erreur de classement internat
             ) {
                 for (Voeu v2 : voeux) {
                     if (v2.estPropositionDuJour()
                             && v2.rangInternat > v1.rangInternat
                             && !initialementAffectesInternat.contains(v2.id.gCnCod)
-                            && !v2.ignoreDansLeCalculDesRangSurListesDattente()//évite les fausses alertes en cas de correction d'erreur de classement internat
+                            && !v2.ignorerDansLeCalculRangsListesAttente//évite les fausses alertes en cas de correction d'erreur de classement internat
                     ) {
                         alerter("Violation respect ordre appel pour les attributions d'internat"
                                 + "pour les voeux avec demande internat"

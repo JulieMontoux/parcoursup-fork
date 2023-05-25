@@ -47,6 +47,10 @@ public class EnvoiPropositions {
     }
 
     public void execute(boolean logDonnees) throws VerificationException, AccesDonneesException {
+        execute(logDonnees, true);
+    }
+
+    public void execute(boolean logDonnees, boolean exporterResultats) throws VerificationException, AccesDonneesException {
 
         LOGGER.info("Récupération des données");
         AlgoPropositionsEntree entree = input.recupererDonnees();
@@ -76,8 +80,10 @@ public class EnvoiPropositions {
                     AlgoPropositionsSortie.class);
         }
 
-        LOGGER.info("Export des données");
-        output.exporterDonnees(sortie);
+        if (exporterResultats) {
+            LOGGER.info("Export des données");
+            output.exporterDonnees(sortie);
+        }
     }
 
 }

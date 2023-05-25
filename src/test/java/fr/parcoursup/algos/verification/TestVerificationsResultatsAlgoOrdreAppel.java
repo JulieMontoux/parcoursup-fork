@@ -9,12 +9,13 @@ import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.powermock.reflect.Whitebox;
+
 import fr.parcoursup.algos.ordreappel.algo.AlgoOrdreAppelEntree;
 import fr.parcoursup.algos.ordreappel.algo.AlgoOrdreAppelSortie;
 import fr.parcoursup.algos.ordreappel.algo.GroupeClassement;
 import fr.parcoursup.algos.ordreappel.algo.OrdreAppel;
 import fr.parcoursup.algos.ordreappel.algo.VoeuClasse;
+import org.powermock.reflect.Whitebox;
 
 import static org.junit.Assert.*;
 

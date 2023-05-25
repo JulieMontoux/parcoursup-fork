@@ -38,19 +38,19 @@ public class JeuDonneesBaseTestPropositions {
             ));
             this.scenario.ajouteEntite(new ParametreApplication(
                 35,                // indexDateDebutDeCampagne
-                "20/05/2020:0000"  // date et heure du début de la campagne
+                "01/06/2023:0000"  // date et heure du début de la campagne
             ));
             this.scenario.ajouteEntite(new ParametreApplication(
                 334,                // indexDateOuvertureCompleteInternats
-                "01/07/2020:0000"   // date et heure de l'ouverture complète des internats
+                "01/07/2023:0000"   // date et heure de l'ouverture complète des internats
             ));
             this.scenario.ajouteEntite(new ParametreApplication(
                     316,                // indexDateDebutGDD
-                    "15/07/2020:2359"   // date et heure du début GDD
+                    "15/07/2023:2359"   // date et heure du début GDD
             ));
             this.scenario.ajouteEntite(new ParametreApplication(
                     437,                // indexDateFinOrdGDD
-                    "18/07/2020:0000"   //
+                    "18/07/2023:0000"   //
             ));
 
             

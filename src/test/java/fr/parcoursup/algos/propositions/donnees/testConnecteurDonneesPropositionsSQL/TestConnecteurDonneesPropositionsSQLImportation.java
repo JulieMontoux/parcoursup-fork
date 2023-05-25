@@ -7,6 +7,7 @@ import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 import java.util.Map;
 import java.util.Set;
 
@@ -29,10 +30,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
 
-        int nbJoursCampagne = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "getNbJoursCampagne"
-        );
+        int nbJoursCampagne = connecteurDonneesPropositions.getNbJoursCampagne();
 
         return nbJoursCampagne;
 
@@ -40,7 +38,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
     @Test
     public void test_recuperation_verification_nombre_jours_depuis_debut_campagne_avec_connecteur_prod_doit_retourner_nombre_superieur_a_zero() throws Exception {
-        this.setBddDateDebutCampagne("20/05/2020:0000");
+        this.setBddDateDebutCampagne("20/06/2023:0000");
         int nbJoursCampagne;
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
@@ -56,30 +54,21 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
     int recupere_nombre_jours_campagne_a_date_pivot_internats(
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
-        int nbJoursCampagneDatePivotInternats = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "getNbJoursCampagneDatePivotInternats"
-        );
+        int nbJoursCampagneDatePivotInternats = connecteurDonneesPropositions.getNbJoursCampagneDatePivotInternats();
         return nbJoursCampagneDatePivotInternats;
     }
 
     int recupere_nombre_jours_campagne_debut_gdd(
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
-        int nbJrs = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "getNbJoursCampagneDateDebutGDD"
-        );
+        int nbJrs = connecteurDonneesPropositions.getNbJoursCampagneDateDebutGDD();
         return nbJrs;
     }
 
     int recupere_nombre_jours_campagne_fin_ord_gdd(
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
     ) throws Exception {
-        int nbJrs = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "getNbJoursCampagneFinOrdonnancementGDD"
-        );
+        int nbJrs = connecteurDonneesPropositions.getNbJoursCampagneFinOrdonnancementGDD();
         return nbJrs;
     }
 
@@ -91,14 +80,18 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
     @Test
     public void test_recuperation_verification_nombre_jours_ecoules_entre_dates_debut_campagne_et_ouverture_complete_internats_avec_connecteur_prod_doit_reussir() throws Exception {
 
-        this.setBddDateDebutCampagne("20/05/2020:0000");
-        this.setBddDateOuvertureCompleteInternats("21/05/2020:0000");
-        this.setBddDateDebutGDD("22/05/2020:2359");
-        this.setBddDateFinOrdGDD("25/05/2020:0000");
+        /* the modification of these values will fail the h2 tests unless the values used in
+         the definition of f_propGetNbJrsFromParam in db-setup/h2/create-schema.sql
+         are updated */
+        this.setBddDateDebutCampagne("01/06/2023:0000");//35
+        this.setBddDateOuvertureCompleteInternats("30/06/2023:0000");//334
+        this.setBddDateDebutGDD("15/07/2023:2359");//316
+        this.setBddDateFinOrdGDD("18/05/2023:0000");//437
 
         int nbJoursCampagneDatePivotInternats;
         int nbJoursDebutGDD;
         int nbJoursFinOrdGDD;
+
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
@@ -114,9 +107,12 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(2, nbJoursCampagneDatePivotInternats);
-        assertEquals(3, nbJoursDebutGDD);
-        assertEquals(6, nbJoursFinOrdGDD);
+         /* the modification of these values will fail the h2 tests unless the values used in
+         the definition of f_propGetNbJrsFromParam in db-setup/h2/create-schema.sql
+         are updated */
+        assertEquals(30, nbJoursCampagneDatePivotInternats);
+        assertEquals(45, nbJoursDebutGDD);
+        assertEquals(48, nbJoursFinOrdGDD);
 
     }
 
@@ -332,13 +328,11 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             entree.ajouter(internat);
         }
 
-        Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "recupererVoeuxAvecInternatsAClassementPropre",
+
+        connecteurDonneesPropositions.recupererVoeuxAvecInternatsAClassementPropre(
                 entree.internatsIndex,
                 seulementVoeuxEnAttente,
-                true,
-                false
+                true
         );
 
         return entree;
@@ -459,32 +453,27 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
 
         Whitebox.setInternalState(connecteurDonneesPropositions, "entree", entree);
 
-        Map<GroupeAffectationUID, GroupeAffectation> groupesAffectation = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "recupererGroupesAffectation",
-                parametres,
-                false // paramètre retroCompatibitilite
-        );
+
+        Map<GroupeAffectationUID, GroupeAffectation> groupesAffectation =
+                connecteurDonneesPropositions.recupererGroupesAffectation(
+                        parametres,
+                        false// paramètre retroCompatibitilite
+                );
 
         for (GroupeAffectation g : groupesAffectation.values()) {
             entree.ajouter(g);
         }
 
-        Map<GroupeInternatUID, GroupeInternat> internats = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "recupererInternats"
-        );
+        Map<GroupeInternatUID, GroupeInternat> internats
+                = connecteurDonneesPropositions.recupererInternats();
 
         for (GroupeInternat internat : internats.values()) {
             entree.ajouter(internat);
         }
 
-        Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "recupererVoeuxSansInternatAClassementPropre",
+        connecteurDonneesPropositions.recupererVoeuxSansInternatAClassementPropre(
                 seulementVoeuxEnAttente,
-                true,
-                false
+                true
         );
 
         return entree;

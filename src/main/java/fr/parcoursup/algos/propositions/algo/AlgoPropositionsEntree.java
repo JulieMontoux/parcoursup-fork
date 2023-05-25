@@ -115,7 +115,7 @@ public final class AlgoPropositionsEntree implements Serializable {
     }
 
     public void ajouterOuRemplacer(Voeu v) {
-        voeux.remove(v);
+        voeux.remove(v);//removes any voeu with the same id
         voeux.add(v);
     }
 
@@ -145,7 +145,7 @@ public final class AlgoPropositionsEntree implements Serializable {
     }
 
     /* for deserialization */
-    AlgoPropositionsEntree() {
+    public AlgoPropositionsEntree() {
         parametres = new Parametres(0, 0, 0, 0);
     }
 

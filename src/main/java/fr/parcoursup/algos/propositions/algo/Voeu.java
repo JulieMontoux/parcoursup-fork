@@ -30,10 +30,6 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.Serializable;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.A_AD_TYP_DEM_GDD;
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.A_AD_TYP_DEM_RA;
@@ -83,6 +79,15 @@ public class Voeu implements Serializable {
 
     /* la position du voeu dans la liste de voeux hiérarchisés du candidat (0 = pas de hiérarchisation, 1 = voeu préféré). Calculé en SQL par NVL(A_VOE.a_ve_ord,0). */
     private int rangPreferencesCandidat;
+
+    /* le voeu doit-il être ignoré dans le calcul des rangs sur liste d'atte,te (par exemple dan sle cas d'une annulation de démission demandée par le candidat,
+    ou en cas de modif de classemnt erronné) */
+    public final boolean ignorerDansLeCalculRangsListesAttente;
+
+    /* le voeu doit-il être ignoré dans le calcul des barres internats affichées aux candidats en attente, par exemple
+     en cas d'affectation directe par une CAES */
+    public final boolean ignorerDansLeCalculBarresInternatAffichees;
+
 
     public int getRangPreferencesCandidat() { return rangPreferencesCandidat; }
     public void setRangPreferencesCandidat(int rangPreferencesCandidat) { this.rangPreferencesCandidat = rangPreferencesCandidat; }
@@ -144,11 +149,11 @@ public class Voeu implements Serializable {
         if(!estDemissionAutomatique()) {
             throw new VerificationException(VOEU_SANS_STATUT_DEMISSION_AUTOMATIQUE, this);
         }
-        return (statut == StatutVoeu.GDD_DEMISSION_ATTENTE || statut == StatutVoeu.GDD_DEMISSION_PROP) ? A_AD_TYP_DEM_GDD : A_AD_TYP_DEM_RA;
+        return (statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE || statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP) ? A_AD_TYP_DEM_GDD : A_AD_TYP_DEM_RA;
     }
 
     public boolean estDemissionGDD() {
-        return (statut == StatutVoeu.GDD_DEMISSION_ATTENTE || statut == StatutVoeu.GDD_DEMISSION_PROP);
+        return (statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE || statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP);
     }
 
     /* les différents statuts d'un voeu */
@@ -157,8 +162,8 @@ public class Voeu implements Serializable {
         EN_ATTENTE_DE_PROPOSITION,
         PROPOSITION_DU_JOUR,
         REP_AUTO_DEMISSION_ATTENTE, //démission auto d'un voeu en attente par le répondeur automatique
-        GDD_DEMISSION_ATTENTE, //démission auto d'un voeu en attente par la règle de GDD
-        GDD_DEMISSION_PROP, //démission auto d'une propositions par la règle de GDD
+        DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE, //démission auto d'un voeu en attente par la règle de GDD
+        DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP, //démission auto d'une propositions par la règle de GDD
         REP_AUTO_ACCEPTE,
         REP_AUTO_REFUS_PROPOSITION, //refus automatique d'une proposition via le répondeur automatique
         PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT,
@@ -179,8 +184,8 @@ public class Voeu implements Serializable {
     public boolean estDemissionAutomatique() {
         return statut == StatutVoeu.REP_AUTO_DEMISSION_ATTENTE
                 || statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION
-                || statut == StatutVoeu.GDD_DEMISSION_ATTENTE
-                || statut == StatutVoeu.GDD_DEMISSION_PROP
+                || statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE
+                || statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP
                 ;
     }
 
@@ -190,7 +195,7 @@ public class Voeu implements Serializable {
 
     public boolean estDemissionAutomatiqueProposition() {
         return statut == StatutVoeu.REP_AUTO_REFUS_PROPOSITION
-                || statut == StatutVoeu.GDD_DEMISSION_PROP;
+                || statut == StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP;
     }
 
     public boolean estAcceptationAutomatique() {
@@ -250,17 +255,17 @@ public class Voeu implements Serializable {
         }
     }
 
-    public void refuserAutomatiquementParApplicationDemissionGdd() throws VerificationException {
+    public void refuserAutomatiquementParApplicationDemissionVoeuxOrdonnes() throws VerificationException {
         if(!estPropositionDuJour() && !estEnAttenteDeProposition() && !estPropJoursPrecedentsEnAttenteDeReponseCandidat()) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_NON_REFUSABLE_AUTOMATIQUEMENT_HORS_REP_AUTO, this);
         } else if (!aEteProposeJoursPrecedents() && rangPreferencesCandidat <= 0) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_SANS_RANG_NON_REFUSABLE_AUTOMATIQUEMENT, this);
         } else if (repondeurActive) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_AVEC_REPONDEUR_NON_REFUSABLE_PAR_DEM_AUTO_GDD, this);
+            throw new VerificationException(VerificationExceptionMessage.VOEU_AVEC_REPONDEUR_NON_REFUSABLE_PAR_DEM_AUTO_VOEUX_ORDONNES, this);
         } else if(estEnAttenteDeProposition()){
-            statut = StatutVoeu.GDD_DEMISSION_ATTENTE;
+            statut = StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE;
         } else {
-            statut = StatutVoeu.GDD_DEMISSION_PROP;
+            statut = StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP;
         }
     }
 
@@ -295,7 +300,9 @@ public class Voeu implements Serializable {
             int ordreAppelAffiche,
             int rangPreferencesCandidat,
             StatutVoeu statut,
-            boolean affecteHorsPP
+            boolean affecteHorsPP,
+            boolean ignorerDansLeCalculRangsListesAttente,
+            boolean ignorerDansLeCalculBarresInternatAffichees
     ) throws VerificationException {
 
         this.id = new VoeuUID(gCnCod, groupeUID.gTaCod, avecInternat);
@@ -308,7 +315,8 @@ public class Voeu implements Serializable {
         this.rangPreferencesCandidat = rangPreferencesCandidat;
         this.statut = statut;
         this.affecteHorsPP = affecteHorsPP;
-        this.estArchive = false;
+        this.ignorerDansLeCalculRangsListesAttente = ignorerDansLeCalculRangsListesAttente;
+        this.ignorerDansLeCalculBarresInternatAffichees = ignorerDansLeCalculBarresInternatAffichees;
 
         if (affecteHorsPP && !aEteProposeJoursPrecedents()) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP, this.id);
@@ -316,13 +324,26 @@ public class Voeu implements Serializable {
         if (ordreAppel < 0 || rangPreferencesCandidat < 0) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS, this.id);
         }
-        if (ordreAppel == 0 && !aEteProposeJoursPrecedents()) {
+        if (ordreAppel == 0 && !aEteProposeJoursPrecedents() && statut != StatutVoeu.NON_CLASSE) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT, this.id);
         }
 
     }
 
-    /* constructeur d'un voeu avec internat à classement propre */
+    public Voeu(
+            int gCnCod,
+            boolean avecInternat,
+            @NotNull GroupeAffectationUID groupeUID,
+            int ordreAppel,
+            int ordreAppelAffiche,
+            int rangPreferencesCandidat,
+            StatutVoeu statut,
+            boolean affecteHorsPP
+    ) throws VerificationException {
+        this(gCnCod,avecInternat,groupeUID,ordreAppel,ordreAppelAffiche,rangPreferencesCandidat,statut,affecteHorsPP, false,false);
+    }
+
+        /* constructeur d'un voeu avec internat à classement propre */
     public Voeu(
             int gCnCod,
             @NotNull GroupeAffectationUID groupeUID,
@@ -332,7 +353,9 @@ public class Voeu implements Serializable {
             int rangInternat,
             int rangPreferencesCandidat,
             StatutVoeu statut,
-            boolean affecteHorsPP
+            boolean affecteHorsPP,
+            boolean ignorerDansLeCalculRangsListesAttente,
+            boolean ignorerDansLeCalculBarresInternatAffichees
     ) throws VerificationException {
 
         this.id = new VoeuUID(gCnCod, groupeUID.gTaCod, true);
@@ -344,7 +367,8 @@ public class Voeu implements Serializable {
         this.rangPreferencesCandidat = rangPreferencesCandidat;
         this.statut = statut;
         this.affecteHorsPP = affecteHorsPP;
-        this.estArchive = false;
+        this.ignorerDansLeCalculRangsListesAttente = ignorerDansLeCalculRangsListesAttente;
+        this.ignorerDansLeCalculBarresInternatAffichees = ignorerDansLeCalculBarresInternatAffichees;
 
         if (affecteHorsPP && !aEteProposeJoursPrecedents()) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_INCONSISTENCE_STATUT_HORS_PP, this.id);
@@ -352,12 +376,25 @@ public class Voeu implements Serializable {
         if (ordreAppel < 0 || rangPreferencesCandidat < 0 || rangInternat < 0) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_RANGS_NEGATIFS, this.id);
         }
-        if (ordreAppel == 0 && !aEteProposeJoursPrecedents()) {
+        if (ordreAppel == 0 && !aEteProposeJoursPrecedents() && statut != StatutVoeu.NON_CLASSE) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT, this.id);
         }
         if(internatUID == null) {
             throw new VerificationException(VerificationExceptionMessage.VOEU_INTERNAT_NULL, this.id);
         }
+    }
+
+    public Voeu(
+            int gCnCod,
+            @NotNull GroupeAffectationUID groupeUID,
+            int ordreAppel,
+            int ordreAppelAffiche,
+            GroupeInternatUID internatUID,
+            int rangInternat,
+            int rangPreferencesCandidat,
+            StatutVoeu statut,
+            boolean affecteHorsPP) throws VerificationException {
+        this(gCnCod,groupeUID,ordreAppel,ordreAppelAffiche,internatUID,rangInternat,rangPreferencesCandidat,statut,affecteHorsPP,false,false);
     }
 
     public Voeu(Voeu o) {
@@ -373,9 +410,9 @@ public class Voeu implements Serializable {
         this.repondeurActive = o.repondeurActive;
         this.affecteHorsPP = o.affecteHorsPP;
         this.internatUID = o.internatUID;
-        this.typeMaj = o.typeMaj;
         this.rangListeAttente = o.rangListeAttente;
-        this.estArchive = o.estArchive;
+        this.ignorerDansLeCalculRangsListesAttente = o.ignorerDansLeCalculRangsListesAttente;
+        this.ignorerDansLeCalculBarresInternatAffichees = o.ignorerDansLeCalculBarresInternatAffichees;
     }
 
     public void ajouterAuxGroupes() throws VerificationException {
@@ -439,48 +476,6 @@ public class Voeu implements Serializable {
         }
     }
 
-    //flag a_ve_typ_maj gardant trace des éventuelles modifs de classement
-    /*
-    0 : RAS
-    1 : Annulation de démission d'un voeu (on ne tient pas compte de ces candidats dans le calcul des listes d'attente)
-    10 : Modification de classement : Candidat non classé devient classé (on ne tient pas compte de ces candidats dans le calcul des listes d'attente)
-    30 : Utilisé dans la mise à jour des classements erronés pour les candidats qui passent de classés à non classés dans le
-        classement corrigé (On tient compte de ces candidats dans le calcul des listes d'attente)
-    40 : Affectation par les CAES d'un candidat avec motif dérogatoire sur une CPGE avec internat.
-    */
-    private int typeMaj;
-    public static final int ANNULATION_DEMISSION_TYPE_MAJ = 1;
-    public static final int MODIF_CLASSEMENT_TYPE_MAJ1 = 10;
-    public static final int MODIF_CLASSEMENT_TYPE_MAJ2 = 30;
-    public static final int MODIF_CLASSEMENT_TYPE_MAJ_CAES = 40;
-
-    private static final Set<Integer> typeMajValeursPossibles = Stream.of(0,1,10,11,30,31,40,41).collect(Collectors.toCollection(HashSet::new));
-    public void setTypeMaj(int typeMaj) throws VerificationException {
-        if(!typeMajValeursPossibles.contains(typeMaj)) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_TYPE_MAJ_INCONNUE, typeMaj);
-        }
-        this.typeMaj = typeMaj;
-    }
-
-    public boolean estAnnulationDemission() {
-        return (typeMaj % 2 == ANNULATION_DEMISSION_TYPE_MAJ);
-    }
-
-    public boolean ignoreDansLeCalculDesRangSurListesDattente() {
-        return estAnnulationDemission()
-                || typeMaj == MODIF_CLASSEMENT_TYPE_MAJ1
-                || typeMaj == MODIF_CLASSEMENT_TYPE_MAJ_CAES;
-    }
-
-
-    //indique si le voeu est archivé en GDD
-    private boolean estArchive;
-    public boolean getEstArchive() {
-        return estArchive;
-    }
-    public void setEstArchive(boolean value) {
-        estArchive = value;
-    }
 
     @Override
     public boolean equals(Object obj) {
@@ -512,7 +507,8 @@ public class Voeu implements Serializable {
         affecteHorsPP = false;
         repondeurActive = false;
         statut = null;
-        estArchive = false;
+        ignorerDansLeCalculRangsListesAttente = false;
+        ignorerDansLeCalculBarresInternatAffichees = false;
     }
 
 

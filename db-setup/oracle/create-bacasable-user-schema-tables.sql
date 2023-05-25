@@ -10,7 +10,7 @@ ALTER USER bacasable QUOTA UNLIMITED ON USERS;
 
 CONNECT bacasable/parcoursup123@localhost:1521/XEPDB1;
 
-@/db-setup/create-tables.sql
+@/db-setup/create-schema.sql
 
 quit;
 /

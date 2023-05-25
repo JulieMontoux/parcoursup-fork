@@ -17,6 +17,7 @@ import org.dbunit.operation.DatabaseOperation;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 public class TestConnecteurDonneesAppelSQL extends DBTestCase {
 
     protected final JeuDonneesBaseTestOrdreAppel jeuDonneesBase;

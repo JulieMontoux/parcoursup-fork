@@ -45,6 +45,8 @@ public class ExemplePropositionsJson {
                 1,
                 1,
                 EN_ATTENTE_DE_PROPOSITION,
+                false,
+                false,
                 false);
 
         entree.voeux.add(voeu);

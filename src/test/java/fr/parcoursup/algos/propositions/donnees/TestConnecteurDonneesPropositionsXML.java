@@ -15,11 +15,12 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 public class TestConnecteurDonneesPropositionsXML {
 
     @Test
     public void recupererDonnees_doit_reussir() throws Exception {
-        AlgoPropositionsEntree entree1 = Whitebox.invokeConstructor(AlgoPropositionsEntree.class);
+        AlgoPropositionsEntree entree1 = new AlgoPropositionsEntree();
         String testFilename = "test-exe/tmp/parcoursup-test-ConnecteurDonneesPropositionsXML-recupererDonnees_doit_ecrire_fichier.xml";
         
         // Serialise
@@ -38,7 +39,7 @@ public class TestConnecteurDonneesPropositionsXML {
 
     @Test
     public void recupererDonnees_doit_echouerSiMauvaisCheminDeFichier() throws Exception {
-        AlgoPropositionsEntree entree1 = Whitebox.invokeConstructor(AlgoPropositionsEntree.class);
+        AlgoPropositionsEntree entree1 = new AlgoPropositionsEntree();
         String testFilename = "test-exe/tmp/parcoursup-test-ConnecteurDonneesPropositionsXML-recupererDonnees_doit_ecrire_fichier.xml";
         
         // Serialise
@@ -54,7 +55,7 @@ public class TestConnecteurDonneesPropositionsXML {
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void exporterDonnees_doit_reussir() throws Exception {
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie();
         String testFilename = "test-exe/tmp/parcoursup-test-ConnecteurDonneesPropositionsXML-exporterDonnees_doit_ecrire_fichier.xml";
         ConnecteurDonneesPropositionsXML conn = new ConnecteurDonneesPropositionsXML(testFilename);
         conn.exporterDonnees(sortie);

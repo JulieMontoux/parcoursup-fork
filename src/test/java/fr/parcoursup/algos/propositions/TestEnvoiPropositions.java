@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.ADMISSIONS_TABLE_SORTIE;
-import static org.powermock.api.mockito.PowerMockito.*;
 
 public class TestEnvoiPropositions extends TestConnecteurDonneesPropositionsSQL {
 

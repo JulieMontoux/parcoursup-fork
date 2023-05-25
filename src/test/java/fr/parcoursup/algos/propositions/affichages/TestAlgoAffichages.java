@@ -5,6 +5,7 @@ import fr.parcoursup.algos.propositions.algo.*;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Modifier;
@@ -28,7 +29,7 @@ public class TestAlgoAffichages {
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussir() throws Exception {
         Parametres p = new Parametres(1, 60, 90);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 
@@ -52,7 +53,7 @@ public class TestAlgoAffichages {
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourAffichage_doit_reussirSiVoeuAffecteJoursPrecedents() throws Exception {
         Parametres p = new Parametres(1, 60, 90);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 
@@ -72,7 +73,7 @@ public class TestAlgoAffichages {
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangsListeAttente_doit_reussirSiVoeuPasDansVoeuxAvecPropositionDansMemeFormation() throws Exception {
         Parametres p = new Parametres(1, 60, 90);
-        AlgoPropositionsSortie sortie = Whitebox.invokeConstructor(AlgoPropositionsSortie.class, p);
+        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         GroupeAffectation g = new GroupeAffectation(2, new GroupeAffectationUID(1, 1, 1), 2, 2, p);
         GroupeInternat gi = new GroupeInternat(new GroupeInternatUID(1, g.id.gTaCod), 2);
 
@@ -97,6 +98,8 @@ public class TestAlgoAffichages {
             propositionsDuJour
         );
     }
+
+
 
     @Test(expected = Test.None.class /* no exception expected */)
     public void mettreAJourRangDernierAppeleAffiche_doit_reussirPourGroupeAffectationAvecVoeuEnAttenteSansDemandeInternat() throws Exception {

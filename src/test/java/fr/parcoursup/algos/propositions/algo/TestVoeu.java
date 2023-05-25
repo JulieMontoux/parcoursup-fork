@@ -29,7 +29,7 @@ public class TestVoeu {
     public void constructeur_doit_copier() throws VerificationException {
         Parametres p = new Parametres(59, 60,90);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v1 = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
+        Voeu v1 = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false, false, false);
         Voeu v2 = new Voeu(v1);
         assertTrue(
             v1 != v2
@@ -42,7 +42,7 @@ public class TestVoeu {
             throws VerificationException {
         Parametres p = new Parametres(59, 60,90);
         GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.REP_AUTO_REFUS_PROPOSITION, false);
+        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.REP_AUTO_REFUS_PROPOSITION, false, false, false);
         assertTrue(v.estDemissionAutomatiqueProposition());
     }
 
@@ -168,34 +168,6 @@ public class TestVoeu {
             Voeu v = new Voeu(0, g.id, 0, 0, gi.id, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
         });
         assertSame(VerificationExceptionMessage.VOEU_ORDRE_APPEL_MANQUANT, exception.exceptionMessage);
-    }
-
-    @Test
-    public void setAnnulationDemission_doit_passerAnnulationDemissionATrue() throws VerificationException {
-        Parametres p = new Parametres(59, 60,90);
-        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
-        Voeu v = new Voeu(0, false, g.id, 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ);
-        assertTrue(v.estAnnulationDemission());
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ + MODIF_CLASSEMENT_TYPE_MAJ1);
-        assertTrue(v.estAnnulationDemission());
-        v.setTypeMaj(ANNULATION_DEMISSION_TYPE_MAJ + MODIF_CLASSEMENT_TYPE_MAJ2);
-        assertTrue(v.estAnnulationDemission());
-        v.setTypeMaj(0);
-        assertFalse(v.estAnnulationDemission());
-        v.setTypeMaj(MODIF_CLASSEMENT_TYPE_MAJ1);
-        assertFalse(v.estAnnulationDemission());
-        v.setTypeMaj(MODIF_CLASSEMENT_TYPE_MAJ2);
-        assertFalse(v.estAnnulationDemission());
-    }
-
-
-    @Test
-    public void set_type_maj_verifie_coherence() throws VerificationException {
-        Voeu v = new Voeu(0, false, new GroupeAffectationUID(0, 0, 0), 1, 1, 1, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false);
-        VerificationException ex = assertThrows(VerificationException.class, () ->
-                v.setTypeMaj(51));
-        assertEquals(VerificationExceptionMessage.VOEU_TYPE_MAJ_INCONNUE, ex.exceptionMessage);
     }
 
     @Test

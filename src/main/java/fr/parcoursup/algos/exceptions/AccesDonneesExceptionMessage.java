@@ -18,9 +18,11 @@ public enum AccesDonneesExceptionMessage {
 
     ENVOI_PROPOSITIONS_PROD_TNS_ADMIN("La variable d'environnement TNS_ADMIN n'est pas positionnée"),
 
-    CONNECTEUR_DONNEES_PROPOSITIONS_SQL_RECUPERATION("Echec de la recuperation des donnes"),
+    CONNECTEUR_DONNEES_PROPOSITIONS_SQL_RECUPERATION("Echec de la recuperation des données"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_EXPORT("Echec de l'export des propositions"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE("Date incohérente"),
+
+    CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE_INCONNUE("Date inconnue, g_pr_cod=%s"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_ENTREE("Problème d'intégrité des données d'entrée"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_MAUVAIS_G_PR_COD("Veuillez interrompre le flux de données entrantes et positionner le g_pr_cod=%s à 1"),
 

@@ -83,7 +83,7 @@ public class AlgoPropositions {
                     entree.parametres.nbJoursCampagne >= entree.parametres.nbJoursCampagneDateDebutGDD;
             if(appliquerdemAutoGDD) {
                 LOGGER.info("Application des démissions automatiques des voeux en attente en GDD");
-                placesLibereesParDemAutoGDD = DemissionAutoGDD.appliquerDemissionAutomatiqueGDD(entree);
+                placesLibereesParDemAutoGDD = DemissionAutoVoeuxOrdonnes.appliquerDemissionAutomatiqueVoeuOrdonnes(entree);
             }
 
             long placesLibereesParRepAuto = RepondeurAutomatique.appliquerRepondeurAutomatique(entree);

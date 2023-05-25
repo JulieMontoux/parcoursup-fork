@@ -119,19 +119,20 @@ public class DemoPropositionsBdd {
         ).insert();
         new ParametreApplication(
             35,                // indexDateDebutDeCampagne
-            "20/05/2020:0000"  // date et heure du début de la campagne
+            "20/05/2023:0000"  // date et heure du début de la campagne
         ).insert();
         new ParametreApplication(
             334,                // indexDateOuvertureCompleteInternats
-            "01/07/2020:0000"   // date et heure de l'ouverture complète des internats
+            "01/07/2023:0000"   // date et heure de l'ouverture complète des internats
         ).insert();
+        
         new ParametreApplication(
                 316,                // indexDateDebutGDD
-                "15/07/2020:0000"   // date et heure de l'ouverture complète des internats
+                "15/07/2023:0000"   // date et heure de l'ouverture complète des internats
         ).insert();
         new ParametreApplication(
                 437,                // indexFinOrdonancementVoeuxGDD
-                "18/07/2020:0000"   // date et heure de la fin d'ordonnacement des voeux GDD
+                "18/07/2023:0000"   // date et heure de la fin d'ordonnacement des voeux GDD
         ).insert();
         
         //

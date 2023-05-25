@@ -3,12 +3,12 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.gouv.education</groupId>
     <artifactId>parcoursup-algos</artifactId>
-    <version>2022-1.2.0</version>
+    <version>parcoursup-algos-2023-2.jar</version>
     <name>algorithmes-de-parcoursup</name>
     <properties>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project_packages_url>https://gitlab.mim-libre.fr/api/v4/projects/598/packages/maven</project_packages_url>
     </properties>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
@@ -97,25 +97,25 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.13</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-core</artifactId>
-            <version>2.0.5</version>
+            <version>2.0.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-module-junit4</artifactId>
-            <version>2.0.5</version>
+            <version>2.0.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.powermock</groupId>
             <artifactId>powermock-api-mockito2</artifactId>
-            <version>2.0.5</version>
+            <version>2.0.9</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -173,7 +173,7 @@
             </activation>
             <properties>
                  <DRIVER_BDD_BAC_A_SABLE>org.h2.Driver</DRIVER_BDD_BAC_A_SABLE>
-                 <URL_BDD_BAC_A_SABLE>jdbc:h2:${project.basedir}/h2/bacasable-${project.version};MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_BAC_A_SABLE>
+                 <URL_BDD_BAC_A_SABLE>jdbc:h2:${project.basedir}/h2/bacasable;MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-schema.sql'</URL_BDD_BAC_A_SABLE>
                  <UTILISATEUR_BDD_BAC_A_SABLE>bacasable</UTILISATEUR_BDD_BAC_A_SABLE>
                  <MDP_BDD_BAC_A_SABLE>parcoursup123</MDP_BDD_BAC_A_SABLE>
             </properties>
@@ -190,10 +190,16 @@
                         <configuration>
                               <systemPropertyVariables>
                                  <DRIVER_BDD_TEST>org.h2.Driver</DRIVER_BDD_TEST>
-                                 <URL_BDD_TEST>jdbc:h2:${project.basedir}/h2/tests-${project.version};MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-tables.sql'</URL_BDD_TEST>
+                                 <URL_BDD_TEST>jdbc:h2:${project.basedir}/h2/tests-${project.version};MODE=Oracle;INIT=RUNSCRIPT FROM '${project.basedir}/db-setup/h2/create-schema.sql'</URL_BDD_TEST>
                                  <UTILISATEUR_BDD_TEST>tests</UTILISATEUR_BDD_TEST>
                                  <MDP_BDD_TEST>parcoursup123</MDP_BDD_TEST>
                               </systemPropertyVariables>
+                            <argLine>
+                                --add-opens java.base/java.lang=ALL-UNNAMED
+                                --add-opens java.logging/java.util.logging=ALL-UNNAMED
+                                --add-opens java.base/java.base=ALL-UNNAMED
+                                --add-opens java.base/java.io=ALL-UNNAMED
+                            </argLine>
                         </configuration>
                     </plugin>
                 </plugins>
@@ -286,14 +292,20 @@
             </build>
         </profile>
     </profiles>
+    <repositories>
+        <repository>
+            <id>gitlab-maven-parcoursup</id>
+            <url>${project_packages_url}</url>
+        </repository>
+    </repositories>
     <distributionManagement>
         <repository>
             <id>gitlab-maven-parcoursup</id>
-            <url>https://gitlab.com/api/v4/projects/17008349/packages/maven</url>
+            <url>${project_packages_url}</url>
         </repository>
         <snapshotRepository>
             <id>gitlab-maven-parcoursup</id>
-            <url>https://gitlab.com/api/v4/projects/17008349/packages/maven</url>
+            <url>${project_packages_url}</url>
         </snapshotRepository>
     </distributionManagement>
 </project>
