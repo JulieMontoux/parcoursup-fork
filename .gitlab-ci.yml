@@ -1,0 +1,108 @@
+image: docker:20.10.3
+
+variables:
+  DOCKER_COMPOSE_VERSION: 1.29.2
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_PARCOURSUP_IMAGE_REGISTRY: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/parcoursup
+  DOCKER_PARCOURSUP_BDD_IMAGE_REGISTRY: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/parcoursup-bdd
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+services:
+  - docker:20.10.3-dind
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+stages:
+  - build
+  - test
+  - deploy
+  - schedules
+
+before_script:
+  - docker info
+  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - apk update
+  - apk add --no-cache py3-pip python3-dev libffi-dev openssl-dev gcc libc-dev make musl-dev cargo
+  - export DOCKER_TAG=$(echo $CI_COMMIT_BRANCH | tr / -)
+
+
+.common_script: &common_script
+    - python3 -m pip install --upgrade pip
+    - pip3 install --upgrade setuptools pip
+    - pip3 install virtualenv && virtualenv venv && source venv/bin/activate
+    - pip3 install cryptography==3.4.4 docker-compose==${DOCKER_COMPOSE_VERSION}
+
+h2:  # Build the image, make soft tests with h2 and push the image
+  stage: build
+  script:
+    - *common_script
+    - docker pull $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest
+    - docker build --cache-from $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest --build-arg BUILDKIT_INLINE_CACHE=1 . -t parcoursup -t $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG -f ./docker/parcoursup/Dockerfile
+    - docker-compose up -d parcoursup
+    - docker exec -i parcoursup mvn clean package -P bdd-h2
+    - docker exec -i parcoursup /algorithmes-de-parcoursup/test-exe/bacasable/run.sh
+    - docker-compose down
+    - docker push $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG
+  only:
+    - master
+    - fix_pipeline
+
+clover-h2:  # Pull the image and clover report
+  stage: test
+  script:
+    - *common_script
+    - docker pull $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG
+    - docker tag $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG parcoursup
+    - docker-compose up -d parcoursup
+    - docker exec -i parcoursup mvn clean package -P bdd-h2,metriques-clover
+    - rm -rf target && docker cp parcoursup:/algorithmes-de-parcoursup/target ./target
+    - cat target/site/clover/treemap-json.js
+    - docker-compose down
+  artifacts:
+    paths:
+      - target
+  only:
+    - master
+    - fix_pipeline
+
+parcoursup:  # Push the image with the latest tag and the mvn repository
+  stage: deploy
+  script:
+    - docker pull $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG
+    - docker tag $DOCKER_PARCOURSUP_IMAGE_REGISTRY:$DOCKER_TAG $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest
+    - docker push $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest
+    - docker run -e CI_JOB_TOKEN $DOCKER_PARCOURSUP_IMAGE_REGISTRY mvn deploy -s ci-settings.xml
+  only:
+    - master
+    - fix_pipeline
+
+random:ordreAppel:
+  stage: schedules
+  script:
+    - *common_script
+    - docker pull $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest
+    - docker tag $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest parcoursup
+    - docker-compose up -d parcoursup
+    - docker exec -i parcoursup mvn clean package -P bdd-h2
+    - for i in {1..50}; do docker exec -i parcoursup mvn exec:java -Dexec.mainClass=fr.parcoursup.algos.bacasable.ordreappel.DemoOrdreAppel; done
+    # - for i in {1..5}; do false; done  # Fails the pipeline
+  only:
+    - schedules
+    - fix_pipeline
+
+random:propositions:
+  stage: schedules
+  script:
+    - *common_script
+    - docker pull $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest
+    - docker tag $DOCKER_PARCOURSUP_IMAGE_REGISTRY:latest parcoursup
+    - docker-compose up -d parcoursup
+    - docker exec -i parcoursup mvn clean package -P bdd-h2
+    - docker exec -i parcoursup timeout 60s mvn exec:java -Dexec.mainClass=fr.parcoursup.algos.bacasable.propositions.DemoAlgoPropositions || ( [[ $? -eq 124 ]])
+    # - docker exec -i parcoursup timeout 5s false || ( [[ $? -eq 124 ]])  # Fails the pipeline
+  only:
+    - schedules
+    - fix_pipeline

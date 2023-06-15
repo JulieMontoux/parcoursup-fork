@@ -5,6 +5,7 @@ target/
 .project
 .settings/
 exemple*.xml
+.vscode
 log
 entree_*
 sortie_*
@@ -15,10 +16,12 @@ sortie_*
 !docker/**/*.sh
 !db-setup/**/*.sh
 !test-exe/**/*.sh
-h2/tests.mv.db
-h2/tests.trace.db
-h2/bacasable.mv.db
-h2/bacasable.trace.db
+**/*.db
 *.json
 *.xml
 *.iml
+tmp/*
+test-exe/tmp/*
+scripts/*
+.idea/*
+

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<executionParams>
+    <url>jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST=parcoursup-bdd)(PORT=1521))(CONNECT_DATA=(SERVER=DEDICATED)(SERVICE_NAME=XEPDB1)))</url>
+    <tnsAlias>parcoursup-bdd:1521/XEPDB1</tnsAlias>
+    <user>tests</user>
+    <password>parcoursup123</password>
+    <outputDir>./</outputDir>
+</executionParams>

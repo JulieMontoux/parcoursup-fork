@@ -8,7 +8,7 @@
     <properties>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project_packages_url>https://gitlab.mim-libre.fr/api/v4/projects/598/packages/maven</project_packages_url>
+        <project_packages_url>https://gitlab.mim-libre.fr/api/v4/projects/1035/packages/maven</project_packages_url>
     </properties>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
