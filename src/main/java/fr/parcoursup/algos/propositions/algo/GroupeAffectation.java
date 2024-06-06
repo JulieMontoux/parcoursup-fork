@@ -39,6 +39,12 @@ public class GroupeAffectation implements Serializable {
 
     /* le nombre de recrutements souhaité par la formation */
     private int nbRecrutementsSouhaite;
+    
+    /* le nombre de candidat en attente*/
+    private int a_rg_nbr_att;
+    
+    /* Flag pour stopper les adm sur le groupe*/
+    private int a_rg_flg_adm_stop;
 
     public int getNbRecrutementsSouhaite() {
         return nbRecrutementsSouhaite;
@@ -315,5 +321,23 @@ public class GroupeAffectation implements Serializable {
         voeuxEnAttente = new HashSet<>();
         candidatsAffectes = new HashSet<>();
     }
+
+	public int getA_rg_nbr_att() {
+		return a_rg_nbr_att;
+	}
+
+	public void setA_rg_nbr_att(int a_rg_nbr_att) {
+		this.a_rg_nbr_att = a_rg_nbr_att;
+	}
+
+	public int getA_rg_flg_adm_stop() {
+		return a_rg_flg_adm_stop;
+	}
+
+	public void setA_rg_flg_adm_stop(int a_rg_flg_adm_stop) {
+		this.a_rg_flg_adm_stop = a_rg_flg_adm_stop;
+	}
+    
+    
 
 }

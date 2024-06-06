@@ -25,14 +25,17 @@ import fr.parcoursup.algos.exceptions.AccesDonneesExceptionMessage;
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.propositions.affichages.AlgosAffichages;
 import fr.parcoursup.algos.propositions.algo.*;
+import fr.parcoursup.algos.utils.UtilService;
 
+import java.io.Console;
 import java.sql.*;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import static fr.parcoursup.algos.donnees.ConnecteurSQL.*;
 import static fr.parcoursup.algos.donnees.SQLStringsConstants.*;
@@ -55,11 +58,11 @@ import static fr.parcoursup.algos.propositions.algo.Voeu.StatutVoeu.*;
 public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropositions {
 
     /* connexion a la base de données */
-    private final Connection connection;
+    private final ConnectionMonitoring connection;
 
     public ConnecteurDonneesPropositionsSQL(
             Connection connection) {
-        this.connection = connection;
+        this.connection = new ConnectionMonitoring(connection, LOGGER);
         this.config = new ConnecteurDonneesPropositionSQLConfig();
     }
 
@@ -68,7 +71,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             Connection connection,
             ConnecteurDonneesPropositionSQLConfig config
     ) {
-        this.connection = connection;
+        this.connection = new ConnectionMonitoring(connection, LOGGER);
         this.config = config;
     }
 
@@ -80,10 +83,12 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
     AlgoPropositionsEntree entree = null;
 
     public void initialiserAlgoPropositionsEntree() throws AccesDonneesException, SQLException {
-        LOGGER.info("Vérification de l'interruption du flux de données entrantes.");
+   	
+    	LOGGER.info(UtilService.encadrementLog("Initialisation des données"));
+        LOGGER.info(UtilService.petitEncadrementLog("Vérification de l'interruption du flux de données entrantes."));
             /* Si = 1 indique que le programme d'admission est en train de tourner
             pour faire des propositions. Si c'est le cas, tout est bloqué */
-        try (PreparedStatement ps = connection.prepareStatement(
+        try (PreparedStatementMonitoring ps = connection.prepareStatement(
                 SELECT + "g_pr_val" + FROM + G_PAR + WHERE + "g_pr_cod=?")) {
             ps.setInt(1, INDEX_FLAG_INTERRUP_DONNEES);
             try (ResultSet result = ps.executeQuery()) {
@@ -96,28 +101,28 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        LOGGER.info("Récupération du nombre de jours depuis l'ouverture de la campagne");
+        LOGGER.info(UtilService.petitEncadrementLog("Récupération du nombre de jours depuis l'ouverture de la campagne"));
         int nbJoursCampagne = getNbJoursCampagne();
         if(config.simulerNbJrs > 0) {
             //fonction utilisée en simulation
             nbJoursCampagne = config.simulerNbJrs;
         }
-        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagne);
+        LOGGER.info( "{0} jours.", nbJoursCampagne);
 
-        LOGGER.info("Récupération du nombre de jours de campagne à la date pivot");
+        LOGGER.info(UtilService.petitEncadrementLog("Récupération du nombre de jours de campagne à la date pivot"));
         int nbJoursCampagneDatePivotInternats
                 = getNbJoursCampagneDatePivotInternats();
-        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDatePivotInternats);
+        LOGGER.info( "{0} jours.", nbJoursCampagneDatePivotInternats);
 
-        LOGGER.info("Récupération de la date de début de la GDD");
+        LOGGER.info(UtilService.petitEncadrementLog("Récupération de la date de début de la GDD"));
         int nbJoursCampagneDateDebutGDD
                 = getNbJoursCampagneDateDebutGDD();
-        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDateDebutGDD);
+        LOGGER.info( "{0} jours.", nbJoursCampagneDateDebutGDD);
 
-        LOGGER.info("Récupération de la date de fin d'ordonnancement des voeux en GDD");
+        LOGGER.info(UtilService.petitEncadrementLog("Récupération de la date de fin d'ordonnancement des voeux en GDD"));
         int nbJoursCampagneDateFinOrdonnancementGDD
                 = getNbJoursCampagneFinOrdonnancementGDD();
-        LOGGER.log(Level.INFO, "{0} jours.", nbJoursCampagneDateFinOrdonnancementGDD);
+        LOGGER.info( "{0} jours.", nbJoursCampagneDateFinOrdonnancementGDD);
 
         Parametres parametres = new Parametres(
                 nbJoursCampagne,
@@ -127,6 +132,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         );
         entree = new AlgoPropositionsEntree(parametres);
 
+        LOGGER.info(UtilService.encadrementLog("Fin de l'initialisation des données"));
     }
 
     @Override
@@ -135,11 +141,13 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         try {
 
             initialiserAlgoPropositionsEntree();
+            
+            LOGGER.info(UtilService.encadrementLog("Récupération des données depuis la base de données"));
 
-            LOGGER.info("Récupération des candidats ayant activé le répondeur automatique (vue " + V_PROP_CAN_RA + ")");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des candidats ayant activé le répondeur automatique (vue " + V_PROP_CAN_RA + ")"));
             recupererCandidatsAvecRepondeurAutomatique();
 
-            LOGGER.info("Récupération des groupes d'affectation");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des groupes d'affectation"));
             entree.groupesAffectations.clear();
             boolean retroCompatibilityMode = !config.verifierInterruptionFluxDonneesEntrantes;
             Map<GroupeAffectationUID, GroupeAffectation> groupes
@@ -150,45 +158,46 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 entree.ajouter(g);
             }
 
-            LOGGER.info("Récupération des internats");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des internats"));
             entree.internats.clear();
             for (GroupeInternat internat : recupererInternats().values()) {
                 entree.internatsIndex.indexer(internat.id);
                 entree.ajouter(internat);
             }
 
-            LOGGER.info("Récupération des voeux en attente avec demande internat dans un internat ayant son propre classement");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des voeux en attente avec demande internat dans un internat ayant son propre classement"));
             recupererVoeuxAvecInternatsAClassementPropre(
                     entree.internatsIndex,
                     config.recupererSeulementVoeuxEnAttente,
                     config.recupererSeulementVoeuxClasses
             );
 
-            LOGGER.info("Récupération des voeux en attente sans internat, ou avec internat n'ayant pas son propre classemnt");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des voeux en attente sans internat, ou avec internat n'ayant pas son propre classement"));
             recupererVoeuxSansInternatAClassementPropre(
                     config.recupererSeulementVoeuxEnAttente,
                     config.recupererSeulementVoeuxClasses
             );
 
-            LOGGER.info("Récupération des propositions non refusées ");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des propositions non refusées "));
             //NB: en simulation, récupérer les propositions après les voeux, i.e. conserver les appels à recupererVoeuxA* et recupererPropositionsActuelles dans cet ordre
             recupererPropositions(entree.internatsIndex, config.inclurePropositionsRefusees);
 
             if (!groupesManquants.isEmpty()) {
-                LOGGER.log(Level.SEVERE, "{0} groupes manquants.", groupesManquants.size());
+                LOGGER.error("{} groupes manquants.", groupesManquants.size());
             }
 
             if (!internatsManquants.isEmpty()) {
-                LOGGER.log(Level.SEVERE, "{0} internats manquants.", internatsManquants.size());
+            	LOGGER.error("{} internats manquants.", internatsManquants.size());
             }
 
         } catch (SQLException ex) {
+        	ex.printStackTrace();
             throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_RECUPERATION, ex);
         } catch (VerificationException ex) {
             throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_ENTREE, ex);
         }
 
-        LOGGER.info("Fin de la récupération des données depuis la base de données");
+        LOGGER.info(UtilService.encadrementLog("Fin de la récupération des données"));
 
         return entree;
 
@@ -205,6 +214,9 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             boolean yComprisAffichages)
             throws VerificationException, AccesDonneesException {
         try {
+        	
+        	LOGGER.info(UtilService.encadrementLog("Début de l'export des données"));
+        	
             connection.setAutoCommit(false);
 
             /* Si il y a eu un problème lors de l'export, on le signale via ce flag */
@@ -230,7 +242,6 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             connection.commit();
 
             if (yComprisAffichages) {
-                LOGGER.info("Exportation des affichages");
                 exporterAffichages(sortie);
                 connection.commit();
             }
@@ -238,13 +249,17 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         } catch (SQLException ex) {
             throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_EXPORT, ex);
         }
+        
+        LOGGER.info(UtilService.encadrementLog("Fin de l'export des données"));
     }
 
     /* exportation des données affichées: rangs sur liste d'attente et rangs
     des dernier appelés. */
     public void exporterAffichages(AlgoPropositionsSortie sortie) throws SQLException, VerificationException {
 
-        LOGGER.info("Prise en compte des propositions du jour");
+        LOGGER.info(UtilService.encadrementLog("Exportation des affichages"));
+        
+        LOGGER.info(UtilService.petitEncadrementLog("Prise en compte des propositions du jour"));
         Set<VoeuUID> voeuxAvecPropositionDansMemeFormation
                 = recupererVoeuxAvecPropositionAnterieureDansMemeFormation();
 
@@ -256,25 +271,33 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        LOGGER.info("Mise à jour des affichages candidats");
+        LOGGER.info(UtilService.petitEncadrementLog("Mise à jour des affichages candidats"));
         AlgosAffichages.mettreAJourAffichages(sortie,
                 voeuxAvecPropositionDansMemeFormation,
                 propositionsDuJour
         );
 
-        LOGGER.info("Exportation des rangs des barres des derniers appelés pour les voeux sans internat");
+        LOGGER.info(UtilService.petitEncadrementLog("Exportation des rangs des barres des derniers appelés pour les voeux sans internat"));
         exporterBarresAfficheesVoeuxSansInternat(sortie);
         connection.commit();
 
-        LOGGER.info("Exportation des rangs des barres des derniers appelés  pour les voeux avec internat");
+        LOGGER.info(UtilService.petitEncadrementLog("Exportation des rangs des barres des derniers appelés  pour les voeux avec internat"));
         exporterBarresAfficheesVoeuxAvecInternat(sortie);
         connection.commit();
 
-        LOGGER.info("Exportation des rangs sur liste d'attente");
+        LOGGER.info(UtilService.petitEncadrementLog("Exportation des rangs sur liste d'attente"));
         exporterRangsSurListeAttente(sortie);
         connection.commit();
+        
+        LOGGER.info(UtilService.petitEncadrementLog("Copie des données de la veille non mise à jour."));
+        insererDonneesVeille(sortie.parametres.nbJoursCampagne);
+        connection.commit();
+        
+        LOGGER.info(UtilService.petitEncadrementLog("Copie des internats non traités."));
+        insererInternatNonTraite(sortie.parametres.nbJoursCampagne);
+        connection.commit();
 
-        LOGGER.info("Fin de l'exportation des affichages");
+        LOGGER.info(UtilService.encadrementLog("Fin de l'exportation des affichages"));
     }
 
     /**
@@ -333,7 +356,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
 
             ps.executeBatch();
-            LOGGER.log(Level.INFO, "{0} propositions exportées.", count);
+            LOGGER.info( "{0} propositions exportées.", count);
 
         }
 
@@ -368,7 +391,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
 
             ps.executeBatch();
-            LOGGER.log(Level.INFO, "{0} démissions automatiques exportées.", count);
+            LOGGER.info( "{0} démissions automatiques exportées.", count);
 
         }
     }
@@ -436,15 +459,17 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         LOGGER.info("Export dans la table A_REC_GRP_INT_PROP");
         try (PreparedStatement ps = connection.prepareStatement(
                  INSERT_INTO + A_REC_GRP_INT_PROP
-                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
-                + VALUES + "(?,?,?,?,?,?,?)")) {
+                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS,A_RG_POS_MAX_ADM_INT,A_RG_FLG_ADM_STOP)"
+                + VALUES + "(?,?,?,?,?,?,?,?,?)")) {
 
             int nb = 0;
             for (GroupeInternat internat : sortie.internats) {
+            	
                 for (GroupeAffectation g : internat.groupesConcernes()) {
                     Integer barreAppelAffichee = internat.barresAppelAffichees.get(g.id);
                     Integer barreInternatAffichee = internat.barresInternatAffichees.get(g.id);
-                    if (barreAppelAffichee != null && barreInternatAffichee != null) {
+                    
+                    if (barreAppelAffichee != null && barreInternatAffichee != null) {          	
                         ps.setInt(1, internat.id.cGiCod);
                         ps.setInt(2, g.id.gTaCod);
                         ps.setInt(3, g.id.gTiCod);
@@ -452,12 +477,21 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         ps.setInt(5, barreAppelAffichee);
                         ps.setInt(6, barreInternatAffichee);
                         ps.setInt(7, sortie.parametres.nbJoursCampagne);
+                        /* EVOL 2024 : A_RG_POS_MAX_ADM_INT. a 0 si pas d'admission*/
+                        ps.setInt(8, g.getA_rg_flg_adm_stop() == 0 ? internat.getPositionAdmission() : 0);                          
+                        ps.setInt(9, g.getA_rg_flg_adm_stop());
                         ps.addBatch();
                         nb++;
+                        try {
+                        	ps.executeBatch();
+                        }catch (Exception e) {
+							// TODO: handle exception
+                        	System.err.println("Erreur lors de l'insert suivant : " + internat.id.cGiCod + ";" + g.id.gTaCod + ";" +  g.id.gTiCod+ ";" +  g.id.cGpCod + ";" + barreAppelAffichee + ";" + barreInternatAffichee + ";" + sortie.parametres.nbJoursCampagne + ";" + internat.getPositionMaximaleAdmission() );
+						}
                     }
                 }
             }
-            ps.executeBatch();
+            //ps.executeBatch();
             LOGGER.info(nb + " entrees ont été exportées dans la table " + A_REC_GRP_INT_PROP + " terminé.");
         }
     }
@@ -502,7 +536,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
                     if (internat == null) {
                         sortie.setAvertissement();
-                        LOGGER.log(Level.WARNING, "exporterBarresAfficheesVoeuxAvecInternat: disparition suspecte de l''internat {0}", internatUID);
+                        LOGGER.warn( "exporterBarresAfficheesVoeuxAvecInternat: disparition suspecte de l''internat {}", internatUID);
                         continue;
                     }
 
@@ -587,14 +621,17 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         LOGGER.info("Export de "  + sortie.groupes.size() +" groupes dans la table " + A_REC_GRP_INT_PROP);
         try (PreparedStatement ps = connection.prepareStatement(
                 INSERT_INTO +  A_REC_GRP_INT_PROP
-                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS)"
-                + VALUES + "(0,?,?,?,?,0,?)")) {
+                + "(C_GI_COD,g_ta_cod,G_TI_COD,C_GP_COD,A_RG_RAN_DER,A_RG_RAN_DER_INT,NB_JRS,A_RG_NBR_ATT,A_RG_FLG_ADM_STOP)"
+                + VALUES + "(0,?,?,?,?,0,?,?,?)")) {
             for (GroupeAffectation g : sortie.groupes) {
                 ps.setInt(1, g.id.gTaCod);
                 ps.setInt(2, g.id.gTiCod);
                 ps.setInt(3, g.id.cGpCod);
                 ps.setInt(4, g.getRangDernierAppeleAffiche());
                 ps.setInt(5, sortie.parametres.nbJoursCampagne);
+                //Nombre de candidats en attentes sur le groupe. a 0 si pas d'admission.
+                ps.setInt(6, g.getA_rg_flg_adm_stop() == 0 ? g.getA_rg_nbr_att() : 0);                      
+                ps.setInt(7, g.getA_rg_flg_adm_stop());
                 ps.addBatch();
             }
             ps.executeBatch();
@@ -611,9 +648,10 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             }
         }
 
-        LOGGER.log(Level.INFO, "Exportation des rangs sur liste d''attente " +
-                "de {0} voeux dans la table " + A_VOE_PROP, sortie.voeux.size());
-
+        LOGGER.info( "Exportation des rangs sur liste d''attente " +
+                "de {} voeux dans la table " + A_VOE_PROP, sortie.voeux.size());
+        Connection cnReel=connection.getReelConnection();
+        
         try (PreparedStatement ps = connection.prepareStatement(
                 INSERT_INTO + A_VOE_PROP
                 + "(G_CN_COD,g_ta_cod,I_RH_COD,C_GP_COD,G_TI_COD,A_VE_RAN_LST_ATT,NB_JRS)"
@@ -632,18 +670,70 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     addToBatchAndExecuteIfCounter(ps,++count);
                 }
             }
-
             ps.executeBatch();
-            LOGGER.log(Level.INFO, "{0} rangs sur liste d attente exportés.", count);
+            LOGGER.info( "{} rangs sur liste d attente exportés.", count);
 
         }
 
     }
+    
+    
+    /**
+     * Permet de copier les données de la veille pour les groupes qui n'ont pas été traité le jour j.
+     * Ex : les groupes ou il n'y a plus de voeux en attente.
+     * @throws SQLException 
+     */
+    private void insererDonneesVeille(int nbJrs) throws SQLException {
+    	 
+    	int nbJrsVeille = nbJrs-1;
+    	
+    	String sql = "insert into A_REC_GRP_INT_PROP (C_GI_COD, G_TA_COD, G_TI_COD, C_GP_COD, A_RG_RAN_DER, A_RG_RAN_DER_INT, NB_JRS, A_RG_FLG_ADM_STOP, A_RG_POS_MAX_ADM_INT, A_RG_NBR_ATT)"
+    			+ "select C_GI_COD, G_TA_COD, G_TI_COD, C_GP_COD, A_RG_RAN_DER, A_RG_RAN_DER_INT, "+nbJrs+", A_RG_FLG_ADM_STOP, A_RG_POS_MAX_ADM_INT, A_RG_NBR_ATT "
+    			+ "from a_rec_grp_int_prop rgp where nb_jrs = "+nbJrsVeille+" and not exists (select 1 from a_rec_grp_int_prop rgp2 where rgp.c_gi_cod = rgp2.c_gi_cod and rgp.g_ta_cod = rgp2.g_ta_cod and rgp.g_ti_cod = rgp2.g_ti_cod and rgp.c_gp_cod = rgp2.c_gp_cod and nb_jrs = "+nbJrs+")";
+    	
+    			
+    	if (nbJrsVeille > 0) {
+	    	try (PreparedStatement ps = connection.prepareStatement(sql)) {
+	    		ps.addBatch();
+	    		ps.executeBatch();
+	    		ps.clearBatch();
+	    	 }
+    	}
+    }
+    
+    
+    
+    
+    /**
+     * Insere une ligne dans A_REC_GRP_INT_PROP pour les internats qui n'ont pas été géré.
+     * Ex : Internats sans voeux en attente.
+     * @throws SQLException 
+     */
+    private void insererInternatNonTraite(int nbJrs) throws SQLException {
+    	
+    	String sql = "insert into a_rec_grp_int_prop (c_gi_cod, g_ta_cod, g_ti_cod, c_gp_cod, a_rg_ran_der, a_rg_ran_der_int, nb_jrs, a_rg_flg_adm_stop, a_rg_pos_max_adm_int, a_rg_nbr_att)"
+    			+ " select rgi.c_gi_cod, rgi.g_ta_cod, rgi.g_ti_cod, rgp.c_gp_cod, 0, 0, "+nbJrs+", rgp.a_rg_flg_adm_stop, 0, 0"
+    			+ " from a_rec_grp_int rgi"
+    			+ " join a_rec_grp rgp on rgp.g_ti_cod=rgi.g_ti_cod and rgp.g_ta_cod = rgi.g_ta_cod"
+    			+ " join g_tri_ins gti on gti.g_ti_cod=rgi.g_ti_cod"
+    			+ " where not exists (select 1 from v_prop_voe_int v where v.c_gi_cod=rgi.c_gi_cod and v.g_ta_cod=rgi.g_ta_cod and v.c_ci_ran is not null)" //qui n'existe pas dans les voeux récupérés
+    			+ " and not exists (select 1 from a_rec_grp_int_prop rgip where rgip.c_gi_cod = rgi.c_gi_cod and rgip.g_ta_cod = rgi.g_ta_cod and rgip.g_ti_cod = rgip.g_ti_cod and rgip.c_gp_cod = rgp.c_gp_cod)" //Pas déja ajouté par la fonction insererDonneesVeille
+    			+ " and gti.g_ti_eta_cla=2"
+    			+ " and rgi.a_ri_nbr_sou is not null";   			
 
+    	try (PreparedStatement ps = connection.prepareStatement(sql)) {
+    		ps.addBatch();
+    		ps.executeBatch();
+    		ps.clearBatch();
+    	 }
+    
+    }
+    
+    
     private void addToBatchAndExecuteIfCounter(PreparedStatement ps, int count) throws SQLException {
         ps.addBatch();
         if (++count % 100000 == 0) {
-            LOGGER.log(Level.INFO, "Exportation des voeux {0} a {1}",
+            LOGGER.info( "Exportation des voeux {} a {}",
                     new Object[]{count - 100000, count});
             ps.executeBatch();
             ps.clearBatch();
@@ -710,7 +800,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
         }
 
 
-        LOGGER.info("Récupération du rang du dernier appelé dans chaque groupe (vue " + V_PROP_RAN_DER_APP + ")");
+        LOGGER.info(UtilService.petitEncadrementLog(("Récupération du rang du dernier appelé dans chaque groupe")));
         Map<GroupeAffectationUID, Integer> rangsDernierAppeles = new HashMap<>();
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(1_000_000);
@@ -730,7 +820,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 
         Map<GroupeAffectationUID, Integer> rangsDernierAppelesReference = new HashMap<>();
         if (parametres.nbJoursCampagne > GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT) {
-            LOGGER.log(Level.INFO,
+            LOGGER.info(
                     "Récupération du rang du dernier appelé il y a "
                             + GroupeAffectation.NB_JOURS_POUR_INTERPOLATION_INTERNAT
                             + " jours dans chaque groupe depuis la vue " + V_PROP_ADM);
@@ -762,26 +852,26 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
 ("C_GP_COD", "G_TI_COD", "G_TA_COD", "CAPACITE", "A_RG_RAN_LIM", "A_RG_FLG_ADM_STOP", "A_RC_FLG_FIN_RES_PLA"*/
         final String sql;
         if (colAdmStopExists && colFinReservationInternatExists && !config.simulationAvantDebutCampagne) {
-            LOGGER.info("Récupération des groupes et capacités (vue V_PROP_REC_GRP)");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des groupes et capacités (vue V_PROP_REC_GRP)"));
             sql = SELECT + "C_GP_COD,G_TI_COD,g_ta_cod, capacite," +
-                    "a_rg_ran_lim,a_rc_flg_fin_res_pla"
+                    "a_rg_ran_lim,a_rc_flg_fin_res_pla, a_rg_flg_adm_stop "
                     + FROM + V_PROP_REC_GRP;
         } else {
-            LOGGER.info("Récupération des groupes et capacités");
+            LOGGER.info(UtilService.petitEncadrementLog("Récupération des groupes et capacités"));
             sql = SELECT + "C_GP_COD,"
                         + " rec.G_TI_COD,"
                         + " rec.g_ta_cod,"
                         + (config.ignorerSurbooking ? "A_RG_PLA capacite,"
                         : config.simulationAvantDebutCampagne ? " NVL(A_RG_NBR_SOU,A_RG_PLA) capacite,"
                         : " A_RG_NBR_SOU capacite,")
-                        + " NVL(a_rg_ran_lim,0),"
+                        + " NVL(a_rg_ran_lim,0) a_rg_ran_lim,"
                         + (colFinReservationInternatExists ? "NVL(r.a_rc_flg_fin_res_pla,0)" : "0") + " a_rc_flg_fin_res_pla "
                         + FROM
                         + RECRUTEMENTS_GROUPES_TABLE + " rec, "
                         + RECRUTEMENTS_FORMATIONS_TABLE + " r "
                         + WHERE + "rec.g_ta_cod=r.g_ta_cod";
             }
-            LOGGER.info(sql);
+            //LOGGER.info(sql);
         try (Statement stmt = connection.createStatement()) {
             stmt.setFetchSize(1_000_000);
             try (ResultSet result = stmt.executeQuery(sql)) {
@@ -806,6 +896,10 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                             parametres);
                     if (finReservationPlacesInternat) {
                         g.setFinDeReservationPlacesInternats();
+                    }
+                    /* EVOL 2024 : on recupere le a_rg_flg_adm_stop pour le stocker ensuite dans a_rec_grp_int_prop */
+                    if (colAdmStopExists) {
+                    	g.setA_rg_flg_adm_stop(result.getInt("a_rg_flg_adm_stop"));
                     }
                     resultat.put(id, g);
 
@@ -898,11 +992,72 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE_INCONNUE, gPrCod);
             }
             LOGGER.info(
-                    String.format("g_pr_cod=%d correspond à %d nb_jrs", nbJrs, gPrCod)
+                    String.format("g_pr_cod=%d correspond à %d nb_jrs", gPrCod,nbJrs)
             );
             return nbJrs;
         }
     }
+    
+    /**
+     * @return le nombre de jours depuis le début de la campagne, valant 1 le premier jour,
+     * incréméneté à chaque changement de date
+     * @throws SQLException problème SQL
+     * @throws AccesDonneesException problème SQL
+     */
+    private static final int INDEX_DATE_DEBUT_CAMPAGNE = 35;
+    public int getNbJoursCampagneOld() throws SQLException, AccesDonneesException {
+
+        Integer nbJours = null;
+
+        try (PreparedStatement ps = connection.prepareStatement(
+                SELECT + "SYSDATE,TO_DATE(g_par.g_pr_val, 'DD/MM/YYYY:HH24MI')" +
+                FROM + G_PAR + WHERE + "g_pr_cod=?")) {
+            ps.setInt(1, ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_CAMPAGNE);
+            try (ResultSet result = ps.executeQuery()) {
+                while (result.next()) {
+                    java.sql.Timestamp maintenant = result.getTimestamp(1);
+                    java.sql.Timestamp  dateDebutCampagne = result.getTimestamp(2);
+                    nbJours = nbJoursEntre(dateDebutCampagne, maintenant) + 1;
+                }
+            }
+        }
+        if(nbJours == null) {
+            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
+        } else {
+            return nbJours;
+        }
+    }
+
+    private int getNbJoursCampagneEvenementOld(int gPrCod) throws SQLException, AccesDonneesException {
+        Integer nbJours = null;
+
+        try (PreparedStatement ps = connection.prepareStatement(
+                SELECT + ""+
+                        "TO_DATE(g_par1.g_pr_val, 'DD/MM/YYYY:HH24MI'), " +
+                        "TO_DATE(g_par2.g_pr_val, 'DD/MM/YYYY:HH24MI')" +
+                        FROM + " g_par g_par1,g_par g_par2 " +
+                        WHERE + " g_par1.g_pr_cod=?" +
+                        AND + " g_par2.g_pr_cod=?")) {
+            ps.setInt(1, ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_CAMPAGNE);
+            ps.setInt(2, gPrCod);
+
+            try (ResultSet result = ps.executeQuery()) {
+                while (result.next()) {
+                    java.sql.Timestamp dateDebutCampagne = result.getTimestamp(1);
+                    java.sql.Timestamp dateDebut = result.getTimestamp(2);
+                    if (dateDebutCampagne == null || dateDebut == null) {
+                        throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
+                    }
+                    nbJours = nbJoursEntre(dateDebutCampagne, dateDebut) + 1;
+                }
+            }
+        }
+        if (nbJours == null) {
+            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE);
+        }
+        return nbJours;
+    }
+
 
     public int getNbJoursCampagneDateDebutGDD() throws SQLException, AccesDonneesException {
         return getNbJoursCampagneEvenement(ConnecteurDonneesPropositionsSQL.INDEX_DATE_DEBUT_GDD);
@@ -951,16 +1106,21 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 + "a_sv_flg_aff," //proposition non refusée
                 + "a_sv_flg_oui," //proposition acceptée
                 + "flg_ign_rang_att," //voeux ignorés pour le calcul du rang sur liste d'attente
-                + "flg_ign_bar_int" //voeux ignorés pour le calcul des barres internat
+                + "flg_ign_bar_int," //voeux ignorés pour le calcul des barres internat
+                + "a_ve_ran_lst_att_vei"//Le rang en liste d'attente de la veille
                 + FROM + V_PROP_VOE
                 + WHERE
                 + "flg_cla >= ?"
                 + AND + "a_sv_flg_att_clo >= ?"
                 + AND + "flg_valid >= ?"
                 + AND + "flg_ord_app >= ?"
-                + AND + "(i_rh_cod=0 or flg_int_cla_prop = 0)";//pas d'internat ou internat sans classement propre
+                + AND + "(i_rh_cod=0 or flg_int_cla_prop = 0)"//pas d'internat ou internat sans classement propre
+        		+ AND + "a_sv_cod != 0"
+        	//	+ AND + "g_ta_cod = 5764"
 
-        LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
+        		;
+
+        //LOGGER.info( "Execution de la requete {0}", requete);
 
         try (PreparedStatement stmt = connection.prepareStatement(requete)) {
             int fetchSize = 500_000;
@@ -1028,17 +1188,22 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                             flgIgnRangAtt,
                             flgIgnBarInt
                     );
-
+                    
+                    /* On recupere le rang en lst attente de la veille.*/
+                    if (result.getString("a_ve_ran_lst_att_vei") != null) {
+                    	voeu.setRangListeAttenteVeille(result.getInt("a_ve_ran_lst_att_vei"));
+                    }
+                   
                     entree.ajouter(voeu);
 
                     if (compteur++ % fetchSize == 0) {
-                        LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
+                        LOGGER.info("{} voeux récupérés", compteur);
                     }
 
                 }
             }
         }
-        LOGGER.log(Level.INFO, "{0} voeux en attente sans internat a classement propre", compteur);
+        LOGGER.info( "{} voeux en attente sans internat a classement propre", compteur);
     }
 
     public void recupererVoeuxAvecInternatsAClassementPropre(
@@ -1073,7 +1238,9 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                 + " flg_cla >= ? "
                 + AND + "a_sv_flg_att_clo >= ?"
                 + AND + "flg_valid >= ?"
-                + AND + "flg_ord_app >= ?";
+                + AND + "flg_ord_app >= ?"
+        	//	+ AND + "g_ta_cod = 5764"
+        		;
 
         try (PreparedStatement stmt = connection.prepareStatement(requete)) {
 
@@ -1091,7 +1258,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
             stmt.setInt(4, config.simulationAvantDebutCampagne  || !seulementVoeuxClasses  ? 0 : 1);
 
 
-            LOGGER.log(Level.INFO, "Execution de la requete {0}", requete);
+            //LOGGER.info( "Execution de la requete {0}", requete);
 
             stmt.setFetchSize(100_000);
             try (ResultSet result = stmt.executeQuery()) {
@@ -1151,14 +1318,14 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         );
                         entree.ajouter(v);
                         if (++compteur % 100_000 == 0) {
-                            LOGGER.log(Level.INFO, "{0} voeux récupérés", compteur);
+                            LOGGER.info( "{} voeux récupérés", compteur);
                         }
                     }
                 }
             }
         }
-        LOGGER.log(Level.INFO, "{0} voeux en attente avec internat à classement propre insérés", compteur);
-        LOGGER.log(Level.INFO, "{0} voeux en attente avec internat à classement propre ignorés", compteurIgnores);
+        LOGGER.info( "{} voeux en attente avec internat à classement propre insérés", compteur);
+        LOGGER.info( "{} voeux en attente avec internat à classement propre ignorés", compteurIgnores);
     }
 
     /* Récupère les voeux sur lesquels il y a une proposition d'admission qui
@@ -1188,6 +1355,8 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                         "a_sv_flg_aff"
                         + FROM + V_PROP_PROP
                         + WHERE + " a_sv_flg_aff >= ?"
+                //		+ AND + "g_ta_cod = 5764"
+                		
         )) {
             stmt.setInt(1, inclurePropositionsRefusees ? 0 : 1);
             stmt.setFetchSize(1_000_000);
@@ -1310,7 +1479,7 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
                     voeux.add(new VoeuUID(gCnCod, gTaCod, iRhCod));
                 }
             }
-            LOGGER.log(Level.INFO, "{0} voeux r\u00e9cup\u00e9r\u00e9s", voeux.size());
+            LOGGER.info( "{0} voeux r\u00e9cup\u00e9r\u00e9s", voeux.size());
         }
 
         return voeux;
@@ -1326,11 +1495,12 @@ public class ConnecteurDonneesPropositionsSQL implements ConnecteurDonneesPropos
     public static final int INDEX_DATE_OUV_COMP_INTERNATS = 334;
 
     /* Date à partir de la quelle seuls les voeux cloturés sont considérés */
-    public static final int INDEX_DATE_DEBUT_GDD = 316;
+    public static final int INDEX_DATE_DEBUT_GDD = 582;
 
     /* Date à partir de la quelle seuls les voeux cloturés sont considérés */
     public static final int INDEX_DATE_FIN_ORDONNANCEMENT_GDD = 437;
 
-    private static final Logger LOGGER = Logger.getLogger(ConnecteurDonneesPropositionsSQL.class.getSimpleName());
+    private static final Logger LOGGER = LogManager.getLogger(ConnecteurDonneesPropositions.class);
+    
 
 }

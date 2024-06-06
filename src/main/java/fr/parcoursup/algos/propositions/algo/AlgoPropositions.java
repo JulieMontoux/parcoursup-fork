@@ -21,12 +21,14 @@ l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 package fr.parcoursup.algos.propositions.algo;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
+import fr.parcoursup.algos.utils.UtilService;
 import fr.parcoursup.algos.verification.VerificationEntreeAlgoPropositions;
 import fr.parcoursup.algos.verification.VerificationsResultatsAlgoPropositions;
 
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class AlgoPropositions {
 
@@ -50,21 +52,27 @@ public class AlgoPropositions {
             AlgoPropositionsEntree entree,
             boolean verifier) throws VerificationException {
 
-        LOGGER.info("Préparation des données");
+    	LOGGER.info(UtilService.encadrementLog("Calcul des propositions"));
+
+        LOGGER.info(UtilService.petitEncadrementLog("Préparation des données"));
         entree.injecterGroupesEtInternatsDansVoeux();
 
-        LOGGER.info("Début calcul propositions");
+        LOGGER.info(UtilService.petitEncadrementLog("Début du calcul propositions"));
         /* chaque passage dans cette boucle correspond à un calcul des propositions
         à envoyer suivi d'une étape de réponse automatique par les candidats
         ayant activé leur répondeur automatique */
         int nbIterations = 0;
         while (true) {
             nbIterations++;
-
-            LOGGER.info("***********************************************\n" +
-                    "*********  Itération " + nbIterations + "   *******\n" +
-                    "***********************************************"
-            );
+//
+//            LOGGER.info("***********************************************\n" +
+//                    "*********  Itération " + nbIterations + "   *******\n" +
+//                    "***********************************************"
+//            );
+            
+            LOGGER.info(UtilService.petitEncadrementLog("Itération : " + nbIterations));
+            
+            
 
             LOGGER.info("Préparation des groupes ");
             preparerGroupes(entree);
@@ -72,7 +80,7 @@ public class AlgoPropositions {
             /* vérification de l'intégrité des données d'entrée */
             if (verifier) {
                 entree.loggerEtatAdmission();
-                LOGGER.info("Vérification de l'intégrité des données d'entrée");
+                LOGGER.info(UtilService.petitEncadrementLog("Vérification de l'intégrité des données d'entrée"));
                 VerificationEntreeAlgoPropositions.verifierIntegrite(entree);
             }
 
@@ -82,7 +90,7 @@ public class AlgoPropositions {
             boolean appliquerdemAutoGDD =
                     entree.parametres.nbJoursCampagne >= entree.parametres.nbJoursCampagneDateDebutGDD;
             if(appliquerdemAutoGDD) {
-                LOGGER.info("Application des démissions automatiques des voeux en attente en GDD");
+                LOGGER.info(UtilService.petitEncadrementLog("Application des démissions automatiques des voeux en attente en GDD"));
                 placesLibereesParDemAutoGDD = DemissionAutoVoeuxOrdonnes.appliquerDemissionAutomatiqueVoeuOrdonnes(entree);
             }
 
@@ -94,19 +102,19 @@ public class AlgoPropositions {
 
         }
 
-        LOGGER.info(
-                "Préparation données de sortie");
+        LOGGER.info(UtilService.petitEncadrementLog("Préparation données de sortie"));
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(entree);
 
-        LOGGER.log(Level.INFO, "Propositions {0}", sortie.nbPropositionsDuJour());
-        LOGGER.log(Level.INFO, "Demissions Automatiques {0}", sortie.nbDemissions());
+        LOGGER.info(UtilService.petitEncadrementLog("Propositions : " + sortie.nbPropositionsDuJour()));
+        LOGGER.info(UtilService.petitEncadrementLog("Demissions Automatiques " + sortie.nbDemissions()));
 
         if (verifier) {
-            LOGGER.log(Level.INFO,
-                    "V\u00e9rification des {0} propositions", sortie.nbPropositionsDuJour());
+        	LOGGER.info(UtilService.petitEncadrementLog("V\u00e9rification des "+sortie.nbPropositionsDuJour()+" propositions"));
             new VerificationsResultatsAlgoPropositions(entree, sortie).verifier();
         }
+        
+        LOGGER.info(UtilService.encadrementLog("Fin du calcul des propositions"));
         return sortie;
     }
 
@@ -130,7 +138,8 @@ public class AlgoPropositions {
 
     public static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
         /* groupes à mettre à jour */
-        Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>(entree.groupesAffectations.values());
+    	/*EVOL 2024 : On ne traite pas le groupes si il a le flag adm_stop. */
+        Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>(entree.groupesAffectations.values().stream().filter(g -> g.getA_rg_flg_adm_stop() == 0).collect(Collectors.toList()));
 
         /* initialisation des positions maximales d'admission dans les internats */
         for (GroupeInternat internat : entree.internats.values()) {
@@ -140,11 +149,11 @@ public class AlgoPropositions {
         int compteurBoucle = 0;
         while (!groupesAMettreAJour.isEmpty()) {
 
+        	
             compteurBoucle++;
 
-            LOGGER.log(Level.INFO, "It\u00e9ration {0}: "
-                            + "mise \u00e0 jour des propositions dans {1} groupes d''affectations",
-                    new Object[]{compteurBoucle, groupesAMettreAJour.size()});
+            LOGGER.info(UtilService.petitEncadrementLog("It\u00e9ration "+compteurBoucle+" : "
+                            + "mise \u00e0 jour des propositions dans "+groupesAMettreAJour.size()+" groupes d''affectations"));
 
             /* calcul des propositions à effectuer,
                 étant données les positions actuelles d'admissions aux internats */
@@ -186,13 +195,14 @@ public class AlgoPropositions {
             for (GroupeInternat internat : entree.internats.values()) {
                 boolean maj = internat.mettreAJourPositionAdmission();
                 if (maj) {
-                    groupesAMettreAJour.addAll(internat.groupesConcernes());
+                	/*EVOL 2024 : On ne traite pas le groupe si il a le flag adm_stop. */
+                    groupesAMettreAJour.addAll(internat.groupesConcernes().stream().filter(g -> g.getA_rg_flg_adm_stop() == 0).collect(Collectors.toList()));
                 }
             }
 
         }
 
-        LOGGER.log(Level.INFO, "Calcul terminé après {0} itération(s).", compteurBoucle);
+        LOGGER.info(UtilService.petitEncadrementLog("Calcul terminé après "+compteurBoucle+" itération(s)."));
 
     }
 

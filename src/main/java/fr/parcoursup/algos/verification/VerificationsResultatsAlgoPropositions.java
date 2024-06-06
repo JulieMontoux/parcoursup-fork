@@ -378,6 +378,10 @@ public class VerificationsResultatsAlgoPropositions {
     est strictement supérieur à la position d'admission dans cet internat.
      */
     private void verifierSurcapaciteEtRemplissage(GroupeAffectation groupe) throws VerificationException {
+    	/* Pas d'admission sur ce groupe donc pas de verification*/
+    	if (groupe.getA_rg_flg_adm_stop() != 0) {
+    		return;
+    	}
 
         List<Voeu> voeux = voeuxParFormation.get(groupe);
         Set<Integer> initialementAffectesFormation = initialementAffectesFormations.get(groupe);
@@ -420,7 +424,7 @@ public class VerificationsResultatsAlgoPropositions {
     que tous les candidats ayant reçu une proposition de F ce jour là.
      */
     private void verifierSurcapaciteEtRemplissageInternat(GroupeInternat internat) throws VerificationException {
-
+    	
         Set<Integer> initialementAffectesInternat = initialementAffectesInternats.get(internat);
         Set<Integer> actuellementAffectesInternat = actuellementAffectesInternats.get(internat);
 

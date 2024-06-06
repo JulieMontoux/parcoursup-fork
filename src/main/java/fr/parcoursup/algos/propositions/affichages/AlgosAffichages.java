@@ -3,6 +3,7 @@ package fr.parcoursup.algos.propositions.affichages;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.propositions.algo.*;
+import fr.parcoursup.algos.utils.UtilService;
 import fr.parcoursup.algos.verification.VerificationAffichages;
 
 import java.util.*;
@@ -24,6 +25,7 @@ public class AlgosAffichages {
         Map<GroupeAffectation, List<Voeu>> voeuxParGroupes = new HashMap<>();
         Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
 
+
         for (Voeu v : sortie.voeux) {
             if (v.aEteProposeJoursPrecedents() || v.estAffecteHorsPP()) {
                 continue;
@@ -40,55 +42,78 @@ public class AlgosAffichages {
             }
         }
 
-        LOGGER.log(Level.INFO,
-                "Mise a jour des rangs sur liste d'attente "
-                + "et derniers appelés affichés");
+        LOGGER.info(UtilService.petitEncadrementLog("Mise à jour des rangs sur liste d'attente et derniers appelés affichés"));
         for (Entry<GroupeAffectation, List<Voeu>> entry : voeuxParGroupes.entrySet()) {
             GroupeAffectation groupe = entry.getKey();
             List<Voeu> voeux = entry.getValue();
             mettreAJourRangsListeAttente(
                     voeux,
                     voeuxAvecPropositionDansMemeFormation,
-                    propositionsDuJour);
+                    propositionsDuJour,
+                    sortie.parametres.nbJoursCampagne,
+                    groupe);
             mettreAJourRangDernierAppeleAffiche(groupe, voeux);
         }
 
-        LOGGER.log(Level.INFO,
-                "Mise a jour des rangs des derniers appeles affichés dans"
-                + "les internats");
+        LOGGER.info(UtilService.petitEncadrementLog("Mise à jour des rangs des derniers appeles affichés dans les internats"));
         for (Entry<GroupeInternat, List<Voeu>> entry : voeuxParInternat.entrySet()) {
             GroupeInternat internat = entry.getKey();
             List<Voeu> voeux = entry.getValue();
             mettreAJourRangDernierAppeleAffiche(internat, voeux);
         }
 
-        LOGGER.log(Level.INFO,
-                "Vérification des rangs sur liste attente");
-
+        LOGGER.info(UtilService.petitEncadrementLog("Vérification des rangs sur liste attente"));
         for(GroupeAffectation groupe : sortie.groupes) {
-            VerificationAffichages.verifierRangsSurListeAttente(groupe);
+           VerificationAffichages.verifierRangsSurListeAttente(groupe);
         }
 
     }
+    
+    /**
+     * Si un candidat n'a pas de rang dans la liste d'attente de la veille, alors c'est qu'il est réintégré.
+     * Du coup son rang dans la liste d'attente doit etre égal au rang du candidat suivant dans cette liste.
+     * @param voeux
+     * @param ordreAppel
+     * @return
+     */
+    private static int getRangListeAttenteReintegration(List<Voeu> voeux, Voeu voeu, int rangListeAttente) {
+    	/* On parcoure les voeux */
+    	for (Voeu v : voeux) {
+    		/* on recherche le voeux suivant dans la liste qui ne soit pas en réintégration et sur un autre candidat   */
+    		if (v.ordreAppel > voeu.ordreAppel && v.getRangListeAttenteVeille() > 0 && v.id.gCnCod != voeu.id.gCnCod) {
+    			/* Et on prend le min */
+    			return Math.min(rangListeAttente, v.getRangListeAttenteVeille());
+    			//return v.getRangListeAttenteVeille();
+    		}
+    	}
+    	
+    	return rangListeAttente;
+    }
 
     /* met à jour les rangs sur liste d'attente */
-    private static void mettreAJourRangsListeAttente(
+    public static void mettreAJourRangsListeAttente(
             List<Voeu> voeux,
             Set<VoeuUID> voeuxAvecPropositionDansMemeFormation,
-            Set<VoeuUID> propositionsDuJour) {
+            Set<VoeuUID> propositionsDuJour,
+            int nbJoursCampagne,
+            GroupeAffectation groupe) {
 
         int dernierCandidatEnAttente = -1;
         int nbCandidatsEnAttente = 0;
+        int nbRangVeille = 0;
 
         //initialisation
+        groupe.setA_rg_nbr_att(0);
         voeux.forEach(voeu -> 
             voeu.setRangListeAttente(0)
         );
-
+        
         voeux.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
+        
+        
         for (Voeu voeu : voeux) {
-
-            if (voeu.estEnAttenteDeProposition()) {
+        	/* Voeu en attente et sans internat */
+            if (voeu.estEnAttenteDeProposition() && voeu.internatUID == null) {
                 /* on ne tient pas compte des candidats ayant eu 
             une proposition dans la même formation */
             /* afin que les rangs sur liste d'attente affichés aux candidats soient monotones,
@@ -97,20 +122,38 @@ public class AlgosAffichages {
             Il peut y avoir deux voeux consecutifs pour le même candidat: un avec 
             et un sans internat.
                  */
-                if (!voeuxAvecPropositionDansMemeFormation.contains(voeu.id)
-                        && !propositionsDuJour.contains(
-                                new VoeuUID(voeu.id.gCnCod, voeu.id.gTaCod, !voeu.id.iRhCod)
-                        )
-                        && !voeu.ignorerDansLeCalculRangsListesAttente
-                        && voeu.id.gCnCod != dernierCandidatEnAttente) {
-                    nbCandidatsEnAttente++;
+                if (//!voeuxAvecPropositionDansMemeFormation.contains(voeu.id) && --Si un candidat est réintégré, il aura une proposition, mais on veut quand meme le compter ici
+            		!propositionsDuJour.contains(new VoeuUID(voeu.id.gCnCod, voeu.id.gTaCod, !voeu.id.iRhCod)) 
+            		//&& !voeu.ignorerDansLeCalculRangsListesAttente  -- idem candidats réintégrés on veut les compter
+            		&& voeu.id.gCnCod != dernierCandidatEnAttente) {
+                	 
+                	//On incrémente 
+                	nbCandidatsEnAttente++;
                     dernierCandidatEnAttente = voeu.id.gCnCod;
+                    groupe.setA_rg_nbr_att(groupe.getA_rg_nbr_att()+1);
                 }
 
-                voeu.setRangListeAttente(Math.max(1, nbCandidatsEnAttente));
-
+                /* Jour 1 on maj le rang avec le nombre de candidat en attente.*/
+                if (nbJoursCampagne == 1) {
+                	voeu.setRangListeAttente(Math.max(1, nbCandidatsEnAttente));
+                }else {
+                	/* Au dela du jour 1*/	
+                	/* Si on a un rang de la veille  On le récupère */
+                	if (voeu.getRangListeAttenteVeille() > 0) {
+                    	nbRangVeille = voeu.getRangListeAttenteVeille();       
+                	}else {
+                		/* Sinon le voeux n'a pas de rang de la veille, c'est que le candidat a été réintégré donc on le calcule */
+                		nbRangVeille = getRangListeAttenteReintegration(voeux, voeu, nbCandidatsEnAttente);
+                	}
+                		
+            		/* On se repositionne sur le rang de la veille si il est plus petit */
+            		if (nbCandidatsEnAttente > nbRangVeille) {
+            			nbCandidatsEnAttente = nbRangVeille;
+            		}             
+            		
+                	voeu.setRangListeAttente(nbCandidatsEnAttente);
+                }      
             }
-
         }
 
     }
