@@ -85,13 +85,12 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
          are updated */
         this.setBddDateDebutCampagne("01/06/2023:0000");//35
         this.setBddDateOuvertureCompleteInternats("30/06/2023:0000");//334
-        this.setBddDateDebutGDD("15/07/2023:2359");//316
+        this.setBddDateDebutGDD("25/06/2023:2359");//582
         this.setBddDateFinOrdGDD("18/05/2023:0000");//437
 
         int nbJoursCampagneDatePivotInternats;
         int nbJoursDebutGDD;
         int nbJoursFinOrdGDD;
-
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions

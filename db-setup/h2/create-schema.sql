@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS "A_REC_GRP"
     "A_RG_NBR_SOU" NUMBER(5,0),
     "A_RG_RAN_LIM" NUMBER(5,0),
     "A_RG_FLG_ADM_STOP" NUMBER(1,0),
+    "A_RG_NBR_ATT" NUMBER(6,0),
     "ETIQUETTE1" VARCHAR2(150 CHAR),
     PRIMARY KEY("C_GP_COD", "G_TI_COD", "G_TA_COD")
 );
@@ -123,7 +124,8 @@ CREATE TABLE IF NOT EXISTS "A_REC_GRP_INT"
     "G_TA_COD" NUMBER(8,0),
     "G_EA_COD_INS" VARCHAR2(8 CHAR),
     "A_RI_NBR_SOU" NUMBER(5,0),
-    "ETIQUETTE1" VARCHAR2(150 CHAR),
+     "ETIQUETTE1" VARCHAR2(150 CHAR),
+     A_RG_NBR_ATT" NUMBER(6,0),
     PRIMARY KEY("C_GI_COD")
 );
 
@@ -140,6 +142,9 @@ CREATE TABLE IF NOT EXISTS "A_REC_GRP_INT_PROP"
     "A_RG_RAN_DER_INT" NUMBER(8,0),
     "NB_JRS" NUMBER(3,0) NOT NULL,
     "ETIQUETTE1" VARCHAR2(150 CHAR),
+	"A_RG_NBR_ATT" NUMBER(6,0),
+	"A_RG_FLG_ADM_STOP" NUMBER(1,0),
+	"A_RG_POS_MAX_ADM_INT"  NUMBER(10,0),
     PRIMARY KEY("C_GI_COD", "G_TA_COD", "G_TI_COD", "C_GP_COD", "NB_JRS")
 );
 
@@ -467,6 +472,7 @@ $$;
   NVL(cg.c_cg_ord_app,cg.c_cg_ran) rang,
   sv.a_sv_flg_aff,
   sv.a_sv_flg_oui,
+  sv.a_sv_cod,
   case when (cg.i_ip_cod=5 AND c.g_ic_cod >= 0 AND ti.g_ti_eta_cla=2) then 1 else 0 end flg_cla,
   case when (sv.a_sv_flg_att=1 OR sv.a_sv_flg_clo=1) then 1 else 0 end a_sv_flg_att_clo,
   case when (sv.a_sv_cod > -40) then 1 else 0 end flg_valid,
@@ -480,8 +486,8 @@ $$;
       --    classement corrigé (On tient compte de ces candidats dans le calcul des listes d'attente)
       -- 40 : Affectation par les CAES d'un candidat avec motif dérogatoire sur une CPGE avec internat.
   case when (NVL(v.a_ve_typ_maj,0) in (1,10,11,30,31)) then 1 else 0 end flg_ign_rang_att,--non pris en compte dans le calcul des rangs sur liste d'attente
-  case when (NVL(v.a_ve_typ_maj,0) in (40,41)) then 1 else 0 end flg_ign_bar_int--non pris en compte dans le calcul des barres à l'internat
-
+  case when (NVL(v.a_ve_typ_maj,0) in (40,41)) then 1 else 0 end flg_ign_bar_int,--non pris en compte dans le calcul des barres à l'internat
+  0 a_ve_ran_lst_att_vei --Rang dans la liste attente de la veille
   FROM
   G_CAN  c,
   A_VOE  v,
@@ -496,7 +502,8 @@ $$;
   AND  v.g_cn_cod=cg.g_cn_cod
   AND  cg.c_gp_cod=rg.c_gp_cod
   AND  rg.g_ta_cod=v.g_ta_cod
-  AND  rg.g_ti_cod=ti.g_ti_cod;
+  AND  rg.g_ti_cod=ti.g_ti_cod
+ORDER BY g_ta_cod, c_gp_cod, c_cg_ord_app, a_sv_cod;
 
   COMMENT ON TABLE V_PROP_VOE IS
   'Voeux avec classements pédagogiques et info inscription. En prod admission, seuls les  voeux satisfaisants flg_cla=1 AND a_sv_flg_att_clo=1 AND flg_ord_app=1 sont récupérés.';
@@ -602,6 +609,7 @@ $$;
 
  COMMENT ON TABLE V_PROP_PROP IS 'récupère les propositions hors apprentissage, y compris les propositions refusées';
 
+ 
  CREATE OR REPLACE VIEW V_PROP_ATT_PROP_ANT AS
  SELECT  v.G_CN_COD,v.g_ta_cod,v.I_RH_COD
  FROM
@@ -616,3 +624,4 @@ $$;
  AND adm.A_TA_COD=1;
 
  COMMENT ON TABLE V_PROP_ATT_PROP_ANT IS 'voeux en attente dont les candidats ont déjà eu une proposition dans la même formation';
+ 

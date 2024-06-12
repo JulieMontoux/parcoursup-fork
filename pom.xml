@@ -3,12 +3,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>fr.gouv.education</groupId>
     <artifactId>parcoursup-algos</artifactId>
-    <version>parcoursup-algos-2023-2.jar</version>
+    <version>parcoursup-algos-2024-2</version>
     <name>algorithmes-de-parcoursup</name>
     <properties>
         <maven.compiler.release>11</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project_packages_url>https://gitlab.mim-libre.fr/api/v4/projects/1035/packages/maven</project_packages_url>
+        <log4j.version>2.21.0</log4j.version>
     </properties>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
@@ -163,6 +164,11 @@
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <version>20.1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
         </dependency>
     </dependencies>
     <profiles>

@@ -8,17 +8,19 @@ import fr.parcoursup.algos.propositions.algo.AlgoPropositions;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
+import fr.parcoursup.algos.utils.UtilService;
 import oracle.jdbc.pool.OracleDataSource;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class EnvoiPropositionsProd {
 
-	private static final Logger LOGGER = Logger.getLogger(EnvoiPropositionsProd.class.getSimpleName());
+	private static final Logger LOGGER = LogManager.getLogger(EnvoiPropositionsProd.class);
 
 	/**
 	 * @param args
@@ -30,6 +32,8 @@ public class EnvoiPropositionsProd {
 		String outputDir;
 		String fileSuffix = LocalDateTime.now().toString();
 		boolean readOnly=true;
+		
+		LOGGER.info(UtilService.encadrementLog("Début du programme JAVA des admissions"));
 
 		try {
 
@@ -63,7 +67,7 @@ public class EnvoiPropositionsProd {
 			if (tnsAdmin == null) {
 				throw new AccesDonneesException(AccesDonneesExceptionMessage.ENVOI_PROPOSITIONS_PROD_TNS_ADMIN);
 			}
-			log("Connexion à la base Oracle en utilisant les paramètres de connexion du dossier TNS " + tnsAdmin);
+			LOGGER.info(UtilService.petitEncadrementLog("Connexion à la base "+args[1]+" en utilisant les paramètres de connexion du dossier TNS " + tnsAdmin));
 			System.setProperty("oracle.net.tns_admin", tnsAdmin);
 			OracleDataSource ods = new OracleDataSource();
 			ods.setURL("jdbc:oracle:thin:@" + tnsAlias);
@@ -75,35 +79,35 @@ public class EnvoiPropositionsProd {
 				ConnecteurDonneesPropositionsSQL acces
 				= new ConnecteurDonneesPropositionsSQL(
 						connection);
-				log("Récupération des données");
+
 				AlgoPropositionsEntree entree = acces.recupererDonnees();
 				if(!readOnly) {
-					log("Sauvegarde locale de l'entrée");
+					LOGGER.debug("Sauvegarde locale de l'entrée");
 					new Serialisation<AlgoPropositionsEntree>().serialiserEtCompresser(
 							outputDir + "/" + "entree_" + fileSuffix + ".xml",
 							entree,
 							AlgoPropositionsEntree.class
 							);
 				}
-				log("Calcul des propositions");
+				//log("Calcul des propositions");
 				AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
 
 				if(!readOnly) {
-					log("Sauvegarde locale de la sortie");
+					LOGGER.debug("Sauvegarde locale de la sortie");
 					new Serialisation<AlgoPropositionsSortie>().serialiserEtCompresser(
 							outputDir + "/" + "sortie_" + fileSuffix + ".xml",
 							sortie,
 							AlgoPropositionsSortie.class
 							);
 				}
-				log("Export des données");
+
 				acces.exporterDonnees(sortie);
 
 				if (sortie.getAlerte()) {
-					log(sortie.getAlerteMessage());
+					LOGGER.info(sortie.getAlerteMessage());
 					System.exit(1);
 				} else if (sortie.getAvertissement()) {
-					log("La vérification a déclenché un avertissement.");
+					LOGGER.warn("La vérification a déclenché un avertissement.");
 					System.exit(2);
 				} else {
 					System.exit(0);
@@ -111,15 +115,14 @@ public class EnvoiPropositionsProd {
 			}
 
 		} catch (SQLException | AccesDonneesException | VerificationException e) {
-			log("envoiPropositions a échoué suite à l'erreur suivante.");
-			LOGGER.log(Level.SEVERE, e.getMessage(), e);
+			LOGGER.fatal(UtilService.encadrementLog("envoiPropositions a échoué suite à l'erreur suivante : ")); 
+			LOGGER.fatal( e.getMessage(), e);
 			System.exit(1);
 		}
+		
+		LOGGER.info(UtilService.encadrementLog("Fin du programme JAVA des admissions"));
 	}
 
-	static void log(String msg) {
-		LOGGER.info(msg);
-	}
 
 	private EnvoiPropositionsProd() {
 	}

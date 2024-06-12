@@ -48,6 +48,14 @@ public class JeuDonneesBaseTestPropositions {
                     316,                // indexDateDebutGDD
                     "15/07/2023:2359"   // date et heure du début GDD
             ));
+            
+            this.scenario.ajouteEntite(new ParametreApplication(
+            		582,                // indexDateDebutGDD
+                    "25/06/2023:0000"   // date et heure du début GDD
+            ));
+            
+            
+            
             this.scenario.ajouteEntite(new ParametreApplication(
                     437,                // indexDateFinOrdGDD
                     "18/07/2023:0000"   //

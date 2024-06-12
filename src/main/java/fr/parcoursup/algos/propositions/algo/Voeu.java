@@ -100,6 +100,9 @@ public class Voeu implements Serializable {
 
     /* le rang du voeu sur liste d'attente, si en attente */
     int rangListeAttente = 0;
+    
+    /* le rang du voeu sur liste d'attente de la veille, si en attente */
+    int rangListeAttenteVeille = 0;
 
     public int getRangListeAttente() {
         return rangListeAttente;
@@ -107,6 +110,14 @@ public class Voeu implements Serializable {
 
     public void setRangListeAttente(int rang) {
         rangListeAttente = rang;
+    }
+    
+    public void setRangListeAttenteVeille(int rang) {
+    	rangListeAttenteVeille = rang;
+    }
+    
+    public int getRangListeAttenteVeille() {
+        return rangListeAttenteVeille;
     }
 
     /* y a-t-il une demande d'internat avec classement sur ce voeu ? */

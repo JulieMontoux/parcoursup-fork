@@ -137,6 +137,10 @@ public class DemoPropositionsRepondeurBdd {
                 "15/07/2023:0000"   // date et heure de l'ouverture complète des internats
         ).insert();
         new ParametreApplication(
+                582,                // indexDateDebutGDD
+                "25/06/2023:0000"   // date et heure de l'ouverture complète des internats
+        ).insert();
+        new ParametreApplication(
                 437,                // indexFinOrdonancementVoeuxGDD
                 "18/07/2023:0000"   // date et heure de la fin d'ordonnacement des voeux GDD
         ).insert();

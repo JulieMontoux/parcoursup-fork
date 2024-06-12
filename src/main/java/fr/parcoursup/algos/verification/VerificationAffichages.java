@@ -20,13 +20,19 @@ l'Innovation,
  */
 package fr.parcoursup.algos.verification;
 
+import java.util.logging.Logger;
+
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
+import fr.parcoursup.algos.propositions.affichages.AlgosAffichages;
 import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
 import fr.parcoursup.algos.propositions.algo.Voeu;
 
 public class VerificationAffichages {
 
+    private static final Logger LOGGER = Logger.getLogger(AlgosAffichages.class.getSimpleName());
+
+    
     /*
     P8 (rangs sur liste d'attente)
 
@@ -43,10 +49,14 @@ public class VerificationAffichages {
                     && !v1.avecInternatAClassementPropre()) {
                 for (Voeu v2 : groupe.getVoeuxEnAttente()) {
                     if (v2.estEnAttenteDeProposition()
+                    		&& v2.internatUID == null // Sinoon ordreAppel vaut 0 cf mettreAJourRangsListeAttente
                             && v2.ordreAppel > v1.ordreAppel
                             && v2.getRangListeAttente() < v1.getRangListeAttente()) {
-
-                        throw new VerificationException(VerificationExceptionMessage.VERIFICATION_AFFICHAGES_VIOLATION_ORDRE_LISTE_ATTENTE_SANS_INTERNAT, v1, v2);
+                    	
+                    	VerificationException e= new VerificationException(VerificationExceptionMessage.VERIFICATION_AFFICHAGES_VIOLATION_ORDRE_LISTE_ATTENTE_SANS_INTERNAT, v1, v2);
+                        LOGGER.warning("V1 : "+v1.ordreAppel+" -- "+v1.getRangListeAttente() );
+                        LOGGER.warning("v2 : "+v2.ordreAppel+" -- "+v2.getRangListeAttente());
+                        throw e;
                     }
                 }
                 break;//il suffit de vérifier pour un seul v1, puisque la liste est triée

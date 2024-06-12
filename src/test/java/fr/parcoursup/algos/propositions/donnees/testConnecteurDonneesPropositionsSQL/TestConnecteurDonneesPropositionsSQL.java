@@ -163,7 +163,7 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
 
     protected static final int INDEX_PARAMETRE_DATE_DEBUT_CAMPAGNE = 35;
 
-    protected static final int INDEX_PARAMETRE_DATE_DEBUT_GDD = 316;
+    protected static final int INDEX_PARAMETRE_DATE_DEBUT_GDD = 582;
 
     protected static final int INDEX_PARAMETRE_DATE_FIN_ORD_GDD = 437;
 

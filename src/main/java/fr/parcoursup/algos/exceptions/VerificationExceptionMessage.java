@@ -47,7 +47,7 @@ public enum VerificationExceptionMessage {
     VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_4("RepAuto violation P7.4: 'Si un candidat a activé son RA alors tous ses voeux sont classés dans le RA, excepté éventuellement les propositions des jours précédents'. Voeu en cause: %s"),
     VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_5("RepAuto violation P7.5: 'Si un candidat a activé son RA alors tous ses voeux ont un rang différent dans le RA.'. Voeu en cause %s"),
     VERIFICATION_ALGO_REPONDEUR_AUTOMATIQUE_VIOLATION_P7_6("RepAuto violation P7.6: 'Si un voeu du RA est une proposition alors les voeux du RA encore en attente ont un meilleur rang dans le RA. Candidat en cause %s"),
-    VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8("DemAuto violation P8: 'En GDD, si un voeu a été démissionné automatiquement le jour même, alors le candidat concerné\n" +
+     VERIFICATION_ALGO_DEM_AUTO_VIOLATION_P8("DemAuto violation P8: 'En GDD, si un voeu a été démissionné automatiquement le jour même, alors le candidat concerné\n" +
             "    a une nouvelle proposition du jour, de rang strictement inférieur.'. Candidat en cause: gCnCod=%s"),
     VERIFICATION_ENTREE_ALGO_PROPOSITIONS_VOEU_NON_RECENSE("Voeu non recensé en entrée"),
     VERIFICATION_ENTREE_ALGO_PROPOSITIONS_DONNEES_NON_INTEGRES("Données d'entrée non intègres: %s"),
