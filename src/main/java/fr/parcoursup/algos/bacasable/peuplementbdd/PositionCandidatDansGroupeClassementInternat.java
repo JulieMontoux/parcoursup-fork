@@ -100,35 +100,8 @@ public class PositionCandidatDansGroupeClassementInternat extends EntitePersista
         }
         
     }
-    
-    
-    public PositionCandidatDansGroupeClassementInternat(
-            GroupeClassementInternat groupeClassementInternat,
-            Candidat candidat
-            ) {
-               
-        this(
-            groupeClassementInternat,
-            candidat,
-                new HashMap<>()
-            );      
-    }
-    
-    
-    public GroupeClassementInternat groupeClassementInternat() {
-
-        return this.groupeClassementInternat;
-
-    }
 
 
-    public Candidat getCandidat() {
-
-        return this.candidat;
-
-    }
-            
-    
     @Override
     public String getNomTable() {
         
@@ -139,13 +112,5 @@ public class PositionCandidatDansGroupeClassementInternat extends EntitePersista
      
     }
 
-    
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(PositionCandidatDansGroupeClassementInternat.mappingNomsChamps.get(nom));
-        
-    }
-    
+
 }

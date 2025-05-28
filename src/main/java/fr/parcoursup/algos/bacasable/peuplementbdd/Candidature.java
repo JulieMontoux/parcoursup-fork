@@ -117,20 +117,6 @@ public class Candidature extends EntitePersistante {
     }
 
 
-    public Candidat getCandidat() {
-
-        return this.candidat;
-
-    }
-
-
-    public FormationInscription getFormationInscription() {
-
-        return this.formationInscription;
-
-    }
-
-
     @Override
     public String getNomTable() {
 
@@ -141,12 +127,5 @@ public class Candidature extends EntitePersistante {
 
     }
 
-
-    @Override
-    public Object getValeurChamp(String nom) {
-
-        return this.get(Candidature.mappingNomsChamps.get(nom));
-
-    }
 
 }

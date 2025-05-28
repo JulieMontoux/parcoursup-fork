@@ -43,9 +43,9 @@ public class TestVoeuUID {
     @Test
     public void toString_doit_etre_nonVide(){
         VoeuUID v1 = new VoeuUID(0, 0, false);
-        assertNotEquals(v1.toString(), "");
+        assertNotEquals("", v1.toString());
         VoeuUID v2 = new VoeuUID(1, 1, true);
-        assertNotEquals(v2.toString(), "");
+        assertNotEquals("", v2.toString());
     }
 
 }

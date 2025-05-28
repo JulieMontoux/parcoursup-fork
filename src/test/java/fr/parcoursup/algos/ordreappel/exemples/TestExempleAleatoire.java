@@ -10,7 +10,7 @@ public class TestExempleAleatoire {
     @Test
     public void nom_doit_retourner_uneValeurFixe(){
         ExempleAleatoire e = new ExempleAleatoire(10);
-        assertEquals(e.nom(), "exemple_aleatoire");
+        assertEquals("exemple_aleatoire", e.nom());
     }
 
 }

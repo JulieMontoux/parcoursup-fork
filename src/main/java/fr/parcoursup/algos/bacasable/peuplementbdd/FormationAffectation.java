@@ -94,7 +94,6 @@ public class FormationAffectation extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(FormationAffectation.mappingNomsChamps.get(nom));

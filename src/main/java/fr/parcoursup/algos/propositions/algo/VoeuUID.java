@@ -53,7 +53,8 @@ public class VoeuUID implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) {
+        if (o == null) return false;
+        if (getClass() != o.getClass()) {
             throw new ClassCastException(ClassCastExceptionMessage.GLOBAL_TEST_EGALITE_IMPREVU.getMessage());
         }
         VoeuUID voeuUID = (VoeuUID) o;
@@ -72,14 +73,12 @@ public class VoeuUID implements Serializable {
                 + " AND I_RH_COD=" + (iRhCod ? "1" : "0");
     }
 
-    /**
-     * Utilisé par les désérialisations Json et XML
-     */
+    @SuppressWarnings("unused")
     private VoeuUID() {
+        // Constructeur privé pour la désérialisation
         this.gCnCod = 0;
         this.gTaCod = 0;
         this.iRhCod = false;
     }
-   
-    
+
 }

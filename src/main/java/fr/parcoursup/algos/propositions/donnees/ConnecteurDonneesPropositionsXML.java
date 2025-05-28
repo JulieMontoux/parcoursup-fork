@@ -27,6 +27,7 @@ import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
 
 import javax.xml.bind.JAXBException;
+import java.io.IOException;
 
 public class ConnecteurDonneesPropositionsXML implements ConnecteurDonneesPropositions {
 
@@ -35,6 +36,14 @@ public class ConnecteurDonneesPropositionsXML implements ConnecteurDonneesPropos
 
     public ConnecteurDonneesPropositionsXML(String filename) {
         this.filename = filename;
+    }
+
+    public void setDonneesEntree(AlgoPropositionsEntree entree) throws AccesDonneesException {
+        try {
+            entree.serialiser(filename);
+        } catch (JAXBException | IllegalArgumentException ex) {
+            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_XML_DESERIALISATION, ex);
+        }
     }
 
     @Override
@@ -49,9 +58,20 @@ public class ConnecteurDonneesPropositionsXML implements ConnecteurDonneesPropos
     @Override
     public void exporterDonnees(AlgoPropositionsSortie sortie) throws AccesDonneesException {
         new Serialisation<AlgoPropositionsSortie>().serialiserEtCompresser(
-                filename + ".out.xml", 
+                filename + ".out.xml",
                 sortie,
                 AlgoPropositionsSortie.class);
     }
+
+    public AlgoPropositionsSortie recupererDonneesSortie(String filename) throws AccesDonneesException {
+        try {
+            return new Serialisation<AlgoPropositionsSortie>().decompresserEtDeserialiser(
+                    filename,
+                    AlgoPropositionsSortie.class);
+        } catch (JAXBException | IllegalArgumentException | IOException ex) {
+            throw new AccesDonneesException(AccesDonneesExceptionMessage.CONNECTEUR_DONNEES_PROPOSITIONS_XML_DESERIALISATION, ex);
+        }
+    }
+
 
 }

@@ -20,22 +20,22 @@ l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 package fr.parcoursup.algos.propositions.algo;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
-import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 /**
  * Cette classe contient l'implémentation du répondeur automatique.
- *
+ * <p>
  * Un candidat ayant activé son répondeur automatique
  * et recevant une nouvelle proposition démissionne automatiquement des propositions
  * antérieures et des voeux en attente qui ont un rang plus élevé dans son ordre de préférence.
- *
+ * <p>
  * Voir le document de présetation des algorithmes pour plus de détails.
  */
 public class RepondeurAutomatique {
@@ -43,96 +43,62 @@ public class RepondeurAutomatique {
     private static final Logger LOGGER = Logger.getLogger(RepondeurAutomatique.class.getSimpleName());
 
     /**
-     * Applique le répondeur automatique.
-     *
-     * @param entree les données d'entrée
-     * @return le nombre de places libérées par le repondeur automatique
-     * @throws VerificationException en cas de problème d'intégrité des données d'entrée
-     */
-    static long appliquerRepondeurAutomatique(AlgoPropositionsEntree entree) throws VerificationException {
-        if (!entree.candidatsAvecRepondeurAutomatique.isEmpty()) {
-            LOGGER.log(Level.INFO, "{0} candidats ont activé le répondeur automatique",
-                    entree.candidatsAvecRepondeurAutomatique.size()
-            );
-            final long placesLibereesParRepAuto
-                    = appliquerRepondeurAutomatique(entree.voeux, entree.candidatsAvecRepondeurAutomatique);
-
-            if (placesLibereesParRepAuto == 0) {
-                LOGGER.info("Aucune place libérée par le répondeur automatique");
-            } else {
-                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places",
-                        placesLibereesParRepAuto);
-            }
-
-            return placesLibereesParRepAuto;
-        } else {
-            LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
-            return 0;
-        }
-    }
-
-    /**
      * Applique le répondeur automatique pour les candidats l'ayant activé.
      *
-     * @param voeux                             tous les voeux de tous les candidats, ayant activé ou non leur répondeur
-     * @param candidatsAvecRepondeurAutomatique liste des candidats ayant activé leur répondeur
-     * @return le nombre de places libérées par le répondeur
+     * @param voeuxDesCandidatsAvecRepAuto                tous les voeux des candidats ayant activéleur répondeur, qui étaient initialement en attente ou proposition
+     * @param candidatsAvecRepondeurAutomatique           liste des candidats ayant activé leur répondeur
+     * @param statuts                                     les statuts des voeux
+     * @param rangPreferenceMeilleurePropositionDuJour    les rangs minimaux des propositions du jour, par candidat
+     * @return la liste des voeux démissionnés automatiquement
      * @throws VerificationException en cas de problème d'intégrité des données d'entrée
      */
-    static long appliquerRepondeurAutomatique(Collection<Voeu> voeux, Set<Integer> candidatsAvecRepondeurAutomatique) throws VerificationException {
+    static List<Voeu> appliquerRepondeurAutomatique(
+            Collection<Voeu> voeuxDesCandidatsAvecRepAuto,
+            Set<Integer> candidatsAvecRepondeurAutomatique,
+            StatutsVoeux statuts,
+            Map<Integer, Integer> rangPreferenceMeilleurePropositionDuJour
+    ) throws VerificationException {
 
-        Collection<Voeu> voeuxDesCandidatsAvecRepAuto =
-                voeux.stream()
-                        .filter(v ->
-                                candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod)
-                                        && !v.estAffecteHorsPP()
-                                        && (v.estEnAttenteDeProposition() || v.estProposition())
-                        ).collect(Collectors.toList());
+        if (!candidatsAvecRepondeurAutomatique.isEmpty()) {
+            LOGGER.log(Level.INFO, "{0} candidats ont activé le répondeur automatique",
+                    candidatsAvecRepondeurAutomatique.size()
+            );
 
-        /* L'entrée ne contient que des voeux de candidats
-        ayant activé le répondeur automatique. Cette vérification reprend 7.4.
-         */
-        for (Voeu v : voeuxDesCandidatsAvecRepAuto) {
-            if ((v.estEnAttenteDeProposition() && !v.getRepondeurActive())) {
-                throw new VerificationException(VerificationExceptionMessage.REPONDEUR_AUTOMATIQUE_INCOHERENCE_VOEU_EN_ATTENTE_AVEC_RA_MAIS_SANS_RANG, v);
-            }
-        }
+            Set<Integer> candidatsAvecRepAutoEtPropCeJour = rangPreferenceMeilleurePropositionDuJour.keySet();
 
-        /* Liste, indexée par id candidat, des voeux en attente et des propositions
-        des candidats ayant activé le répondeur automatique. */
-        Map<Integer, Integer> rangPreferenceMeilleurePropositionDuJour =
-                voeuxDesCandidatsAvecRepAuto.stream()
-                        .filter(Voeu::estPropositionDuJour)
-                        .collect(Collectors.groupingBy(v -> v.id.gCnCod))
-                        .entrySet().stream()
-                        .collect(Collectors.toMap(
-                                Map.Entry::getKey,
-                                e -> e.getValue().stream().mapToInt(Voeu::getRangPreferencesCandidat).min().orElse(Integer.MAX_VALUE)
-                        ));
+            List<Voeu> placesLiberees = new ArrayList<>();
 
-        Set<Integer> candidatsAvecRepAutoEtPropCeJour = rangPreferenceMeilleurePropositionDuJour.keySet();
-
-        long placesLiberees = 0;
         /* démission automatique des voeux moins bien classés qu'une nouvelle proposition
         et des anciennes propositions */
-        for (Voeu v : voeuxDesCandidatsAvecRepAuto) {
-            int gCnCod = v.id.gCnCod;
-            if (candidatsAvecRepAutoEtPropCeJour.contains(gCnCod)) {
-                int rangMeilleureProposition = rangPreferenceMeilleurePropositionDuJour.get(gCnCod);
-                if (v.aEteProposeJoursPrecedents() || v.getRangPreferencesCandidat() > rangMeilleureProposition) {
-                    if (v.estProposition()) {
-                        placesLiberees++;
+            for (Voeu v : voeuxDesCandidatsAvecRepAuto) {
+                int gCnCod = v.id.gCnCod;
+                if (candidatsAvecRepAutoEtPropCeJour.contains(gCnCod)
+                        && statuts.estPropositionOuEnAttente(v)
+                ){
+                    int rangMeilleureProposition = rangPreferenceMeilleurePropositionDuJour.get(gCnCod);
+                    if (StatutVoeu.aEteProposeJoursPrecedents(v.statut) || v.getRangPreferencesCandidat() > rangMeilleureProposition) {
+                        if (statuts.estProposition(v)) {
+                            placesLiberees.add(v);
+                        }
+                        statuts.refuserAutomatiquementParApplicationRepondeurAutomatique(v);
                     }
-                    v.refuserAutomatiquementParApplicationRepondeurAutomatique();
                 }
             }
+
+            if (placesLiberees.isEmpty()) {
+                LOGGER.info("Aucune place libérée par le répondeur automatique");
+            } else {
+                LOGGER.log(Level.INFO, "Le répondeur automatique a libéré {0} places", placesLiberees.size());
+            }
+
+            return placesLiberees;
+        } else {
+            LOGGER.info("Aucun candidat n'a activé le répondeur automatique");
+            return List.of();
         }
-
-        return placesLiberees;
     }
 
-    private RepondeurAutomatique() {
-    }
+    private RepondeurAutomatique() {}
 
 
 }

@@ -1,7 +1,6 @@
 package fr.parcoursup.algos.exceptions;
 
 public enum AccesDonneesExceptionMessage {
-    MESSAGE("%s"),
 
     CONNECTEUR_SQL_CONNEXION_NULL("Impossible de créer un ConnecteurSQL à partir d'une connexion null"),
     CONNECTEUR_SQL_CREATION("Echec de création du connecteur SQL"),
@@ -20,7 +19,6 @@ public enum AccesDonneesExceptionMessage {
 
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_RECUPERATION("Echec de la recuperation des données"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_EXPORT("Echec de l'export des propositions"),
-    CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE("Date incohérente"),
 
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_DATE_INCONNUE("Date inconnue, g_pr_cod=%s"),
     CONNECTEUR_DONNEES_PROPOSITIONS_SQL_ENTREE("Problème d'intégrité des données d'entrée"),

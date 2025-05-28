@@ -128,7 +128,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         as.ordresAppel.put(gc.cGpCod, ordreAppel);
 
         VerificationException exception = assertThrows(VerificationException.class, () -> new VerificationsResultatsAlgoOrdreAppel().verifier(ae, as));
-        assertEquals(exception.exceptionMessage, VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_GCNCOD_MANQUANT);
+        assertEquals(VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_GCNCOD_MANQUANT, exception.exceptionMessage);
     }
 
     @Test(expected = Test.None.class /* no exception expected */)
@@ -162,7 +162,7 @@ public class TestVerificationsResultatsAlgoOrdreAppel {
         vb3.setRangAppel(2);
 
         VerificationException exception = assertThrows(VerificationException.class, () -> new VerificationsResultatsAlgoOrdreAppel().verifierP1(gc));
-        assertEquals(exception.exceptionMessage, VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_VIOLATION_P1);
+        assertEquals(VerificationExceptionMessage.VERIFICATION_RESULTATS_ALGO_ORDRE_APPEL_VIOLATION_P1, exception.exceptionMessage);
     }
 
     @Test(expected = Test.None.class /* no exception expected */)

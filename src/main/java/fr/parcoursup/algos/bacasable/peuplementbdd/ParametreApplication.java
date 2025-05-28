@@ -102,12 +102,5 @@ public class ParametreApplication extends EntitePersistante {
      
     }
 
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(ParametreApplication.mappingNomsChamps.get(nom));
-        
-    }
 
 }

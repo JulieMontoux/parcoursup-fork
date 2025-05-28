@@ -128,22 +128,8 @@ public class GroupeAffectationFormation extends EntitePersistante {
         }
         
     }
-    
-    
-    public GroupeAffectationFormation(
-            int idGroupeClassementPedagogique,
-            Formation formation
-            ) {
-               
-        this(
-            idGroupeClassementPedagogique,
-            formation,
-                new HashMap<>()
-            );
-               
-    }
-    
-    
+
+
     public Formation getFormation() {
 
         return this.formation;
@@ -162,7 +148,6 @@ public class GroupeAffectationFormation extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(GroupeAffectationFormation.mappingNomsChamps.get(nom));

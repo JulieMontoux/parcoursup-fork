@@ -139,7 +139,7 @@ public class GroupeClassement implements Serializable {
     public OrdreAppel calculerOrdreAppel() throws VerificationException {
 
         /* prévention d'un depassement arithmétique possible théoriquement */
-        if (voeuxClasses.size() >= Integer.MAX_VALUE) {
+        if (voeuxClasses.size() == Integer.MAX_VALUE) {
             throw new VerificationException(VerificationExceptionMessage.GROUPE_CLASSEMENT_POSSIBLE_DEPASSEMENT_ARITHMETIQUE);
         }
 

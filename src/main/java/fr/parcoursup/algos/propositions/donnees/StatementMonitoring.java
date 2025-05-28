@@ -12,9 +12,9 @@ import fr.parcoursup.algos.utils.UtilService;
 
 public class StatementMonitoring implements Statement {
 
-	private Statement st;
+	private final Statement st;
 	
-	private Logger logger;
+	private final Logger logger;
 	
 	
 	public StatementMonitoring(Statement st, Logger logger) {

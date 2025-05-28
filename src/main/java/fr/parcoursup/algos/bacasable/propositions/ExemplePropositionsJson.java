@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static fr.parcoursup.algos.propositions.algo.Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+import static fr.parcoursup.algos.propositions.algo.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
 
 public class ExemplePropositionsJson {
 
@@ -25,12 +25,12 @@ public class ExemplePropositionsJson {
         String entreeFilepath = args[0];
 
         //crée un exemple et le sérialize en json
-        Parametres parametres = new Parametres(1, 60, 90, 95);
+        Parametres parametres = new Parametres(1, 60, 90);
 
         AlgoPropositionsEntree entree
                 = new AlgoPropositionsEntree(parametres);
         GroupeAffectationUID guid = new GroupeAffectationUID(11, 12, 13);
-        GroupeAffectation groupe = new GroupeAffectation(2, guid, 3, 0, parametres);
+        GroupeAffectation groupe = new GroupeAffectation(2, guid, 3, 0, 0, parametres);
         entree.groupesAffectations.put(guid, groupe);
 
         GroupeInternatUID iuid = new GroupeInternatUID(14, 13);
@@ -47,7 +47,8 @@ public class ExemplePropositionsJson {
                 EN_ATTENTE_DE_PROPOSITION,
                 false,
                 false,
-                false);
+                false,
+                null);
 
         entree.voeux.add(voeu);
 

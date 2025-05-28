@@ -40,6 +40,7 @@ import static fr.parcoursup.algos.donnees.ConnecteurSQL.*;
 import static fr.parcoursup.algos.donnees.SQLStringsConstants.*;
 import static java.util.stream.Collectors.joining;
 
+@SuppressWarnings("ExtractMethodRecommender")
 public class ConnecteurDonneesAppelSQL implements ConnecteurDonneesAppel {
 
     public ConnecteurDonneesAppelSQL(Connection connection) throws AccesDonneesException {
@@ -312,7 +313,7 @@ public class ConnecteurDonneesAppelSQL implements ConnecteurDonneesAppel {
 
         try {
 
-            LOGGER.log(Level.INFO, "D\u00e9but de l''exportation des ordres d''appel de {0} groupes", donnees.ordresAppel.size());
+            LOGGER.log(Level.INFO, "Début de l''exportation des ordres d''appel de {0} groupes", donnees.ordresAppel.size());
 
             exporterOrdresAppel(donnees.ordresAppel);
 

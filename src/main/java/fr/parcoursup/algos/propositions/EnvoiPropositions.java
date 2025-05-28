@@ -28,6 +28,8 @@ import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
 import fr.parcoursup.algos.propositions.algo.AlgoPropositionsSortie;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositions;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.logging.Logger;
 
 /* Le calcul des propositions à envoyer est effectué par le code suivant.
@@ -51,21 +53,28 @@ public class EnvoiPropositions {
     }
 
     public void execute(boolean logDonnees, boolean exporterResultats) throws VerificationException, AccesDonneesException {
+        execute(logDonnees,logDonnees,exporterResultats, true);
+    }
+    public void execute(boolean logDonneesEntree, boolean logDonneesSortie, boolean exporterResultats, boolean verifierResultats) throws VerificationException, AccesDonneesException {
+
+        Instant debutExecution = Instant.now();
 
         LOGGER.info("Récupération des données");
         AlgoPropositionsEntree entree = input.recupererDonnees();
 
-        if (logDonnees) {
+        if (logDonneesEntree) {
             LOGGER.info("Sauvegarde locale de l'entrée");
             new Serialisation<AlgoPropositionsEntree>().serialiserEtCompresser(
                     entree,
                     AlgoPropositionsEntree.class);
         }
 
-        LOGGER.info("Calcul des propositions");
-        AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
+        Instant debutCalculPropositions = Instant.now();
 
-        if (sortie.getAlerte()) {
+        LOGGER.info("Calcul des propositions");
+        AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree, verifierResultats, false);
+
+        if (sortie.hasAlerte()) {
             LOGGER.info(sortie.getAlerteMessage());
         }
 
@@ -73,7 +82,11 @@ public class EnvoiPropositions {
             LOGGER.info("La vérification a déclenché un avertissement.");
         }
 
-        if (logDonnees) {
+        Instant finCalculPropositions = Instant.now();
+        Duration dureeCalcul = Duration.between(debutCalculPropositions, finCalculPropositions);
+        LOGGER.info("Durée du calcul des propositions: " + dureeCalcul.toMinutes() + " minutes.");
+
+        if (logDonneesSortie) {
             LOGGER.info("Sauvegarde locale de la sortie");
             new Serialisation<AlgoPropositionsSortie>().serialiserEtCompresser(
                     sortie,
@@ -84,6 +97,11 @@ public class EnvoiPropositions {
             LOGGER.info("Export des données");
             output.exporterDonnees(sortie);
         }
+
+        Instant finExecution = Instant.now();
+        Duration dureeTotale = Duration.between(debutExecution, finExecution);
+
+        LOGGER.info("Durée totale y compris import et export des données: " + dureeTotale.toMinutes() + " minutes.");
     }
 
 }

@@ -86,82 +86,13 @@ public class EtatBarresAdmission extends EntitePersistante {
         );
 
     }
-    
-    
-    protected GroupeAffectationFormation groupeAffectationFormation;
-    
-    
+
+
     public EtatBarresAdmission() {
         // constructeur par défaut requis par activejdbc
-    } 
-    
-    
-    public EtatBarresAdmission(
-        GroupeAffectationFormation groupeAffectationFormation,
-        int valeurBarreAdmissionGroupeFormation,
-        int nombreJoursDepuisDebutCampagne,
-        Map<String,Object> parametresSupplementaires
-        ) {
-        // rappel : parametresSupplementaires peut embarquer la valeur VALEUR_BARRE_ADMISSION_INTERNAT qui est optionnelle
-        // car toutes les formations ne proposent pas un internat
-        
-        this.groupeAffectationFormation = groupeAffectationFormation;
-
-        Formation formation = groupeAffectationFormation.getFormation();
-        FormationAffectation formationAffectation = formation.getFormationAffectation();
-        FormationInscription formationInscription = formation.getFormationInscription();
-        GroupeAffectationInternat groupeAffectationInternat = formation.getGroupeAffectationInternat();
-
-        this.set(mappingNomsChamps.get(VALEUR_BARRE_ADMISSION_GROUPE_FORMATION), valeurBarreAdmissionGroupeFormation);
-        
-        this.set(mappingNomsChamps.get(NOMBRE_JOURS_DEPUIS_DEBUT_CAMPAGNE), nombreJoursDepuisDebutCampagne);
-
-        int idGroupeClassementPedagogoque = (int) this.groupeAffectationFormation.getValeurChamp(GroupeAffectationFormation.ID_GROUPE_CLASSEMENT_PEDAGOGIQUE);
-        this.set(mappingNomsChamps.get(ID_GROUPE_CLASSEMENT_PEDAGOGIQUE), idGroupeClassementPedagogoque);
-        
-        int idFormationAffectation = (int) formationAffectation.getValeurChamp(FormationAffectation.ID_FORMATION_AFFECTATION);
-        this.set(mappingNomsChamps.get(ID_FORMATION_AFFECTATION), idFormationAffectation);
-
-        int idFormationInscription = (int) formationInscription.getValeurChamp(FormationInscription.ID_FORMATION_INSCRIPTION);
-        this.set(mappingNomsChamps.get(ID_FORMATION_INSCRIPTION), idFormationInscription);
-        
-        if(groupeAffectationInternat != null) { 
-            int idInternat = (int) groupeAffectationInternat.getValeurChamp(GroupeAffectationInternat.ID_INTERNAT);
-            this.set(mappingNomsChamps.get(ID_INTERNAT), idInternat);
-        }
-        
-        for (Map.Entry<String,Object> entry : parametresSupplementaires.entrySet()) {
-            String nom = entry.getKey();
-            checkSiChampReserve(nom, champsReserves);
-            this.set(mappingNomsChamps.get(nom), parametresSupplementaires.get(nom));   
-        }
-        
     }
-    
-    
-    public EtatBarresAdmission(
-            GroupeAffectationFormation groupeAffectationFormation,
-            int valeurBarreAdmissionGroupeFormation,
-            int nombreJoursDepuisDebutCampagne
-            ) {
-               
-        this(
-            groupeAffectationFormation,
-            valeurBarreAdmissionGroupeFormation,
-            nombreJoursDepuisDebutCampagne,
-                new HashMap<>());
-                
-    }
-    
-    
-    
-    public GroupeAffectationFormation getGroupeAffectationFormation() {
 
-        return this.groupeAffectationFormation;
 
-    }
-    
-    
     @Override
     public String getNomTable() {
         
@@ -171,13 +102,6 @@ public class EtatBarresAdmission extends EntitePersistante {
         return getTableName();
      
     }
-    
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(EtatBarresAdmission.mappingNomsChamps.get(nom));
-        
-    }
+
 
 }

@@ -33,7 +33,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
             ConnecteurDonneesAppelSQL connecteurDonneesAppel = new ConnecteurDonneesAppelSQL(connecteurSQL.connection());
             AlgoOrdreAppelEntree entree = connecteurDonneesAppel.recupererDonneesOrdreAppel();
 
-            assertEquals(entree.groupesClassements.size(), 1);
+            assertEquals(1, entree.groupesClassements.size());
         }
 
     }
@@ -44,7 +44,7 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
         try (ConnecteurSQL connecteurSQL = this.getConnecteurSQL()) {
             ConnecteurDonneesAppelSQL connecteurDonneesAppel = new ConnecteurDonneesAppelSQL(connecteurSQL.connection());
             GroupeClassement groupeClassement = connecteurDonneesAppel.recupererDonneesOrdreAppelGroupe(4_584);
-            assertEquals(groupeClassement.voeuxClasses.size(), 2);
+            assertEquals(2, groupeClassement.voeuxClasses.size());
         }
 
     }
@@ -72,8 +72,9 @@ public class TestConnecteurDonneesAppelSQLImportation extends TestConnecteurDonn
             ConnecteurDonneesAppelSQL connecteurDonneesAppel = new ConnecteurDonneesAppelSQL(connecteurSQL.connection());
             AlgoOrdreAppelEntree entree = Whitebox.invokeMethod(connecteurDonneesAppel, "recupererDonnees", 4_584);
             assertEquals(entree.groupesClassements.size(), 1);
-            Optional<GroupeClassement> groupeClassement1 = entree.groupesClassements.stream().findFirst();
-            assertEquals(groupeClassement1.get().voeuxClasses.size(), 2);
+            GroupeClassement groupeClassement1 = entree.groupesClassements.stream().findFirst().orElse(null);
+            assertNotNull(groupeClassement1);
+            assertEquals(groupeClassement1.voeuxClasses.size(), 2);
         }
 
     }

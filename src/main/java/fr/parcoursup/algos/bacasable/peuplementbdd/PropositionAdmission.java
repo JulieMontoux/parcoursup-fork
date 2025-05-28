@@ -153,34 +153,8 @@ public class PropositionAdmission extends EntitePersistante {
         }
         
     }
-    
-    
-    public PropositionAdmission(
-            Voeu voeu
-            ) {
-               
-        this(
-            voeu,
-                new HashMap<>()
-            );      
-    }
-    
-    
-    public Voeu getVoeu() {
-        
-        if(this.voeu == null) {
-            this.voeu = Voeu.findByCompositeKeys(
-                this.getValeurChamp(ID_CANDIDAT), 
-                this.getValeurChamp(ID_FORMATION_AFFECTATION), 
-                this.getValeurChamp(ID_REGIME_HEBERGEMENT)
-            );
-        }
-        
-        return this.voeu;      
 
-    }
-    
-    
+
     @Override
     public String getNomTable() {
         
@@ -190,13 +164,6 @@ public class PropositionAdmission extends EntitePersistante {
         return getTableName();
      
     }
-   
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(PropositionAdmission.mappingNomsChamps.get(nom));
-        
-    }           
-    
+
+
 }

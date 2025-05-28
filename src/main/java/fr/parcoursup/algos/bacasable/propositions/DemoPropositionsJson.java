@@ -32,8 +32,7 @@ public class DemoPropositionsJson {
         try(Reader reader = new FileReader(entreeFilepath)) {
             AlgoPropositionsEntree entree = new Gson().fromJson(reader, AlgoPropositionsEntree.class);
             //mock the date
-            entree.setParametres(new Parametres(1, 20, 40, 45));
-            entree.injecterGroupesEtInternatsDansVoeux();
+            entree.setParametres(new Parametres(1, 20, 40));
 
             AlgoPropositionsSortie sortie = AlgoPropositions.calcule(entree);
             try (FileWriter writer = new FileWriter(sortieFilepath)) {

@@ -118,30 +118,6 @@ public class PositionCandidatDansGroupeClassementPedagogique extends EntitePersi
         } 
         
     }
-    
-    
-    public PositionCandidatDansGroupeClassementPedagogique(
-            GroupeClassementPedagogique groupeClassementPedagogique,
-            Candidat candidat
-            ) {
-               
-        this(
-            groupeClassementPedagogique,
-            candidat,
-                new HashMap<>()
-            );      
-    }
-    
-    
-    public GroupeClassementPedagogique getGroupeClassementPedagogique() {
-        
-        if(this.groupeClassementPedagogique == null) {
-            this.groupeClassementPedagogique = this.parent(GroupeClassementPedagogique.class);  
-        }
-        
-        return this.groupeClassementPedagogique; 
-
-    }
 
 
     public Candidat getCandidat() {
@@ -164,13 +140,6 @@ public class PositionCandidatDansGroupeClassementPedagogique extends EntitePersi
         return getTableName();
      
     }
-    
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(PositionCandidatDansGroupeClassementPedagogique.mappingNomsChamps.get(nom));
-        
-    } 
- 
+
+
 }

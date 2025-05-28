@@ -21,8 +21,7 @@ l'Innovation,
 package fr.parcoursup.algos.donnees;
 
 public class SQLStringsConstants {
-    
-    public static final String TRUNCATE_TABLE = " TRUNCATE TABLE ";
+
     public static final String INSERT_INTO = " INSERT INTO ";
     public static final String DELETE_FROM = " DELETE FROM ";
     public static final String SELECT =  " SELECT ";

@@ -165,8 +165,6 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
 
     protected static final int INDEX_PARAMETRE_DATE_DEBUT_GDD = 582;
 
-    protected static final int INDEX_PARAMETRE_DATE_FIN_ORD_GDD = 437;
-
     protected static final int INDEX_PARAMETRE_DATE_OUV_COMP_INTERNATS = 334;
 
     protected String getBddChaineDate(int indiceParametre) throws Exception {
@@ -217,22 +215,12 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
         return date;
     }
 
-    protected LocalDateTime getBddDateFinOrdGDD() throws Exception {
-        String chaine = this.getBddChaineDate(INDEX_PARAMETRE_DATE_FIN_ORD_GDD);
-        LocalDateTime date = this.getDateFromChaineDate(chaine);
-        return date;
-    }
-
     protected void setBddDateDebutCampagne(String chaineDateDebutCampagne) throws Exception {
         this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_DEBUT_CAMPAGNE);
     }
 
     protected void setBddDateDebutGDD(String chaineDateDebutCampagne) throws Exception {
         this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_DEBUT_GDD);
-    }
-
-    protected void setBddDateFinOrdGDD(String chaineDateDebutCampagne) throws Exception {
-        this.setBddChaineDate(chaineDateDebutCampagne, INDEX_PARAMETRE_DATE_FIN_ORD_GDD);
     }
 
     protected LocalDateTime getBddDateOuvertureCompleteInternats() throws Exception {
@@ -272,15 +260,6 @@ public class TestConnecteurDonneesPropositionsSQL extends DBTestCase {
         LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
         LocalDateTime dateDebutGDD = this.getBddDateDebutGDD().toLocalDate().atStartOfDay();
         long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, dateDebutGDD).toDays();
-        return Math.toIntExact(nombreJoursEcoules);
-
-    }
-
-    protected int recupereBddNombreTotalJoursEntreDebutCampagneEtFinOrdVoeuxGDD() throws Exception {
-
-        LocalDateTime dateDebutCampagne = this.getBddDateDebutCampagne().toLocalDate().atStartOfDay();
-        LocalDateTime finOrdGDD = this.getBddDateFinOrdGDD().toLocalDate().atStartOfDay();
-        long nombreJoursEcoules = 1 + Duration.between(dateDebutCampagne, finOrdGDD).toDays();
         return Math.toIntExact(nombreJoursEcoules);
 
     }

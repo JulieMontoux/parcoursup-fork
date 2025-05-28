@@ -35,21 +35,20 @@ public abstract class ExemplePropositions {
 
     private static final Logger LOGGER = Logger.getLogger(ExemplePropositions.class.getSimpleName());
 
-    /* nom de l'exemple */
-    abstract String nom();
-
     /* crée des données d'entrée */
     abstract AlgoPropositionsEntree donneesEntree() throws VerificationException;
 
     AlgoPropositionsEntree entree;
 
+    StatutsVoeux statuts;
+
     public void execute(boolean log) throws AccesDonneesException, VerificationException {
         entree = donneesEntree();
+        statuts = entree.getStatutsInitiaux();
 
         int nbJours = entree.getParametres().nbJoursCampagne;
         int datePivot = entree.getParametres().nbJoursCampagneDateFinReservationInternats;
         int dateGDD = entree.getParametres().nbJoursCampagneDateDebutGDD;
-        int dateFinArchivage = entree.getParametres().nbJoursCampagneDateFinOrdonnancementGDD;
 
         try {
             while (true) {
@@ -67,18 +66,16 @@ public abstract class ExemplePropositions {
                 simulerDesactivationRepAuto();
 
                 /* suppression des refus */
-                entree.voeux.removeIf((Voeu v) -> (v.getStatut() == Voeu.StatutVoeu.REFUS_OU_DEMISSION));
-                entree.voeux.removeIf(Voeu::estDemissionAutomatiqueParRepondeurAutomatique);
+                entree.voeux.removeIf((Voeu v) -> statuts.estRefusOuDemission(v));
+                entree.voeux.removeIf((Voeu v) -> statuts.estDemissionAutomatiqueParRepondeurAutomatique(v));
 
-                for (Voeu v : entree.voeux) {
-                    v.simulerEtape();
-                }
+                statuts.simulerEtape();
 
                 nbJours++;
-                entree.setParametres(new Parametres(nbJours, datePivot, dateGDD, dateFinArchivage));
+                entree.setParametres(new Parametres(nbJours, datePivot, dateGDD));
 
             }
-            LOGGER.log(Level.INFO, "Termin\u00e9 le {0} jour de campagne",
+            LOGGER.log(Level.INFO, "Terminé le {0} jour de campagne",
                     nbJours);
 
         } catch (VerificationException ex) {
@@ -104,22 +101,22 @@ public abstract class ExemplePropositions {
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
 
-        if (sortie.getAlerte() || sortie.getAvertissement()) {
+        if (sortie.hasAlerte() || sortie.getAvertissement()) {
             throw new VerificationException(VerificationExceptionMessage.EXEMPLE_PROPOSITIONS_ERREUR_VERIFICATION);
         }
 
-        return entree.voeux.stream().anyMatch(Voeu::estPropositionDuJour);
+        return entree.voeux.stream().anyMatch(v -> statuts.estPropositionDuJour(v));
     }
 
     void simulerReponses() {
 
         int nbRefus = 0;
         for (Voeu v : entree.voeux) {
-            if (v.getStatut() == Voeu.StatutVoeu.PROPOSITION_DU_JOUR) {
+            if (statuts.estPropositionDuJour(v)) {
                 boolean refuse = (random.nextInt(3) == 0);
                 if (refuse) {
                     nbRefus++;
-                    v.simulerRefusProposition();
+                    statuts.simulerRefusProposition();
                 }
             }
         }
@@ -137,10 +134,7 @@ public abstract class ExemplePropositions {
             int gCnCod = v.id.gCnCod;
             if (v.getRangPreferencesCandidat() > 0
                     && !entree.candidatsAvecRepondeurAutomatique.contains(gCnCod)) {
-                if (!candidates.containsKey(gCnCod)) {
-                    candidates.put(gCnCod, new ArrayList<>());
-                }
-                candidates.get(gCnCod).add(v);
+                candidates.computeIfAbsent(gCnCod, z -> new ArrayList<>()).add(v);
             }
         }
 
@@ -153,9 +147,9 @@ public abstract class ExemplePropositions {
                 Collections.shuffle(voeux);
                 boolean propositionTrouvee = false;
                 for (Voeu v : voeux) {
-                    if (propositionTrouvee && (v.estProposition() || v.getRangPreferencesCandidat() == 0)) {
-                        v.simulerRefusProposition();
-                    } else if (v.estProposition()) {
+                    if (propositionTrouvee && (statuts.estProposition(v) || v.getRangPreferencesCandidat() == 0)) {
+                        statuts.simulerRefusProposition();
+                    } else if (statuts.estProposition(v)) {
                         propositionTrouvee = true;
                     }
                 }

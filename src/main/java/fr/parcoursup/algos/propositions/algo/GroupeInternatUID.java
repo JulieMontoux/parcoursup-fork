@@ -57,7 +57,8 @@ public class GroupeInternatUID implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) {
+        if (o == null) return false;
+        if (getClass() != o.getClass()) {
             throw new ClassCastException(ClassCastExceptionMessage.GLOBAL_TEST_EGALITE_IMPREVU.getMessage());
         }
         GroupeInternatUID that = (GroupeInternatUID) o;
@@ -77,11 +78,9 @@ public class GroupeInternatUID implements Serializable {
                 + ((gTaCod != 0) ? (" AND  g_ta_cod=" + gTaCod) : "");
     }
 
-
-    /**
-     * Utilisé par les désérialisations Json et XML
-     */
+    @SuppressWarnings("unused")
     private GroupeInternatUID() {
+        // Constructeur privé pour la désérialisation
         this.cGiCod = 0;
         this.gTiCod = 0;
         this.gTaCod = 0;

@@ -41,7 +41,8 @@ public class CandidatClasse implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass())
+        if(o == null) return false;
+        if (getClass() != o.getClass())
             throw new ClassCastException(ClassCastExceptionMessage.GLOBAL_TEST_EGALITE_IMPREVU.getMessage());
         CandidatClasse that = (CandidatClasse) o;
         return gCnCod == that.gCnCod && rangAppel == that.rangAppel;

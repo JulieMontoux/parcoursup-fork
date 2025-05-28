@@ -68,71 +68,13 @@ public class EtatPredictionsDernierRangAppele extends EntitePersistante {
         );
 
     }
-    
-    
-    protected GroupeAffectationFormation groupeAffectationFormation;
-    
-    
+
+
     public EtatPredictionsDernierRangAppele() {
         // constructeur par défaut requis par activejdbc
-    } 
-    
-    
-    public EtatPredictionsDernierRangAppele(
-        GroupeAffectationFormation groupeAffectationFormation,
-        int estimationRangDernierAppeleDatePivot,
-        int nombreJoursDepuisDebutCampagne,
-        Map<String,Object> parametresSupplementaires
-        ) {
-        // rappel : parametresSupplementaires peut embarquer la valeur
-        // ETIQUETTE qui est optionnelle
-                
-        this.set(mappingNomsChamps.get(ESTIMATION_RANG_DERNIER_APPELE_DATE_PIVOT), estimationRangDernierAppeleDatePivot);
-        this.set(mappingNomsChamps.get(NOMBRE_JOURS_DEPUIS_DEBUT_CAMPAGNE), nombreJoursDepuisDebutCampagne);
-        
-        this.groupeAffectationFormation = groupeAffectationFormation;
-        
-        Formation formation = groupeAffectationFormation.getFormation();
-        FormationAffectation formationAffectation  = formation.getFormationAffectation();
-
-        int idGroupeAffectationFormation = (int) this.groupeAffectationFormation.getValeurChamp(GroupeAffectationFormation.ID_GROUPE_CLASSEMENT_PEDAGOGIQUE);
-        this.set(mappingNomsChamps.get(ID_GROUPE_CLASSEMENT_PEDAGOGIQUE), idGroupeAffectationFormation);
-        
-        int idFormationAffectation = (int) formationAffectation.getValeurChamp(FormationAffectation.ID_FORMATION_AFFECTATION);
-        this.set(mappingNomsChamps.get(ID_FORMATION_AFFECTATION), idFormationAffectation);
-        
-        for (Map.Entry<String,Object> entry : parametresSupplementaires.entrySet()) {
-            String nom = entry.getKey();
-            checkSiChampReserve(nom, champsReserves);
-            this.set(mappingNomsChamps.get(nom), parametresSupplementaires.get(nom));   
-        }
-         
     }
-    
-    
-    public EtatPredictionsDernierRangAppele(
-            GroupeAffectationFormation groupeAffectationFormation,
-            int estimationRangDernierAppeleDatePivot,
-            int nombreJoursDepuisDebutCampagne
-            ) {
-               
-        this(
-            groupeAffectationFormation,
-            estimationRangDernierAppeleDatePivot,
-            nombreJoursDepuisDebutCampagne,
-                new HashMap<>()
-            );
-               
-    }
-     
-    
-    public GroupeAffectationFormation getGroupeAffectationFormation() {
 
-        return this.groupeAffectationFormation;
 
-    }
-    
-    
     @Override
     public String getNomTable() {
         
@@ -142,14 +84,6 @@ public class EtatPredictionsDernierRangAppele extends EntitePersistante {
         return getTableName();
      
     }
-    
-    
-    @Override
-    public Object getValeurChamp(String nom) {
-        
-        return this.get(EtatPredictionsDernierRangAppele.mappingNomsChamps.get(nom));
-        
-    }
-    
-    
+
+
 }

@@ -8,8 +8,8 @@ import fr.parcoursup.algos.verification.VerificationAffichages;
 
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 
@@ -19,62 +19,56 @@ public class AlgosAffichages {
 
     public static void mettreAJourAffichages(
             AlgoPropositionsSortie sortie,
-            Set<VoeuUID> voeuxAvecPropositionDansMemeFormation,
             Set<VoeuUID> propositionsDuJour) throws VerificationException {
 
-        Map<GroupeAffectation, List<Voeu>> voeuxParGroupes = new HashMap<>();
-        Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
+        Map<GroupeAffectationUID, List<Voeu>> voeuxParGroupes
+                = sortie.voeux.stream()
+                .filter(v -> !StatutVoeu.aEteProposeJoursPrecedents(v.statut) && !v.estAffecteHorsPP())
+                .collect(Collectors.groupingBy(v -> v.groupeUID));
+        @SuppressWarnings("DataFlowIssue") Map<GroupeInternatUID, List<Voeu>> voeuxParInternat =
+                sortie.voeux.stream()
+                        .filter(Voeu::avecInternatAClassementPropre)
+                        .filter(v -> !StatutVoeu.aEteProposeJoursPrecedents(v.statut) && !v.estAffecteHorsPP())
+                        .collect(Collectors.groupingBy(v -> v.internatUID));
+        Map<GroupeAffectationUID, GroupeAffectation> groupesParId = sortie.getGroupesParId();
+        Map<GroupeInternatUID, GroupeInternat> internatsParId = sortie.getInternatsParId();
 
-
-        for (Voeu v : sortie.voeux) {
-            if (v.aEteProposeJoursPrecedents() || v.estAffecteHorsPP()) {
-                continue;
-            }
-            if (!voeuxParGroupes.containsKey(v.getGroupeAffectation())) {
-                voeuxParGroupes.put(v.getGroupeAffectation(), new ArrayList<>());
-            }
-            voeuxParGroupes.get(v.getGroupeAffectation()).add(v);
-            if (v.getInternat() != null) {
-                if (!voeuxParInternat.containsKey(v.getInternat())) {
-                    voeuxParInternat.put(v.getInternat(), new ArrayList<>());
-                }
-                voeuxParInternat.get(v.getInternat()).add(v);
-            }
-        }
 
         LOGGER.info(UtilService.petitEncadrementLog("Mise à jour des rangs sur liste d'attente et derniers appelés affichés"));
-        for (Entry<GroupeAffectation, List<Voeu>> entry : voeuxParGroupes.entrySet()) {
-            GroupeAffectation groupe = entry.getKey();
+        for (Entry<GroupeAffectationUID, List<Voeu>> entry : voeuxParGroupes.entrySet()) {
+            GroupeAffectation groupe = groupesParId.get(entry.getKey());
             List<Voeu> voeux = entry.getValue();
             mettreAJourRangsListeAttente(
                     voeux,
-                    voeuxAvecPropositionDansMemeFormation,
                     propositionsDuJour,
                     sortie.parametres.nbJoursCampagne,
                     groupe);
-            mettreAJourRangDernierAppeleAffiche(groupe, voeux);
+            mettreAJourRangDernierAppeleAffiche(groupe, voeux, sortie.barresAdmissionInternats);
         }
 
         LOGGER.info(UtilService.petitEncadrementLog("Mise à jour des rangs des derniers appeles affichés dans les internats"));
-        for (Entry<GroupeInternat, List<Voeu>> entry : voeuxParInternat.entrySet()) {
-            GroupeInternat internat = entry.getKey();
-            List<Voeu> voeux = entry.getValue();
-            mettreAJourRangDernierAppeleAffiche(internat, voeux);
+        for (Entry<GroupeInternatUID, List<Voeu>> entry : voeuxParInternat.entrySet()) {
+            GroupeInternatUID internatId = entry.getKey();
+            GroupeInternat internat = internatsParId.get(internatId);
+            List<Voeu> voeuxDansCetInternat = entry.getValue();
+            List<GroupeAffectationUID> groupesConcernes = sortie.groupesAffectationsConcernesParInternat(internatId);
+            mettreAJourRangDernierAppeleAffiche(internat, voeuxDansCetInternat, groupesConcernes);
         }
 
         LOGGER.info(UtilService.petitEncadrementLog("Vérification des rangs sur liste attente"));
         for(GroupeAffectation groupe : sortie.groupes) {
-           VerificationAffichages.verifierRangsSurListeAttente(groupe);
+           VerificationAffichages.verifierRangsSurListeAttente(voeuxParGroupes.get(groupe.id));
         }
 
     }
     
     /**
      * Si un candidat n'a pas de rang dans la liste d'attente de la veille, alors c'est qu'il est réintégré.
-     * Du coup son rang dans la liste d'attente doit etre égal au rang du candidat suivant dans cette liste.
-     * @param voeux
-     * @param ordreAppel
-     * @return
+     * Du coup son rang dans la liste d'attente doit être égal au rang du candidat suivant dans cette liste.
+     * @param voeux les voeux
+     * @param voeu le voeu à réintégrer
+     * @param rangListeAttente le rang dans la liste d'attente
+     * @return le rang de réintégration
      */
     private static int getRangListeAttenteReintegration(List<Voeu> voeux, Voeu voeu, int rangListeAttente) {
     	/* On parcoure les voeux */
@@ -83,7 +77,6 @@ public class AlgosAffichages {
     		if (v.ordreAppel > voeu.ordreAppel && v.getRangListeAttenteVeille() > 0 && v.id.gCnCod != voeu.id.gCnCod) {
     			/* Et on prend le min */
     			return Math.min(rangListeAttente, v.getRangListeAttenteVeille());
-    			//return v.getRangListeAttenteVeille();
     		}
     	}
     	
@@ -93,14 +86,13 @@ public class AlgosAffichages {
     /* met à jour les rangs sur liste d'attente */
     public static void mettreAJourRangsListeAttente(
             List<Voeu> voeux,
-            Set<VoeuUID> voeuxAvecPropositionDansMemeFormation,
             Set<VoeuUID> propositionsDuJour,
             int nbJoursCampagne,
             GroupeAffectation groupe) {
 
         int dernierCandidatEnAttente = -1;
         int nbCandidatsEnAttente = 0;
-        int nbRangVeille = 0;
+        int nbRangVeille;
 
         //initialisation
         groupe.setA_rg_nbr_att(0);
@@ -113,13 +105,13 @@ public class AlgosAffichages {
         
         for (Voeu voeu : voeux) {
         	/* Voeu en attente et sans internat */
-            if (voeu.estEnAttenteDeProposition() && voeu.internatUID == null) {
+            if (StatutVoeu.estEnAttenteDeProposition(voeu.statut) && voeu.internatUID == null) {
                 /* on ne tient pas compte des candidats ayant eu 
             une proposition dans la même formation */
             /* afin que les rangs sur liste d'attente affichés aux candidats soient monotones,
             on ne tient pas compte des annulations de démissions 
             et des modifications de classement.
-            Il peut y avoir deux voeux consecutifs pour le même candidat: un avec 
+            Il peut y avoir deux voeux consécutifs pour le même candidat: un avec
             et un sans internat.
                  */
                 if (//!voeuxAvecPropositionDansMemeFormation.contains(voeu.id) && --Si un candidat est réintégré, il aura une proposition, mais on veut quand meme le compter ici
@@ -140,7 +132,7 @@ public class AlgosAffichages {
                 	/* Au dela du jour 1*/	
                 	/* Si on a un rang de la veille  On le récupère */
                 	if (voeu.getRangListeAttenteVeille() > 0) {
-                    	nbRangVeille = voeu.getRangListeAttenteVeille();       
+                    	nbRangVeille = voeu.getRangListeAttenteVeille();
                 	}else {
                 		/* Sinon le voeux n'a pas de rang de la veille, c'est que le candidat a été réintégré donc on le calcule */
                 		nbRangVeille = getRangListeAttenteReintegration(voeux, voeu, nbCandidatsEnAttente);
@@ -161,8 +153,8 @@ public class AlgosAffichages {
     /* Met à jour le rang du dernier appelé affiché pour ce groupe d'affectation */
     private static void mettreAJourRangDernierAppeleAffiche(
             GroupeAffectation groupe,
-            List<Voeu> voeux
-    ) {
+            List<Voeu> voeux,
+            Map<GroupeInternatUID, Integer> barresAdmissionInternats) {
         /* Parmi les propositions du jour, on cherche celle qui a le plus haut
             rang dans l'ordre d'appel. On trie les voeux en attente du moins bien classé 
             au mieux classé, c'est à dire les plus hauts rangs en tête de liste. 
@@ -176,14 +168,13 @@ public class AlgosAffichages {
         voeux.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
 
         for (Voeu voe : voeux) {
-            if (voe.estProposition()) {
+            if (StatutVoeu.estProposition(voe.statut)) {
                 int aff = Math.max(groupe.getRangDernierAppeleAffiche(), voe.ordreAppelAffiche);
                 groupe.setRangDernierAppeleAffiche(aff);
             } else if (
-                    voe.estEnAttenteDeProposition()
+                    StatutVoeu.estEnAttenteDeProposition(voe.statut)
                     && !voe.ignorerDansLeCalculRangsListesAttente
-                    && !(voe.avecInternatAClassementPropre()
-                            && voe.estDesactiveParPositionAdmissionInternat())
+                    && !(voe.avecInternatAClassementPropre() && voe.rangInternat > barresAdmissionInternats.get(voe.internatUID))
                     ) {
                 //on s'arrete au premier candidat en attente de proposition
                 //pour de bonnes raisons: ni correction de classement,
@@ -197,32 +188,35 @@ public class AlgosAffichages {
     /* Met à jour le rang du dernier appelé affiché, pour chaque groupe d'affectation.
     Tous les voeux sont des voeux pour cet internat.
     */
+    @SuppressWarnings("StatementWithEmptyBody")
     public static void mettreAJourRangDernierAppeleAffiche(
             GroupeInternat internat,
-            List<Voeu> voeux) throws VerificationException {
+            List<Voeu> voeux,
+            List<GroupeAffectationUID> groupesConcernes
+    ) {
 
         /* Il y a deux barres par formation utilisant cet internat */
         internat.barresAppelAffichees.clear();
         internat.barresInternatAffichees.clear();
-        for (GroupeAffectation g : internat.groupesConcernes()) {
+        for (GroupeAffectationUID gid : groupesConcernes) {
 
             /* parmi les propositions, on cherche celle qui a le plus haut
             rang dans le classement internat. On trie les voeux internats du moins bien classé 
             au mieux classé, c'est à dire les plus hauts rangs en tête de liste. */
             OptionalInt rangDernierAppeleInternat
                     = voeux.stream()
-                    .filter(Voeu::estProposition)
-                    .filter(v -> v.groupeUID.equals(g.id))
+                    .filter(v -> StatutVoeu.estProposition(v.statut))
+                    .filter(v -> v.groupeUID.equals(gid))
                     .mapToInt(v -> v.rangInternat)
                     .max();
             if (rangDernierAppeleInternat.isPresent()) {
-                internat.barresInternatAffichees.put(g.id, rangDernierAppeleInternat.getAsInt());
+                internat.barresInternatAffichees.put(gid, rangDernierAppeleInternat.getAsInt());
             }
 
-            if (isNull(internat.barresInternatAffichees.get(g.id))) {
+            if (isNull(internat.barresInternatAffichees.get(gid))) {
                 //pas de proposition aujourd'hui dans ce groupe
-                internat.barresAppelAffichees.put(g.id, 0);
-                internat.barresInternatAffichees.put(g.id, 0);
+                internat.barresAppelAffichees.put(gid, 0);
+                internat.barresInternatAffichees.put(gid, 0);
                 continue;
             }
 
@@ -230,22 +224,21 @@ public class AlgosAffichages {
             on calcule la proposition de plus haut rang dans l'ordre d'appel 
             qui est sous la barre internat affichée et sous le rang de laquelle aucun candidat
             n'est en attente de proposition. */
-            internat.barresAppelAffichees.put(g.id, 0);
-            voeux.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
+            internat.barresAppelAffichees.put(gid, 0);
 
-            for (Voeu voe : voeux) {
-                if (!voe.groupeUID.equals(g.id)) {
+            for (Voeu voe : voeux.stream().sorted(Comparator.comparingInt((Voeu v) -> v.ordreAppel)).collect(Collectors.toList())) {
+                if (!voe.groupeUID.equals(gid)) {
                     //voeu hors groupe: on ignore
-                } else if (voe.estProposition()) {
+                } else if (StatutVoeu.estProposition(voe.statut)) {
                     //proposition: on augmente la barre affichée
-                    int aff = Math.max(internat.barresAppelAffichees.getOrDefault(g.id, 0), voe.ordreAppelAffiche);
-                    internat.barresAppelAffichees.put(g.id, aff);
+                    int aff = Math.max(internat.barresAppelAffichees.getOrDefault(gid, 0), voe.ordreAppelAffiche);
+                    internat.barresAppelAffichees.put(gid, aff);
                 } else if (voe.ignorerDansLeCalculRangsListesAttente) {
                     //cas exceptionnels: on continue
                 } else if (voe.ignorerDansLeCalculBarresInternatAffichees) {
                     //cas exceptionnels: on continue
-                } else if (voe.estEnAttenteDeProposition()
-                        && (voe.rangInternat <= internat.barresInternatAffichees.get(g.id))) {
+                } else if (StatutVoeu.estEnAttenteDeProposition(voe.statut)
+                        && (voe.rangInternat <= internat.barresInternatAffichees.get(gid))) {
                     //en attente et sous la barre internat affichée: fin de l'augmentation
                     break;
                 }

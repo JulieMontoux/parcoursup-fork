@@ -52,6 +52,7 @@ CREATE TABLE "A_ADM_DEM"
     "EST_DEM_PROP" NUMBER(1,0),
     "A_AD_TYP_DEM" NUMBER(3,0),
     "NB_JRS" NUMBER(3,0),
+    "ITERATION" NUMBER(6,0),
     "ETIQUETTE1" VARCHAR2(150 CHAR)
 );
 
@@ -104,6 +105,7 @@ CREATE TABLE "A_ADM_PROP"
     "C_GI_COD" NUMBER(8,0),
     "A_AM_FLG_MBC" NUMBER(1,0),
     "NB_JRS" NUMBER(3,0),
+    "ITERATION" NUMBER(6,0),
     "ETIQUETTE1" VARCHAR2(150 CHAR)
 );
 
@@ -749,10 +751,14 @@ rec.g_ti_cod g_ti_cod,
 rec.g_ta_cod g_ta_cod,
 A_RG_NBR_SOU capacite,
 NVL(a_rg_ran_lim,0) a_rg_ran_lim,
-NVL(r.a_rc_flg_fin_res_pla,0) a_rc_flg_fin_res_pla
+NVL(r.a_rc_flg_fin_res_pla,0) a_rc_flg_fin_res_pla,
+a_rg_flg_adm_stop
 FROM  A_REC_GRP  rec,  A_REC  r
 WHERE rec.g_ta_cod=r.g_ta_cod
-and NVL(rec.a_rg_flg_adm_stop,0) = 0;
+AND EXISTS (SELECT 1 FROM g_tri_ins ti WHERE ti.g_ti_cod = rec.g_ti_cod AND g_ti_eta_cla = 2) -- Que sur les formations qui on terminée leurs classement.
+--and NVL(rec.a_rg_flg_adm_stop,0) = 0
+AND A_RG_NBR_SOU IS NOT NULL
+;
 /
 
 COMMENT ON TABLE V_PROP_REC_GRP IS 'groupes, capacités, flag d''arrêt d''admission et de fin de réservation de places';

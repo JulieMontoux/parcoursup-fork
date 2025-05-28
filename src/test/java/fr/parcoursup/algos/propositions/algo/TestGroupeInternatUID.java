@@ -35,7 +35,7 @@ public class TestGroupeInternatUID {
     @Test
     public void toString_doit_etreNonVide(){
         GroupeInternatUID g1 = new GroupeInternatUID(1, 1);
-        assertNotEquals(g1.toString(), "");
+        assertNotEquals("", g1.toString());
     }
 
     @Test

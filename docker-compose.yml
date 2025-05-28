@@ -1,10 +1,8 @@
-version: "3"
-
 services:
 
   parcoursup:
     container_name: parcoursup
-    image: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/parcoursup:latest
+    image: parcoursup
     build:
       context: .
       dockerfile: docker/parcoursup/Dockerfile
@@ -14,8 +12,7 @@ services:
 
   parcoursup-bdd:
     container_name: parcoursup-bdd
-#    image: registry.gitlab.com/parcoursup/parcoursup/parcoursup-bdd:latest
-    image: ${CI_REGISTRY}/${CI_PROJECT_NAMESPACE}/${CI_PROJECT_NAME}/parcoursup-bdd:latest
+    image: registry.gitlab.com/parcoursup/parcoursup/parcoursup-bdd:latest
     build:
       context: docker/parcoursup-bdd/
       dockerfile: Dockerfile

@@ -115,7 +115,6 @@ public class Filiere extends EntitePersistante {
     } 
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(Filiere.mappingNomsChamps.get(nom));

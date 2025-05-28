@@ -22,6 +22,7 @@ public class TestGroupeAffectationUID {
     public void constructeur_doit_copier(){
         GroupeAffectationUID g1 = new GroupeAffectationUID(0, 0, 0);
         GroupeAffectationUID g2 = new GroupeAffectationUID(g1);
+        //noinspection NewObjectEquality
         assertTrue(
             g1 != g2
             && g1.equals(g2)

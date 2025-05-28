@@ -53,37 +53,6 @@ public class GroupeInternat implements Serializable {
     }
 
     /**
-     * @return le nombre de places vacantes dans cet internat
-     */
-    public int nbPlacesVacantes() {
-        /* On seuille à 0,
-        en cas de réduction du nombre de lits conduisant à une différence négative */
-        return Integer.max(0, capacite - candidatsAffectes.size());
-    }
-
-    /**
-     * la position d'admission dans cet internat, calculée par l'algorithme d'admission
-     */
-    private int positionAdmission = 0;
-    public int getPositionAdmission() {
-        return positionAdmission;
-    }
-
-    /**
-     * la position maximale d'admission dans cet internat
-     * calculée par initialiserPositionAdmission
-     */
-    private int positionMaximaleAdmission = 0;
-
-    /**
-     * Renvoie la valeur de la position maximale d'admission.
-     * @return la valeur
-     */
-    public int getPositionMaximaleAdmission() {
-        return positionMaximaleAdmission;
-    }
-
-    /**
      * affichages internat, groupe par groupe
      */
     public final Map<GroupeAffectationUID, Integer> barresInternatAffichees = new HashMap<>();
@@ -93,19 +62,6 @@ public class GroupeInternat implements Serializable {
      * La liste des voeuxEnAttente du groupe.
      */
     private transient List<Voeu> voeuxEnAttente = new ArrayList<>();
-
-    /**
-     * flag indiquant si la position maximale d'admission a été calculée,
-     * précondition pour l'exécution de l'algorithme d'admission
-     */
-    private transient boolean estInitialise = false;
-
-    /**
-     *  les candidats déjà affectés dans le groupe, au début de la dernière itération
-     *  de l'algorithme d'affectation
-     */
-    private transient Set<Integer> candidatsAffectes
-            = new HashSet<>();
 
     /**
      * Constructeur d'un groupe d'affectation internat
@@ -131,9 +87,6 @@ public class GroupeInternat implements Serializable {
      */
     public GroupeInternat(GroupeInternat o) throws VerificationException {
         this(o.id, o.capacite);
-        positionAdmission = 0;
-        positionMaximaleAdmission = 0;
-        estInitialise = false;
     }
 
     /**
@@ -142,42 +95,10 @@ public class GroupeInternat implements Serializable {
      * @throws VerificationException si les données ne sont pas intègres.
      */
     void ajouterVoeuEnAttenteDeProposition(Voeu voe) throws VerificationException {
-        if (estInitialise) {
-            throw new VerificationException(VerificationExceptionMessage.GROUPE_INTERNAT_DEJA_INITIALISE);
-        }
         if (voeuxEnAttente.contains(voe)) {
             throw new VerificationException(VerificationExceptionMessage.GROUPE_INTERNAT_VOEU_EN_DOUBLON);
         }
         voeuxEnAttente.add(voe);
-    }
-
-    /**
-     *  Ajoute un candidat affecté (avec proposition d'admission) dans cet internat
-     *  et supprime le candidat de la liste des candidats en attente , si il y a lieu.
-     * @param gCnCod le code candidat
-     */
-    public void ajouterCandidatAffecte(int gCnCod) {
-        candidatsAffectes.add(gCnCod);
-    }
-
-    /**
-     * Réinitialise les données du groupe.
-     */
-    public void reinitialiser() {
-        candidatsAffectes.clear();
-        voeuxEnAttente.clear();
-        barresInternatAffichees.clear();
-        barresAppelAffichees.clear();
-        estInitialise = false;
-    }
-
-    /**
-     * détermine si un candidat a actuellement une proposition d'admission dans cet internat
-     * @param gCnCod le code candidat
-     * @return true si le candidat a une proposition dans cet internat
-     */
-    public boolean estAffecte(int gCnCod) {
-        return candidatsAffectes.contains(gCnCod);
     }
 
     /**
@@ -189,175 +110,52 @@ public class GroupeInternat implements Serializable {
      * le même candidat, et les voeuxEnAttente sont triés par rang internat,
      * donc les voeuxEnAttente d'un même candidat sont consécutifs.
      *
-     * @param parametres les paramètres de la campagne en cours
+     * @param parametres                     les paramètres de la campagne en cours
+     * @param estimationsRangsDernierAppeles les estimations du rang du dernier appelé
      * @return le rang maximal calculé
      */
-    public int calculerRangMaximalAdmissionInternatSelonEstimationRangDernierAppele(Parametres parametres) {
+    public int calculerRangMaximalAdmissionInternatSelonEstimationRangDernierAppele(
+            Parametres parametres,
+            List<Voeu> voeuxDansCetInternat,
+            Map<GroupeAffectationUID, Integer> estimationsRangsDernierAppeles) {
+        Set<Integer> candidatsAffectes =
+                voeuxDansCetInternat.stream()
+                .filter(v -> StatutVoeu.estProposition(v.statut))
+                .map(v -> v.id.gCnCod)
+                .collect(Collectors.toSet());
+        List<Voeu> voeuxTriesParClassementInternat =
+                voeuxDansCetInternat.stream()
+                        .sorted(Comparator.comparing(v -> v.rangInternat))
+                        .collect(Collectors.toList());
+
         if (parametres.nbJoursCampagne >= parametres.nbJoursCampagneDateFinReservationInternats) {
             return Integer.MAX_VALUE;
         } else {
             int compteurCandidat = 0;
-            int dernierRangEligible = 0;
-            for (Voeu voe : voeuxTriesParClassementInternat()) {
+            int rangInternatDuDernierCandidatAjoute = 0;
+            for (Voeu voe : voeuxTriesParClassementInternat) {
                 /* sortie de boucle: le nombre de places vacantes est atteint */
-                if (compteurCandidat == nbPlacesVacantes()) {
+                if (compteurCandidat == Integer.max(0,capacite - candidatsAffectes.size())) {
                     break;
                 }
+                int estimationRangDernierAppele = estimationsRangsDernierAppeles.get(voe.groupeUID);
                 /* Plusieurs cas où le voeu sera ignoré au sens 
                 où il ne change pas la valeur du dernier rang comptabilisé
                     et du nombre de candidat comptés dans le contingent.
                 1. on ignore les voeuxEnAttente qui ne sont pas sous la barre
                 2. on a vu le même candidat au passage précédent dans la boucle 
                 3. l'internat est déjà obtenu par le candidat */
-                final boolean ignorer
-                        = (voe.ordreAppel > voe.getGroupeAffectation().getEstimationRangDernierAppeleADateFinReservationInternats())
-                        || (voe.rangInternat == dernierRangEligible)
-                        || (voe.internatDejaObtenu());
-                if (!ignorer) {
-                    dernierRangEligible = voe.rangInternat;
+                boolean voeuComptabilisableDansLeNombreDAdmis
+                        = (voe.ordreAppel <= estimationRangDernierAppele)
+                        && (voe.rangInternat != rangInternatDuDernierCandidatAjoute)
+                        && (!candidatsAffectes.contains(voe.id.gCnCod));
+                if (voeuComptabilisableDansLeNombreDAdmis) {
+                    rangInternatDuDernierCandidatAjoute = voe.rangInternat;
                     compteurCandidat++;
                 }
             }
-            return dernierRangEligible;
+            return rangInternatDuDernierCandidatAjoute;
         }
-    }
-
-    /**
-     * Initialise la position d'admission et la position maximale d'admission dans ce groupe internat.
-     * @param parametres de la campagne en cours.
-     * @throws VerificationException si certains voeux contiennent des groupes d'affectation nul
-     * ou si l'algorithme est lancé avant le début de la campagne.
-     */
-    public void initialiserPositionAdmission(Parametres parametres) throws VerificationException {
-
-        if(parametres.nbJoursCampagne <= 0) {
-            throw new VerificationException(VerificationExceptionMessage.GROUPE_INTERNAT_DATE_ANTERIEURE);
-        }
-
-        if(finReservationPlacesInternat()) {
-            positionMaximaleAdmission = Integer.MAX_VALUE;
-        } else {
-            /* on utilise le prédicteur basé sur le rang du dernier appelé */
-            positionMaximaleAdmission
-                    = calculerRangMaximalAdmissionInternatSelonEstimationRangDernierAppele(parametres);
-        }
-        positionAdmission = positionMaximaleAdmission;
-        estInitialise = true;
-    }
-
-    /**
-     * @return l'ensemble des groupes de classement concernés par cet internat
-     * @throws VerificationException si un des voeux a un groupe d'affectation null
-     */
-    public Set<GroupeAffectation> groupesConcernes() throws VerificationException {
-       verifierVoeuxOntGroupesNonNuls();
-       return voeux().stream()
-                .map(Voeu::getGroupeAffectation)
-                .collect(Collectors.toSet());
-    }
-
-    /**
-     * Vérification d'intégrité de l'injection des dépendances dans les données d'entrée
-     * @throws VerificationException si un des voeux en attente du groupe n'est pas associé à un groupe d'affectation
-     */
-    private void verifierVoeuxOntGroupesNonNuls() throws VerificationException {
-        if (voeuxEnAttente.stream().anyMatch(v ->
-                v.getGroupeAffectation() == null
-                        || (v.avecInternatAClassementPropre() && v.getInternat() == null))) {
-            throw new VerificationException(VerificationExceptionMessage.VOEU_GROUPE_NULL);
-        }
-    }
-
-    /**
-     * détermine si la réservation de places d'internat est active dans ce groupe internat
-     * @return true si inactive, false si active
-     * @throws VerificationException si les données d'entrée ne sont pas intègres
-     */
-    private boolean finReservationPlacesInternat() throws VerificationException {
-        verifierVoeuxOntGroupesNonNuls();
-        return voeuxEnAttente.stream()
-                .map(Voeu::getGroupeAffectation)
-                .anyMatch(GroupeAffectation::getFinDeReservationPlacesInternats);
-    }
-
-    /**
-     * Met à jour la position d'admission.
-     * @return true si la position d'admission a changé de valeur.
-     * @throws VerificationException si le groupe n'a pas été initialisé au préalable.
-     */
-    public boolean mettreAJourPositionAdmission() throws VerificationException {
-
-        if (!estInitialise) {
-            throw new VerificationException(VerificationExceptionMessage.GROUPE_INTERNAT_POSITION_NON_INITIALISEE);
-        }
-
-        /* on compte le nombre de propositions à faire.
-        En cas de dépassement, on met à jour la position d'admission */
-        int comptePlacesProposees = 0;
-        int dernierCandidatComptabilise = -1;
-
-        for (Voeu voe : voeuxTriesParClassementInternat()) {
-
-            /* le candidat a déjà l'internat, ignoré pour la mise a jour de la pos admission */
-            if (estAffecte(voe.id.gCnCod)) {
-                continue;
-            }
-
-            /* plusieurs propositions à un même candidat comptent pour une seule place */
-            if (voe.id.gCnCod == dernierCandidatComptabilise) {
-                continue;
-            }
-
-            /* si on a dépassé la position d'admission sans dépasser la capacité,
-             alors il n'est pas nécessaire de mettre à jour la position d'admission */
-            if (voe.rangInternat > positionAdmission) {
-                return false;
-            }
-
-            /* si le voeu est une proposition, on met à jour le compteur du nombre de places proposées */
-            if (voe.estProposition()) {
-
-                comptePlacesProposees++;
-                dernierCandidatComptabilise = voe.id.gCnCod;
-
-                if (comptePlacesProposees > nbPlacesVacantes()) {
-                    /* en cas de surcapacité, il faut diminuer la position d'admission,
-                    en deça du rang du voeu ayant créé la surcapacité */
-                    positionAdmission = voe.rangInternat - 1;
-                    /* on renvoie true pour signaler la mise à jour de la position d'admission,
-                    ce qui entraîne une itération supplémentaire de la boucle principale
-                     */
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    /**
-     * trie les voeuxEnAttente dans l'ordre du classement internat
-     * @return la liste de voeux triés
-     */
-    public List<Voeu> voeuxTriesParClassementInternat() {
-        voeuxEnAttente.sort(Comparator.comparingInt((Voeu v) -> v.rangInternat));
-        return Collections.unmodifiableList(voeuxEnAttente);
-    }
-
-    /**
-     * trie les voeuxEnAttente dans l'ordre d'appel
-     * @return la liste de voeux triés
-     */
-    public List<Voeu> voeuxTriesParOrdreAppel() {
-        voeuxEnAttente.sort(Comparator.comparingInt((Voeu v) -> v.ordreAppel));
-        return Collections.unmodifiableList(voeuxEnAttente);
-    }
-
-    /**
-     * Renvoie la liste des voeux en attente dans ce groupe internat
-     * @return la liste des voeux
-     */
-    public List<Voeu> voeux() {
-        return Collections.unmodifiableList(voeuxEnAttente);
     }
 
     @Override
@@ -368,6 +166,7 @@ public class GroupeInternat implements Serializable {
     /**
      * Utilisé par les désérialisations Json et XML
      */
+    @SuppressWarnings("unused")
     private GroupeInternat() {
         id = new GroupeInternatUID(1, 0,0);
         capacite = 0;
@@ -380,12 +179,6 @@ public class GroupeInternat implements Serializable {
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         voeuxEnAttente = new ArrayList<>();
-        candidatsAffectes = new HashSet<>();
-        estInitialise = false;
     }
 
-
-    public boolean aUnVoeuDansGroupe(Set<GroupeAffectationUID> groupesNonExportes) {
-        return voeuxEnAttente.stream().anyMatch(v -> groupesNonExportes.contains(v.groupeUID));
-    }
 }

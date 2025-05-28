@@ -21,12 +21,6 @@ public class GroupeClassementInternat extends EntiteLiaison implements Serializa
         this.setValeurChamp(ID_INTERNAT, idInternat);
         
     }
-    
-    
-    public GroupeAffectationInternat getGroupeAffectationInternat() {
 
-        return this.groupeAffectationInternat;
 
-    }
-    
 }

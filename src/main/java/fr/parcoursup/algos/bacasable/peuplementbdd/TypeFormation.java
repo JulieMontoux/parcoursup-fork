@@ -95,7 +95,6 @@ public class TypeFormation extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(TypeFormation.mappingNomsChamps.get(nom));

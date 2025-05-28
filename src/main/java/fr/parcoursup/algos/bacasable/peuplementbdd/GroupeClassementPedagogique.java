@@ -111,15 +111,8 @@ public class GroupeClassementPedagogique extends EntitePersistante {
             );
                
     }
-    
-    
-    public GroupeAffectationFormation getGroupeAffectationFormation() {
 
-        return this.groupeAffectationFormation;
 
-    }
-    
-    
     public List<Candidat> getlisteOrdonneeClassementPedagogique() {
         
         List<Candidat> candidats = new ArrayList<>();
@@ -162,7 +155,6 @@ public class GroupeClassementPedagogique extends EntitePersistante {
     }
 
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(GroupeClassementPedagogique.mappingNomsChamps.get(nom));

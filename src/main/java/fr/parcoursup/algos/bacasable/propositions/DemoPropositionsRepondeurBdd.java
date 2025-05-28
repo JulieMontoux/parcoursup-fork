@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
+@SuppressWarnings("ExtractMethodRecommender")
 public class DemoPropositionsRepondeurBdd {
 
     private static final Logger LOGGER = Logger.getLogger(DemoPropositionsRepondeurBdd.class.getSimpleName());
@@ -139,10 +140,6 @@ public class DemoPropositionsRepondeurBdd {
         new ParametreApplication(
                 582,                // indexDateDebutGDD
                 "25/06/2023:0000"   // date et heure de l'ouverture complète des internats
-        ).insert();
-        new ParametreApplication(
-                437,                // indexFinOrdonancementVoeuxGDD
-                "18/07/2023:0000"   // date et heure de la fin d'ordonnacement des voeux GDD
         ).insert();
 
         //

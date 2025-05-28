@@ -21,18 +21,14 @@ l'Innovation, Hugo Gimbert (hugo.gimbert@enseignementsup.gouv.fr)
 package fr.parcoursup.algos.verification;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectationUID;
-import fr.parcoursup.algos.propositions.algo.Parametres;
-import fr.parcoursup.algos.propositions.algo.Voeu;
+import fr.parcoursup.algos.propositions.algo.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
 
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.logging.LogManager;
 
 import static org.junit.Assert.assertThrows;
@@ -50,33 +46,33 @@ public class TestVerificationsDemAutoGDD {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
-        Voeu demAttRang3 = new Voeu(0, false, groupeAffectation.id, 1, 1, 3, Voeu.StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE, false);
-        Voeu demPropRang4 = new Voeu(0, false, groupeAffectation.id, 1, 1, 4, Voeu.StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_PROPOSITION_EN_ATTENTE_REP, false);
-        Voeu propDuJourRang1 = new Voeu(0, false, groupeAffectation.id, 1, 1, 1, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false);
-        Voeu propDuJourRang5 = new Voeu(0, false, groupeAffectation.id, 1, 1, 5, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false);
+        Voeu demAttRang3 = new Voeu(0, false, groupeAffectation.id, 1, 1, 3, StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE, false);
+        Voeu demPropRang4 = new Voeu(0, false, groupeAffectation.id, 1, 1, 4, StatutVoeu.DEMISSION_AUTO_VOEU_ORDONNE_EN_ATTENTE, false);
+        Voeu propDuJourRang1 = new Voeu(0, false, groupeAffectation.id, 1, 1, 1, StatutVoeu.PROPOSITION_DU_JOUR, false);
+        Voeu propDuJourRang5 = new Voeu(0, false, groupeAffectation.id, 1, 1, 5, StatutVoeu.PROPOSITION_DU_JOUR, false);
 
         //should not throw exception
-        VerificationDemAutoGDD.verifierP8(Collections.singletonMap(0 , Arrays.asList(
+        VerificationDemAutoGDD.verifierP81(Collections.singletonMap(0 , Arrays.asList(
                 demAttRang3,propDuJourRang1)));
-        VerificationDemAutoGDD.verifierP8(Collections.singletonMap(0 , Arrays.asList(
+        VerificationDemAutoGDD.verifierP81(Collections.singletonMap(0 , Arrays.asList(
                 demPropRang4,propDuJourRang1)));
 
-        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP8(
-                Collections.singletonMap(0 , Arrays.asList(
+        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP81(
+                Collections.singletonMap(0 , List.of(
                         demAttRang3))
         ) );
-        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP8(
-                Collections.singletonMap(0 , Arrays.asList(
+        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP81(
+                Collections.singletonMap(0 , List.of(
                         demPropRang4))
         ) );
-        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP8(
-                Collections.singletonMap(0 , Arrays.asList(
+        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP81(
+                Collections.singletonMap(0 , List.of(
                         demAttRang3, propDuJourRang5))
         ) );
-        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP8(
-                Collections.singletonMap(0 , Arrays.asList(
+        assertThrows(VerificationException.class, () -> VerificationDemAutoGDD.verifierP81(
+                Collections.singletonMap(0 , List.of(
                         demPropRang4, propDuJourRang5))
         ) );
 

@@ -4,7 +4,6 @@ import fr.parcoursup.algos.propositions.Helpers;
 import fr.parcoursup.algos.propositions.algo.*;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.powermock.reflect.Whitebox;
 
 
@@ -28,17 +27,16 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, false, groupeAffectation.id, 1, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, false, groupeAffectation.id, 1, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
         
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
-        entree.injecterGroupesEtInternatsDansVoeux();
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
@@ -54,21 +52,20 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION,
                 false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
@@ -84,21 +81,20 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION,
                 false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
@@ -113,25 +109,24 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 1);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 1);
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
 
@@ -140,25 +135,25 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 2);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 2);
+
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
@@ -168,25 +163,25 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 2);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 2);
+
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
@@ -196,25 +191,24 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 2);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 2);
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
@@ -224,25 +218,24 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, p);  // La formation ne prend qu'une personne
+        GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, 0, p);  // La formation ne prend qu'une personne
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 2);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 1);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(0, groupeAffectation.id, 1, 1, groupeInternat.id, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(1, groupeAffectation.id, 2, 2, groupeInternat.id, 2, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.internats.put(groupeInternat.id, groupeInternat);
-        entree.injecterGroupesEtInternatsDansVoeux();
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
         sortie.groupes.add(groupeAffectation);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 1);
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
@@ -253,21 +246,20 @@ public class TestVerificationsResultatsAlgoPropositions {
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
 
         GroupeAffectationUID groupeValideUID = new GroupeAffectationUID(1, 1, 1);
-        GroupeAffectation groupeValide = new GroupeAffectation(1, groupeValideUID, 1, 1, p);
+        GroupeAffectation groupeValide = new GroupeAffectation(1, groupeValideUID, 1, 1, 0, p);
 
         List<Voeu> voeux = new ArrayList<>();
-        voeux.add(new Voeu(0, false, groupeAffectation.id, 1, 1, 0, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
-        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
-        voeux.add(new Voeu(2, false, groupeValide.id, 1, 1, 0, Voeu.StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(0, false, groupeAffectation.id, 1, 1, 0, StatutVoeu.EN_ATTENTE_DE_PROPOSITION, false));
+        voeux.add(new Voeu(1, false, groupeAffectation.id, 2, 2, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
+        voeux.add(new Voeu(2, false, groupeValide.id, 1, 1, 0, StatutVoeu.PROPOSITION_DU_JOUR, false));
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.voeux.addAll(voeux);
         entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
         entree.groupesAffectations.put(groupeValide.id, groupeValide);
-        entree.injecterGroupesEtInternatsDansVoeux();
 
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.voeux.addAll(voeux);
@@ -287,11 +279,10 @@ public class TestVerificationsResultatsAlgoPropositions {
         for (int i=0; i<125; i++){
             GroupeInternatUID groupeInternatUID = new GroupeInternatUID(i, i);
             GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-            Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 1);
             entree.internats.put(groupeInternat.id, groupeInternat);
             sortie.internats.add(groupeInternat);
+            sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 1);
         }
-        entree.injecterGroupesEtInternatsDansVoeux();
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
 
@@ -304,7 +295,7 @@ public class TestVerificationsResultatsAlgoPropositions {
 
         for (int i=0; i<125; i++){
             GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(i, i, i);
-            GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, p);
+            GroupeAffectation groupeAffectation = new GroupeAffectation(2, groupeAffectationUID, 0, 0, 0, p);
             entree.groupesAffectations.put(groupeAffectation.id, groupeAffectation);
             sortie.groupes.add(groupeAffectation);
         }
@@ -318,14 +309,13 @@ public class TestVerificationsResultatsAlgoPropositions {
 
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 0);
-
-        Whitebox.setInternalState(groupeInternat, "positionAdmission", 1);
 
         AlgoPropositionsEntree entree = new AlgoPropositionsEntree(p);
         entree.internats.put(groupeInternat.id, groupeInternat);
         AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(p);
         sortie.internats.add(groupeInternat);
+        sortie.barresMaximalesAdmissionInternats.put(groupeInternat.id, 1);
+        sortie.barresAdmissionInternats.put(groupeInternat.id, 1);
 
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
@@ -341,39 +331,46 @@ public class TestVerificationsResultatsAlgoPropositions {
         new VerificationsResultatsAlgoPropositions(entree,sortie).verifier();
     }
 
-    @Test(expected = Test.None.class /* no exception expected */)
+    @Test
     public void clotureTransitiveDependances_doit_etendre_les_groupesAIgnorer() throws Exception {
         //Objectif: Coverage des lignes 604 à 608
         
         Parametres p = new Parametres(1, 0, 90);
 
         GroupeAffectationUID groupeAffectationUID = new GroupeAffectationUID(0, 0, 0);
-        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, p);
+        GroupeAffectation groupeAffectation = new GroupeAffectation(1, groupeAffectationUID, 0, 0, 0, p);
         
         GroupeAffectationUID groupeAffectation2UID = new GroupeAffectationUID(1, 1, 1);
-        GroupeAffectation groupeAffectation2 = new GroupeAffectation(1, groupeAffectation2UID, 0, 0, p);
+        GroupeAffectation groupeAffectation2 = new GroupeAffectation(1, groupeAffectation2UID, 0, 0, 0, p);
         
         GroupeInternatUID groupeInternatUID = new GroupeInternatUID(1, 0);
         GroupeInternat groupeInternat = new GroupeInternat(groupeInternatUID, 1);
-        Whitebox.setInternalState(groupeInternat, "positionMaximaleAdmission", 2);
-        
-        Voeu v1 = Helpers.creeVoeuAvecInternatEtInjecteDependances(0,groupeAffectation, groupeInternat, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,1, 1);
-        Voeu v2 = Helpers.creeVoeuSansInternatEtInjecteDependances(1,groupeAffectation, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,1);
-        Voeu v3 = Helpers.creeVoeuAvecInternatEtInjecteDependances(2,groupeAffectation2, groupeInternat, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION,2, 2);
+
+        Voeu v1 = Helpers.creeVoeuAvecInternat(0,groupeAffectation, groupeInternat, StatutVoeu.EN_ATTENTE_DE_PROPOSITION,1, 1);
+        Voeu v2 = Helpers.creeVoeuSansInternatEtInjecteDependances(1,groupeAffectation, StatutVoeu.EN_ATTENTE_DE_PROPOSITION,1);
+        Voeu v3 = Helpers.creeVoeuAvecInternat(2,groupeAffectation2, groupeInternat, StatutVoeu.EN_ATTENTE_DE_PROPOSITION,2, 2);
 
         List<Voeu> voeux = Arrays.asList(v1, v2, v3);
 
-        Set<GroupeAffectation> groupesAIgnorer = new HashSet<>();
-        groupesAIgnorer.add(groupeAffectation);
+        Set<GroupeAffectationUID> groupesAIgnorer = new HashSet<>();
+        groupesAIgnorer.add(groupeAffectation.id);
 
-        assertFalse(groupesAIgnorer.contains(groupeAffectation2));
-        Map<GroupeAffectation, List<Voeu>> voeuxParFormation = new HashMap<>();
-        Map<GroupeInternat, List<Voeu>> voeuxParInternat = new HashMap<>();
-        voeux.forEach(v -> voeuxParFormation.computeIfAbsent(v.getGroupeAffectation(), g -> new ArrayList<>()).add(v));
-        voeux.forEach(v -> { if(v.avecInternatAClassementPropre()) { voeuxParInternat.computeIfAbsent(v.getInternat(), g -> new ArrayList<>()).add(v); } });
+        assertFalse(groupesAIgnorer.contains(groupeAffectation2.id));
+        Map<GroupeAffectationUID, List<Voeu>> voeuxParFormation = new HashMap<>();
+        Map<GroupeInternatUID, List<Voeu>> voeuxParInternat = new HashMap<>();
+        voeux.forEach(v -> voeuxParFormation.computeIfAbsent(v.groupeUID, g -> new ArrayList<>()).add(v));
+        voeux.forEach(v -> { if(v.avecInternatAClassementPropre()) { voeuxParInternat.computeIfAbsent(v.internatUID, g -> new ArrayList<>()).add(v); } });
 
-        Whitebox.invokeMethod(VerificationsResultatsAlgoPropositions.class, "clotureTransitiveDependances", groupesAIgnorer, voeuxParFormation, voeuxParInternat);
-        assertTrue(groupesAIgnorer.contains(groupeAffectation2));
+        Set<GroupeAffectationUID> groupesInvalides =
+                Whitebox.invokeMethod(
+                VerificationsResultatsAlgoPropositions.class,
+                "clotureTransitiveDependances",
+                List.of(groupeAffectation, groupeAffectation2),
+                groupesAIgnorer,
+                voeuxParFormation,
+                voeuxParInternat
+        );
+        assertTrue(groupesInvalides.contains(groupeAffectation2.id));
     }
 
 }

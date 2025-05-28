@@ -25,6 +25,7 @@ import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
 import javax.xml.bind.annotation.XmlRootElement;
 import java.io.File;
@@ -32,6 +33,9 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toSet;
 
 @SuppressWarnings("unused")
 @XmlRootElement
@@ -39,26 +43,38 @@ public final class AlgoPropositionsEntree implements Serializable {
 
     private static final Logger LOGGER = Logger.getLogger(AlgoPropositionsEntree.class.getSimpleName());
 
-    /** les parametres de l'algorithme */
+    /**
+     * les parametres de l'algorithme
+     */
     Parametres parametres;
 
-    /** la liste des voeux */
+    /**
+     * la liste des voeux
+     */
     public final Set<Voeu> voeux
             = new HashSet<>();
 
-    /** La liste des groupes d'affectation */
+    /**
+     * La liste des groupes d'affectation
+     */
     public final Map<GroupeAffectationUID, GroupeAffectation> groupesAffectations
             = new HashMap<>();
 
-    /** La liste des internats */
+    /**
+     * La liste des internats
+     */
     public final Map<GroupeInternatUID, GroupeInternat> internats
             = new HashMap<>();
 
-    /** indexation des internats, utilisé pour l'export */
+    /**
+     * indexation des internats, utilisé pour l'export
+     */
     public final IndexInternats internatsIndex
             = new IndexInternats();
 
-    /** liste des candidats (identifiés par leur G_CN_COD) dont le répondeur automatique est activé */
+    /**
+     * liste des candidats (identifiés par leur G_CN_COD) dont le répondeur automatique est activé
+     */
     public final Set<Integer> candidatsAvecRepondeurAutomatique
             = new HashSet<>();
 
@@ -66,29 +82,16 @@ public final class AlgoPropositionsEntree implements Serializable {
         this.parametres = parametres;
     }
 
-    public AlgoPropositionsEntree(AlgoPropositionsEntree o) throws VerificationException {
-        this.parametres = o.parametres;//immutable
-        o.voeux.forEach(v -> voeux.add(new Voeu(v)));
-        for (Map.Entry<GroupeAffectationUID, GroupeAffectation> e : o.groupesAffectations.entrySet()) {
-            groupesAffectations.put(
-                    e.getKey(),
-                    new GroupeAffectation(e.getValue())
-            );
-        }
-        for (Map.Entry<GroupeInternatUID, GroupeInternat> e : o.internats.entrySet()) {
-            internats.put(e.getKey(), new GroupeInternat(e.getValue()));
-        }
-        this.internatsIndex.ajouter(o.internatsIndex);
-
-        injecterGroupesEtInternatsDansVoeux();
-
-        candidatsAvecRepondeurAutomatique.addAll(o.candidatsAvecRepondeurAutomatique);
-    }
-
     public static AlgoPropositionsEntree deserialiser(String filename) throws JAXBException {
         JAXBContext jc = JAXBContext.newInstance(AlgoPropositionsEntree.class);
         Unmarshaller um = jc.createUnmarshaller();
         return (AlgoPropositionsEntree) um.unmarshal(new File(filename));
+    }
+
+    public void serialiser(String filename) throws JAXBException {
+        JAXBContext jc = JAXBContext.newInstance(AlgoPropositionsEntree.class);
+        Marshaller um = jc.createMarshaller();
+        um.marshal(this, new File(filename));
     }
 
     /* Deux helpers */
@@ -122,12 +125,12 @@ public final class AlgoPropositionsEntree implements Serializable {
     public void loggerEtatAdmission() {
 
         /* Bilan statuts voeux */
-        EnumMap<Voeu.StatutVoeu, Integer> statutsVoeux = new EnumMap<>(Voeu.StatutVoeu.class);
-        for (Voeu.StatutVoeu s : Voeu.StatutVoeu.values()) {
+        EnumMap<StatutVoeu, Integer> statutsVoeux = new EnumMap<>(StatutVoeu.class);
+        for (StatutVoeu s : StatutVoeu.values()) {
             statutsVoeux.put(s, 0);
         }
         for (Voeu v : voeux) {
-            Voeu.StatutVoeu s = v.getStatut();
+            StatutVoeu s = v.statut;
             statutsVoeux.put(s, statutsVoeux.get(s) + 1);
         }
 
@@ -146,38 +149,148 @@ public final class AlgoPropositionsEntree implements Serializable {
 
     /* for deserialization */
     public AlgoPropositionsEntree() {
-        parametres = new Parametres(0, 0, 0, 0);
-    }
-
-    public void injecterGroupesEtInternatsDansVoeux() throws VerificationException {
-        for (Voeu v : voeux) {
-            GroupeAffectation g = groupesAffectations.get(v.groupeUID);
-            if(g == null) {
-                throw new VerificationException(VerificationExceptionMessage.ALGO_PROPOSITIONS_ENTREE_GROUPE_INCONNU, v.groupeUID);
-            }
-            v.setGroupeAffectation(g);
-
-            if (v.internatUID != null) {
-                GroupeInternat internat =internats.get(v.internatUID);
-                if(internat == null) {
-                    throw new VerificationException(VerificationExceptionMessage.ALGO_PROPOSITIONS_ENTREE_GROUPE_INTERNAT_INCONNU, v.internatUID);
-                }
-                v.setInternat(internat);
-            }
-        }
+        parametres = new Parametres(0, 0, 0);
     }
 
     /**
-     * Callback method invoked after unmarshalling XML data into target..
+     * Renvoie la liste des internats pour lesquels il n'y a pas de réservation de place
      *
-     * @param unmarshaller non-null instance of JAXB mapped class prior to
-     * unmarshalling into it
-     * @param parent instance of JAXB mapped class that will reference target.
-     * null when target is root element.
-     * @throws VerificationException erreur de vérification
+     * @return la liste des internats pour lesquels il n'y a pas de réservation de place
      */
-    public void afterUnmarshal(Unmarshaller unmarshaller, Object parent) throws VerificationException {
-        injecterGroupesEtInternatsDansVoeux();
+    public Set<GroupeInternatUID> getInternatsSansReservationDePlace() {
+        Set<GroupeAffectationUID> groupesSansResa = groupesAffectations.values().stream()
+                .filter(GroupeAffectation::getFinDeReservationPlacesInternats)
+                .map(g -> g.id)
+                .collect(Collectors.toSet());
+        return voeux.stream()
+                .filter(v -> v.internatUID != null)
+                .filter(v -> groupesSansResa.contains(v.groupeUID))
+                .map(v -> v.internatUID)
+                .collect(Collectors.toSet());
+
     }
 
+    /**
+     * Renvoie le nombre de candidats affectés par internat
+     *
+     * @param statuts les statuts des voeux
+     * @return le nombre de candidats affectés par internat
+     */
+    public Map<GroupeInternatUID, Long> getNbCandidatsAffectesParInternat(StatutsVoeux statuts) {
+
+        Map<GroupeInternatUID, List<Voeu>> propositionsParInternat
+                = voeux.stream().filter(v ->
+                v.internatUID != null
+                        && statuts.estProposition(v)
+        ).collect(Collectors.groupingBy(v -> v.internatUID)
+        );
+
+        return propositionsParInternat.entrySet().stream()
+                .collect(
+                        Collectors.toMap(
+                                Map.Entry::getKey,
+                                e -> e.getValue().stream()
+                                        .map(v -> v.id.gCnCod)
+                                        .distinct()
+                                        .count()
+                        )
+                );
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @return la liste des voeux par internat
+     */
+    public Map<GroupeInternatUID, List<Voeu>> getVoeuxParInternat() {
+        //noinspection DataFlowIssue
+        return voeux.stream().filter(Voeu::avecInternatAClassementPropre)
+                .collect(Collectors.groupingBy(
+                                v -> v.internatUID
+                        )
+                );
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @return la liste des voeux par internat
+     */
+    public Map<GroupeInternatUID, List<Integer>> rangsEnAttenteParInternat() {
+        return voeux.stream()
+                .filter(v -> StatutVoeu.estEnAttenteDeProposition(v.statut) && v.internatUID != null)
+                .collect(Collectors.groupingBy(
+                        v -> v.internatUID
+                )).entrySet().stream().collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> e.getValue().stream().map(v -> v.rangInternat).collect(Collectors.toList())
+                ));
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @param statuts les statuts des voeux
+     * @return la liste des voeux par internat
+     */
+    public Set<GroupeInternatUID> getInternatsAvecAuMoinsUneNouvelleProposition(StatutsVoeux statuts) {
+        return voeux.stream()
+                .filter(Voeu::avecInternatAClassementPropre)
+                .filter(statuts::estPropositionDuJour)
+                .map(v -> v.internatUID)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @return la liste des voeux par internat
+     */
+    public boolean estRepondeurAutomatiqueActivable() {
+        return !candidatsAvecRepondeurAutomatique.isEmpty();
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @param id l'internat
+     * @return la liste des voeux par internat
+     */
+    public List<Voeu> voeuxDeLInternat(GroupeInternatUID id) {
+        return voeux.stream().filter(v -> id.equals(v.internatUID)).collect(Collectors.toList());
+    }
+
+    /**
+     * Renvoie la liste des voeux par internat
+     *
+     * @return la liste des voeux par internat
+     */
+    public StatutsVoeux getStatutsInitiaux() {
+        return new StatutsVoeux(this.voeux);
+    }
+
+    /**
+     * Renvoie des données préclaculées utilisées par l'algorithme d'admission
+     *
+     * @return les données préclaculées
+     */
+    AlgoPropositionDonneesPrecalculees getDonneesPrecalculees() {
+        Map<GroupeInternatUID, Integer> barresMaximalesAdmissionInternats =
+                BarresInternats.calculerBarresMaximalesInternats(
+                        getInternatsSansReservationDePlace(),
+                        groupesAffectations.values(),
+                        internats,
+                        getVoeuxParInternat(),
+                        parametres
+                );
+        return new AlgoPropositionDonneesPrecalculees(
+                voeux,
+                barresMaximalesAdmissionInternats,
+                /*EVOL 2024 : On ne traite pas le groupes si il a le flag adm_stop. */
+                groupesAffectations.values().stream()
+                        .filter(GroupeAffectation::estOuvertAuxAdmission)
+                        .collect(toSet()),
+                candidatsAvecRepondeurAutomatique
+        );
+    }
 }

@@ -25,7 +25,7 @@ public class TestCandidatClasse {
     @Test
     public void toString_doit_retourner_uneStringNonVide() {
         CandidatClasse c = new CandidatClasse(1, 2);
-        assertNotEquals(c.toString(), "");
+        assertNotEquals("", c.toString());
     }
 
     @Test

@@ -2,17 +2,21 @@ package fr.parcoursup.algos.propositions.donnees.testConnecteurDonneesPropositio
 
 import fr.parcoursup.algos.donnees.ConnecteurSQL;
 import fr.parcoursup.algos.exceptions.AccesDonneesException;
-import fr.parcoursup.algos.propositions.algo.*;
+import fr.parcoursup.algos.propositions.algo.AlgoPropositionsEntree;
+import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
+import fr.parcoursup.algos.propositions.algo.GroupeAffectationUID;
+import fr.parcoursup.algos.propositions.algo.GroupeInternat;
+import fr.parcoursup.algos.propositions.algo.GroupeInternatUID;
+import fr.parcoursup.algos.propositions.algo.Parametres;
 import fr.parcoursup.algos.propositions.donnees.ConnecteurDonneesPropositionsSQL;
 import org.junit.Test;
 import org.powermock.reflect.Whitebox;
 
-
 import java.util.Map;
-import java.util.Set;
 
 import static org.junit.Assert.assertThrows;
 
+@SuppressWarnings("UnnecessaryLocalVariable")
 public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnecteurDonneesPropositionsSQL {
 
     public TestConnecteurDonneesPropositionsSQLImportation(String name) {
@@ -65,13 +69,6 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
         return nbJrs;
     }
 
-    int recupere_nombre_jours_campagne_fin_ord_gdd(
-            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
-    ) throws Exception {
-        int nbJrs = connecteurDonneesPropositions.getNbJoursCampagneFinOrdonnancementGDD();
-        return nbJrs;
-    }
-
     ///////////////////////////////////////////////////////////////////////////
     //
     // Tests
@@ -86,11 +83,9 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
         this.setBddDateDebutCampagne("01/06/2023:0000");//35
         this.setBddDateOuvertureCompleteInternats("30/06/2023:0000");//334
         this.setBddDateDebutGDD("25/06/2023:2359");//582
-        this.setBddDateFinOrdGDD("18/05/2023:0000");//437
 
         int nbJoursCampagneDatePivotInternats;
         int nbJoursDebutGDD;
-        int nbJoursFinOrdGDD;
         try (ConnecteurSQL connecteurSQL
                 = getConnecteurDonneesProd()) {
             ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
@@ -101,9 +96,6 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             nbJoursDebutGDD = this.recupere_nombre_jours_campagne_debut_gdd(
                     connecteurDonneesPropositions
             );
-            nbJoursFinOrdGDD = this.recupere_nombre_jours_campagne_fin_ord_gdd(
-                    connecteurDonneesPropositions
-            );
         }
 
          /* the modification of these values will fail the h2 tests unless the values used in
@@ -111,7 +103,6 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
          are updated */
         assertEquals(30, nbJoursCampagneDatePivotInternats);
         assertEquals(45, nbJoursDebutGDD);
-        assertEquals(48, nbJoursFinOrdGDD);
 
     }
 
@@ -157,7 +148,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.candidatsAvecRepondeurAutomatique.size(), 1);
+        assertEquals(1, entree.candidatsAvecRepondeurAutomatique.size());
         // 1 candidat avec répondeur automatique dans le scénario établi
 
     }
@@ -182,7 +173,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.candidatsAvecRepondeurAutomatique.size(), 1);
+        assertEquals(1, entree.candidatsAvecRepondeurAutomatique.size());
         // 1 candidat avec répondeur automatique dans le scénario établi
 
     }
@@ -208,7 +199,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(groupesAffectation.size(), 2);
+        assertEquals(2, groupesAffectation.size());
         
     }
 
@@ -250,7 +241,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(groupesAffectation.size(), 2);
+        assertEquals(2, groupesAffectation.size());
 
     }
 
@@ -278,7 +269,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             internats = this.recupere_internats(connecteurDonneesPropositions);
         }
 
-        assertEquals(internats.size(), 2);
+        assertEquals(2, internats.size());
 
     }
 
@@ -293,7 +284,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             internats = this.recupere_internats(connecteurDonneesPropositions);
         }
 
-        assertEquals(internats.size(), 2);
+        assertEquals(2, internats.size());
 
     }
 
@@ -359,7 +350,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 4);
+        assertEquals(4, entree.voeux.size());
         // 3 voeux en attente + 1 voeu affecté dans le scénario établi
 
     }
@@ -385,7 +376,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 4);
+        assertEquals(4, entree.voeux.size());
         // 3 voeux en attente + 1 voeu affecté dans le scénario établi
 
     }
@@ -437,7 +428,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 3);
+        assertEquals(3, entree.voeux.size());
         // 3 voeux en attente dans le scénario établi
 
     }
@@ -500,7 +491,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 1);
+        assertEquals(1, entree.voeux.size());
         // 1 voeu affecté dans le scénario établi
 
     }
@@ -526,7 +517,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 1);
+        assertEquals(1, entree.voeux.size());
         // 1 voeu affecté dans le scénario établi
 
     }
@@ -552,7 +543,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 0);
+        assertEquals(0, entree.voeux.size());
         // aucun voeu en attente dans le scénario établi
 
     }
@@ -578,7 +569,7 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             );
         }
 
-        assertEquals(entree.voeux.size(), 0);
+        assertEquals(0, entree.voeux.size());
         // aucun voeu en attente dans le scénario établi
 
     }
@@ -718,66 +709,6 @@ public class TestConnecteurDonneesPropositionsSQLImportation extends TestConnect
             }
 
         });
-
-    }
-
-    public Set<VoeuUID> test_recuperation_proposition_anterieure_dans_meme_formation(
-            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions,
-            Parametres parametres
-    ) throws Exception {
-
-        AlgoPropositionsEntree entree = new AlgoPropositionsEntree(parametres);
-
-        Whitebox.setInternalState(connecteurDonneesPropositions, "entree", entree);
-
-        Set<VoeuUID> voeuxAvecPropositionAnterieureDansMemeFormation = Whitebox.invokeMethod(
-                connecteurDonneesPropositions,
-                "recupererVoeuxAvecPropositionAnterieureDansMemeFormation"
-        );
-
-        return voeuxAvecPropositionAnterieureDansMemeFormation;
-
-    }
-
-    @Test
-    public void test_recuperation_voeux_avec_proposition_anterieure_dans_meme_formation_avec_connecteur_toutes_donnees_doit_reussir() throws Exception {
-
-        Parametres parametres = new Parametres(
-                this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
-        );
-
-        try (ConnecteurSQL connecteurSQL
-                = getConnecteurDonneesProd()) {
-            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
-                    = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            Set<VoeuUID> voeuxAvecPropositionAnterieureDansMemeFormation = this.test_recuperation_proposition_anterieure_dans_meme_formation(
-                    connecteurDonneesPropositions,
-                    parametres
-            );
-        }
-
-    }
-
-    @Test
-    public void test_recuperation_voeux_avec_proposition_anterieure_dans_meme_formation_avec_connecteur_prod_doit_reussir() throws Exception {
-
-        Parametres parametres = new Parametres(
-                this.recupereBddNombreJoursEcoulesDepuisDebutCampagne(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtOuvertureCompleteInternats(),
-                this.recupereBddNombreTotalJoursEntreDebutCampagneEtDebutGDD()
-        );
-
-        try (ConnecteurSQL connecteurSQL
-                = getConnecteurDonneesProd()) {
-            ConnecteurDonneesPropositionsSQL connecteurDonneesPropositions
-                    = new ConnecteurDonneesPropositionsSQL(connecteurSQL.connection());
-            Set<VoeuUID> voeuxAvecPropositionAnterieureDansMemeFormation = this.test_recuperation_proposition_anterieure_dans_meme_formation(
-                    connecteurDonneesPropositions,
-                    parametres
-            );
-        }
 
     }
 

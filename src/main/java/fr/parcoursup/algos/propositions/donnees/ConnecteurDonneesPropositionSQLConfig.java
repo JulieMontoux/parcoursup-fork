@@ -26,11 +26,6 @@ public class ConnecteurDonneesPropositionSQLConfig {
     final boolean recupererSeulementVoeuxClasses;
 
     /**
-     * paramètre permettant de récupérer une fraction des données, utilisé pour accélérer certains tests
-     */
-    final int sparseDataTestingMode;
-
-    /**
      * flag activé dans certaines simulations pour pallier au manque de données sur les capacités
      * ou les ordres d'appel.
      * Désactivé en prod.
@@ -60,7 +55,6 @@ public class ConnecteurDonneesPropositionSQLConfig {
         this.verifierInterruptionFluxDonneesEntrantes = true;
         this.recupererSeulementVoeuxEnAttente = true;
         this.recupererSeulementVoeuxClasses = true;
-        this.sparseDataTestingMode = 0;
         this.simulationAvantDebutCampagne = false;
         this.simulerNbJrs = -1;
         this.effacerEntreesDuMemeJour = false;
@@ -74,7 +68,6 @@ public class ConnecteurDonneesPropositionSQLConfig {
     public ConnecteurDonneesPropositionSQLConfig(
             boolean recupererSeulementVoeuxEnAttente,
             boolean recupererSeulementVoeuxClasses,
-            int sparseDataTestingMode,
             boolean simulationAvantDebutCampagne,
             int simulerNbJrs,
             boolean ignorerSurbooking
@@ -83,7 +76,6 @@ public class ConnecteurDonneesPropositionSQLConfig {
         this.recupererSeulementVoeuxEnAttente = recupererSeulementVoeuxEnAttente;
         this.inclurePropositionsRefusees = !recupererSeulementVoeuxEnAttente;
         this.recupererSeulementVoeuxClasses = recupererSeulementVoeuxClasses;
-        this.sparseDataTestingMode = sparseDataTestingMode;
         this.simulationAvantDebutCampagne = simulationAvantDebutCampagne;
         this.simulerNbJrs = simulerNbJrs;
         this.effacerEntreesDuMemeJour = true;
@@ -97,7 +89,6 @@ public class ConnecteurDonneesPropositionSQLConfig {
         this.verifierInterruptionFluxDonneesEntrantes = verifierInterruptionFluxDonneesEntrantes;
         this.recupererSeulementVoeuxEnAttente = true;
         this.recupererSeulementVoeuxClasses = true;
-        this.sparseDataTestingMode = 0;
         this.simulationAvantDebutCampagne = false;
         this.simulerNbJrs = -1;
         this.effacerEntreesDuMemeJour = false;

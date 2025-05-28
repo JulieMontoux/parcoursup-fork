@@ -41,11 +41,7 @@ public class Serialisation<T> {
     Si le paramètre filename est null, un nom par défaut est utilisé,
     paramétré par la date et l'heure.
      */
-    public void serialiserEtCompresser(String filename, T o , Class c, int level) throws AccesDonneesException {
-        serialiserEtCompresser(filename, o, new Class[] { c } , level);
-    }
-    
-    public void serialiserEtCompresser(String filename, T o , Class[] c, int level) throws AccesDonneesException {
+    public void serialiserEtCompresser(String filename, T o , Class<T> c, int level) throws AccesDonneesException {
         if (filename == null) {
             filename = o.getClass().getSimpleName() + LocalDateTime.now().toString().replace(':','_') + ".xml";
         }
@@ -90,16 +86,4 @@ public class Serialisation<T> {
         }
     }
 
-    public T deserialiser(String filename,Class<T> c) throws IOException, JAXBException {
-        try (BufferedInputStream in = new BufferedInputStream(
-                Files.newInputStream(Paths.get(filename)))) {
-            Unmarshaller m = JAXBContext.newInstance(c).createUnmarshaller();
-            Object o = m.unmarshal(in);
-            if(c.isInstance(o)) {
-                return c.cast(o);
-            } else {
-                throw new ClassCastException("decompresserEtDeserialiser: type mismatch");
-            }
-        }
-    }
 }

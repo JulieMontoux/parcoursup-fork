@@ -101,77 +101,9 @@ public class EtatDemissionsAutomatiques extends EntitePersistante {
     
     public EtatDemissionsAutomatiques() {
         // constructeur par défaut requis par activejdbc
-    } 
-    
-    
-    public EtatDemissionsAutomatiques(
-        Voeu voeu,
-        int propositionRejeteeParRepondeurAutomatique,
-        int nombreJoursDepuisDebutCampagne,
-        Map<String,Object> parametresSupplementaires
-        ) {
-        // rappel : parametresSupplementaires peut embarquer la valeur
-        // ETIQUETTE qui est optionnelle
-        
-        
-        this.voeu = voeu;
-
-        Candidat candidat = this.voeu.getCandidat();
-        GroupeAffectationFormation groupeAffectationFormation = this.voeu.getGroupeAffectationFormation();
-        Formation formation = groupeAffectationFormation.getFormation();
-        FormationInscription formationInscription = formation.getFormationInscription();
-        FormationAffectation formationAffectation  = formation.getFormationAffectation();
-        GroupeAffectationInternat groupeAffectationInternat = formation.getGroupeAffectationInternat();
-        RegimeHebergement regimeHebergement = this.voeu.getRegimeHebergement();
-        
-        this.set(mappingNomsChamps.get(CODE_PROPOSITION_REJETEE_PAR_REPONDEUR_AUTOMATIQUE), propositionRejeteeParRepondeurAutomatique);
-        this.set(mappingNomsChamps.get(NOMBRE_JOURS_DEPUIS_DEBUT_CAMPAGNE), nombreJoursDepuisDebutCampagne);
-
-        int idCandidat = (int) candidat.getValeurChamp(Candidat.ID_CANDIDAT);
-        this.set(mappingNomsChamps.get(ID_CANDIDAT), idCandidat);
-
-        int idFormationAffectation = (int) formationAffectation.getValeurChamp(FormationAffectation.ID_FORMATION_AFFECTATION);
-        this.set(mappingNomsChamps.get(ID_FORMATION_AFFECTATION), idFormationAffectation);
-
-        int iRegimeHebergement = (int) regimeHebergement.getValeurChamp(ID_REGIME_HEBERGEMENT);
-        this.set(mappingNomsChamps.get(ID_REGIME_HEBERGEMENT), iRegimeHebergement);
-
-        int idGroupeAffectationFormation = (int) groupeAffectationFormation.getValeurChamp(GroupeAffectationFormation.ID_GROUPE_CLASSEMENT_PEDAGOGIQUE);
-        this.set(mappingNomsChamps.get(ID_GROUPE_CLASSEMENT_PEDAGOGIQUE), idGroupeAffectationFormation);
-
-        int idFormationInscription = (int) formationInscription.getValeurChamp(FormationInscription.ID_FORMATION_INSCRIPTION);
-        this.set(mappingNomsChamps.get(ID_FORMATION_INSCRIPTION), idFormationInscription);
-
-        if(groupeAffectationInternat != null) {
-            int idInternat = (int) groupeAffectationInternat.getValeurChamp(GroupeAffectationInternat.ID_INTERNAT);
-            this.set(mappingNomsChamps.get(ID_INTERNAT), idInternat);
-        }
-        
-        for (Map.Entry<String,Object> entry : parametresSupplementaires.entrySet()) {
-            String nom = entry.getKey();
-            checkSiChampReserve(nom, champsReserves);
-            this.set(mappingNomsChamps.get(nom), parametresSupplementaires.get(nom));   
-        } 
-        
     }
-    
-    
-    public EtatDemissionsAutomatiques(
-            Voeu voeu,
-            int propositionRejeteeParRepondeurAutomatique,
-            int nombreJoursDepuisDebutCampagne
-            ) {
-               
-        this(
-            voeu,
-            propositionRejeteeParRepondeurAutomatique,
-            nombreJoursDepuisDebutCampagne,
-                new HashMap<>()
-            );
-               
-    }
-    
-    
+
+
     public Voeu getVoeu() {
         
         if(this.voeu == null) {
@@ -198,8 +130,7 @@ public class EtatDemissionsAutomatiques extends EntitePersistante {
     }
     
     
-    @Override
-    public Object getValeurChamp(String nom) {
+    private Object getValeurChamp(String nom) {
         
         return this.get(EtatDemissionsAutomatiques.mappingNomsChamps.get(nom));
         

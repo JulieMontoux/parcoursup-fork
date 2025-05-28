@@ -67,7 +67,7 @@ public class ExecutionParams implements Serializable {
         }
         if(filename == null) {
             LOGGER.log(Level.WARNING, "La variable d'environnement "
-                    + PARAMS_FILE_ENV + " n''est pas positionn\u00e9e ou accessible, utilisation du fichier de param\u00e8tres par d\u00e9faut: " + PARAMS_FILE_DEFAULT
+                    + PARAMS_FILE_ENV + " n''est pas positionnée ou accessible, utilisation du fichier de paramètres par défaut: " + PARAMS_FILE_DEFAULT
                     );
             filename = PARAMS_FILE_DEFAULT;
 

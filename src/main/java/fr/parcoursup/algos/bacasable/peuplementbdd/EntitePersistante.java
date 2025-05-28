@@ -11,6 +11,7 @@ import static fr.parcoursup.algos.donnees.SQLStringsConstants.*;
 
 public abstract class EntitePersistante extends Model {
               
+    @SuppressWarnings("SameParameterValue")
     protected static String prepareRequeteRechercheAvecCriteresEgalite(
             String nomTable,
             Map<String,String> mappingNomsChamps,
@@ -38,17 +39,14 @@ public abstract class EntitePersistante extends Model {
             
         }
 
-       return SELECT + "*" + FROM + nomTable + WHERE + "" + String.join(AND, conditions);
+       return SELECT + "*" + FROM + nomTable + WHERE + String.join(AND, conditions);
         
     }
     
     
     protected abstract String getNomTable();
-    
 
-    protected abstract Object getValeurChamp(String nom);
-    
-    
+
     protected static void checkSiChampReserve(
         String nom,
         List<String> champsReserves) {

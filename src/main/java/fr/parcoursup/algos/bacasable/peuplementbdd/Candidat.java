@@ -11,18 +11,18 @@ import java.util.Map;
 
 @Table("G_CAN")
 @IdName("G_CN_COD")
-public class Candidat extends EntitePersistante {
+public final class Candidat extends EntitePersistante {
      
-    public static final String ID_CANDIDAT = "Candidat:ID_CANDIDAT"; 
-    public static final String CODE_AVANCEMENT_SAISIE_DOSSIER = "Candidat:CODE_AVANCEMENT_SAISIE_DOSSIER"; 
+    static final String ID_CANDIDAT = "Candidat:ID_CANDIDAT";
+    private static final String CODE_AVANCEMENT_SAISIE_DOSSIER = "Candidat:CODE_AVANCEMENT_SAISIE_DOSSIER";
     public static final String CODE_BOURSIER = "Candidat:CODE_BOURSIER"; 
     public static final String CODE_VALIDATION_STATUT_BOURSIER = "Candidat:CODE_VALIDATION_STATUT_BOURSIER"; 
-    public static final String CODE_SERIE_ENSEIGNEMENT = "Candidat:CODE_SERIE_ENSEIGNEMENT"; 
+    private static final String CODE_SERIE_ENSEIGNEMENT = "Candidat:CODE_SERIE_ENSEIGNEMENT";
     public static final String CODE_ACTIVATION_REPONDEUR_AUTOMATIQUE = "Candidat:CODE_ACTIVATION_REPONDEUR_AUTOMATIQUE"; 
     public static final String ETIQUETTE = "Candidat:ETIQUETTE";
     
-    protected static final Map<String,String> mappingNomsChamps = new HashMap<>();
-    protected static final List<String> champsReserves = new ArrayList<>();
+    private static final Map<String,String> mappingNomsChamps = new HashMap<>();
+    private static final List<String> champsReserves = new ArrayList<>();
     
     
     static {
@@ -78,20 +78,7 @@ public class Candidat extends EntitePersistante {
         );
 
     }
-    
-    
-    public static List<Candidat> findFieldsEqual(Map<String,Object> criteresRecherche) {
-        
-        String requeteSql = prepareRequeteRechercheAvecCriteresEgalite(
-            getTableName(),
-            Candidat.mappingNomsChamps,
-            criteresRecherche);
-        
-        return findBySQL(requeteSql);
-                
-    }
-   
-    
+
     public Candidat() {
         // constructeur par défaut requis par activejdbc
     } 
@@ -143,10 +130,9 @@ public class Candidat extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
-        return this.get(Candidat.mappingNomsChamps.get(nom));
+        return this.get(mappingNomsChamps.get(nom));
         
     }
     

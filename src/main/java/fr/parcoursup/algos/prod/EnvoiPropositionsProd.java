@@ -23,7 +23,7 @@ public class EnvoiPropositionsProd {
 	private static final Logger LOGGER = LogManager.getLogger(EnvoiPropositionsProd.class);
 
 	/**
-	 * @param args
+	 * @param args arguments de la ligne de commande
 	 */
 	public static void main(String[] args) {
 		String user;
@@ -103,7 +103,7 @@ public class EnvoiPropositionsProd {
 
 				acces.exporterDonnees(sortie);
 
-				if (sortie.getAlerte()) {
+				if (sortie.hasAlerte()) {
 					LOGGER.info(sortie.getAlerteMessage());
 					System.exit(1);
 				} else if (sortie.getAvertissement()) {

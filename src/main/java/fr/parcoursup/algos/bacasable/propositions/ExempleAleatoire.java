@@ -33,11 +33,6 @@ public class ExempleAleatoire extends ExemplePropositions {
 
     private static final Logger LOGGER = Logger.getLogger(ExempleAleatoire.class.getSimpleName());
 
-    @Override
-    String nom() {
-        return "ExempleAleatoire";
-    }
-
     final int nbCandidats;
 
     static final double PROPORTION_CONCOURS_COMMUN = 0.1;
@@ -237,6 +232,7 @@ public class ExempleAleatoire extends ExemplePropositions {
                                 gui,
                                 rangLimite,
                                 nbPropositions,
+                                0,
                                 parametres
                         );
 
@@ -267,14 +263,14 @@ public class ExempleAleatoire extends ExemplePropositions {
                 int rang = cl.ajouterCandidat(candidat);
 
                 int status = random.nextInt(10);
-                Voeu.StatutVoeu statut
-                        = (status == 0) ? Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
-                            : (status <= 3) ? Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
-                                : Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
+                StatutVoeu statut
+                        = (status == 0) ? StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE
+                            : (status <= 3) ? StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_EN_ATTENTE_DE_REPONSE_DU_CANDIDAT
+                                : StatutVoeu.EN_ATTENTE_DE_PROPOSITION;
 
                 if (!avecInternat || (internat == null && internatsCommuns.isEmpty())) {
                     if (rang <= cl.plusHautRangAffecte) {
-                        statut = Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
+                        statut = StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
                     }
                     voeux.add(
                             new Voeu(
@@ -287,7 +283,8 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     statut,
                                     (status == 0),
                                     false,
-                                    false
+                                    false,
+                                    null
                             )
                     );
                     return 1;
@@ -317,7 +314,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
                     if ((rang <= cl.plusHautRangAffecte 
                             && rangInternat <= j.plusHautRangAffecte)) {
-                        statut = Voeu.StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
+                        statut = StatutVoeu.PROPOSITION_JOURS_PRECEDENTS_ACCEPTEE;
                     }
                     
                     voeux.add(
@@ -332,7 +329,8 @@ public class ExempleAleatoire extends ExemplePropositions {
                                     statut,
                                     (status == 0),
                                     false,
-                                    false
+                                    false,
+                                    null
                             )
                     );
 
@@ -348,7 +346,8 @@ public class ExempleAleatoire extends ExemplePropositions {
                                         statut,
                                         (status == 0),
                                         false,
-                                        false
+                                        false,
+                                        null
                                 )
                         );
                         return 2;
@@ -413,6 +412,7 @@ public class ExempleAleatoire extends ExemplePropositions {
 
         final boolean repondeurAutomatiqueActive;
 
+        @SuppressWarnings("SameParameterValue")
         Candidat(boolean repondeurAutomatiqueActive, int gCnCod) {
             this.gCnCod = gCnCod;
             /* deux candidats sur 3 avec répondeur automatique */
@@ -426,7 +426,7 @@ public class ExempleAleatoire extends ExemplePropositions {
     public ExempleAleatoire(int nbCandidats) {
 
         this.nbCandidats = Math.max(100, nbCandidats);
-        parametres = new Parametres(1,30,90, 95);
+        parametres = new Parametres(1,30,90);
     }
 
     private static final Random r = new Random();
@@ -488,15 +488,14 @@ public class ExempleAleatoire extends ExemplePropositions {
                     || v.estAffecteHorsPP()) {
                 continue;
             }
-            if (v.estProposition()) {
+            if (statuts.estProposition(v)) {
                 if (propositionsAuxCandidatsAvecRepAuto.containsKey(gCnCod)) {
-                    v.refuserAutomatiquementParApplicationRepondeurAutomatique();
+                    statuts.refuserAutomatiquementParApplicationRepondeurAutomatique(v);
                 }
                 propositionsAuxCandidatsAvecRepAuto.put(gCnCod, v);
             }
         }
 
-        entree.injecterGroupesEtInternatsDansVoeux();
         VerificationEntreeAlgoPropositions.verifierIntegrite(entree);
 
         return entree;

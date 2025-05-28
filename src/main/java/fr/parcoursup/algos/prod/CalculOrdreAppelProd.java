@@ -18,12 +18,12 @@ import java.util.logging.Logger;
 public class CalculOrdreAppelProd {
 
     /**
-     * @param args
-     * @throws AccesDonneesException
-     * @throws java.sql.SQLException
-     * @throws VerificationException
-     * @throws java.io.IOException
-     * @throws javax.xml.bind.JAXBException
+     * @param args arguments de la ligne de commande
+     * @throws AccesDonneesException erreur dans l'accès aux données
+     * @throws java.sql.SQLException erreur dans l'accès à la BDD
+     * @throws VerificationException erreur d'intégrité des données d'entrée ou du résultat du calcul
+     * @throws java.io.IOException erreur d'entrée-sortie
+     * @throws javax.xml.bind.JAXBException erreur de désérialisation
      */
     public static void main(String[] args) throws AccesDonneesException, SQLException, VerificationException, IOException, JAXBException {
 
@@ -51,7 +51,7 @@ public class CalculOrdreAppelProd {
         try (Connection connection = ods.getConnection()) {
             ConnecteurDonneesAppelSQL acces = new ConnecteurDonneesAppelSQL(connection);
 
-            LOGGER.info("Récupération des données");
+            //LOGGER.info("Récupération des données");
             AlgoOrdreAppelEntree entree = acces.recupererDonneesOrdreAppel();
 
             LOGGER.info("Calcul des ordres d'appel");

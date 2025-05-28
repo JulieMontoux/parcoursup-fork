@@ -53,7 +53,8 @@ public class GroupeAffectationUID implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) {
+        if (o == null) return false;
+        if (getClass() != o.getClass()) {
             throw new ClassCastException(ClassCastExceptionMessage.GLOBAL_TEST_EGALITE_IMPREVU.getMessage());
         }
         GroupeAffectationUID that = (GroupeAffectationUID) o;
@@ -70,10 +71,9 @@ public class GroupeAffectationUID implements Serializable {
         return "(C_GP_COD " + cGpCod + " G_TI_COD " + gTiCod + " G_TA_COD " + gTaCod + ")";
     }
 
-    /**
-     * Utilisé par les désérialisations Json et XML
-     */
+    @SuppressWarnings("unused")
     private GroupeAffectationUID() {
+        // Constructeur privé pour la désérialisation
         this.cGpCod = 0;
         this.gTiCod = 0;
         this.gTaCod = 0;

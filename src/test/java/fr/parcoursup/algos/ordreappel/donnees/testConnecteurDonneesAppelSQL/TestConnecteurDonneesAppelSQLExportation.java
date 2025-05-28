@@ -100,7 +100,7 @@ public class TestConnecteurDonneesAppelSQLExportation extends TestConnecteurDonn
             rs.next();
             int count = rs.getInt(1);
             
-            assertEquals(count,  1);
+            assertEquals(1, count);
         }
 
     }

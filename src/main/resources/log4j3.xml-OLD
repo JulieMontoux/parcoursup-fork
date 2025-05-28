@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration packages="fr.parcoursup">
+	<Properties>
+		<Property name="CATALINA.HOME">${sys:catalina.home:-${CATALINA_HOME:-c:/home/}}
+		</Property>
+	</Properties>
+	<!-- Déclaration des différents Appenders et Loggers -->
+	<Appenders>
+		<Console name="console" target="SYSTEM_OUT">
+			<PatternLayout
+				pattern="%-5p;%d{dd/MM/yyyy;HH:mm:ss:SSS};%m%n" />
+		</Console>
+		<File name="erreurPartenaires"
+						fileName="c:/home/logs/toto.log"
+						append="true">
+						<PatternLayout pattern="%d{dd/MM/yyyy;HH:mm:ss};%m" />
+		</File>
+		<!-- <Console name="testLog4J" class="org.apache.log4j.DailyRollingFileAppender"> 
+			<param name="DatePattern" value="'.'dd-MM-yyyy'.log'" /> <param name="File" 
+			value="/var/log/tomcat_commun_test.trace" /> <param name="Append" value="true" 
+			/> <PatternLayout pattern="%-5p;%d{dd/MM/yyyy;HH:mm:ss:SSS};%m%n"/> </Console> -->
+	</Appenders>
+
+	<Loggers>
+		<Logger name="org.springframework" level="INFO">
+			<AppenderRef ref="console" />
+		</Logger>
+		<Logger name="fr.parcoursup" level="ALL">
+			<AppenderRef ref="console" />
+			<AppenderRef ref="erreurPartenaires"/>
+		</Logger>
+
+		<Root level="INFO">
+		</Root>
+	</Loggers>
+
+</Configuration>

@@ -1,5 +1,8 @@
 package fr.parcoursup.algos.propositions.donnees;
 
+import fr.parcoursup.algos.utils.UtilService;
+import org.apache.logging.log4j.Logger;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
@@ -22,24 +25,24 @@ import java.sql.SQLXML;
 import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 
-import org.apache.logging.log4j.Logger;
-
-import fr.parcoursup.algos.utils.UtilService;
-import oracle.jdbc.internal.OraclePreparedStatement;
-
 public class PreparedStatementMonitoring implements PreparedStatement {
 
-	private PreparedStatement ps;
+	private final PreparedStatement ps;
 	
-	private Logger logger;
+	private final Logger logger;
 	
 	private String sql;
 	
-	private List<String> parametres;
+	private final List<String> parametres;
 
+	private int getSizeParametre(int parameterIndex) {
+        return Math.min(parametres.size(), parameterIndex - 1);
+	}
+	
 	
 	public PreparedStatementMonitoring(PreparedStatement ps, Logger logger) {
 		super();
@@ -295,132 +298,134 @@ public class PreparedStatementMonitoring implements PreparedStatement {
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType) throws SQLException {
+		parametres.add(parameterIndex-1, "null");
 		ps.setNull(parameterIndex, sqlType);
 	}
 
 	@Override
 	public void setBoolean(int parameterIndex, boolean x) throws SQLException {
+		parametres.add(parameterIndex-1, x+"");
 		ps.setBoolean(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setByte(int parameterIndex, byte x) throws SQLException {
+		parametres.add(parameterIndex-1, x+"");
 		ps.setByte(parameterIndex, x);
 	}
 
 	@Override
 	public void setShort(int parameterIndex, short x) throws SQLException {
+		parametres.add(parameterIndex-1, x+"");
 		ps.setShort(parameterIndex, x);
 	}
 
 	@Override
 	public void setInt(int parameterIndex, int x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setInt(parameterIndex, x);
 	}
 
+
+
 	@Override
 	public void setLong(int parameterIndex, long x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setLong(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setFloat(int parameterIndex, float x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setFloat(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setDouble(int parameterIndex, double x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setDouble(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setBigDecimal(int parameterIndex, BigDecimal x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setBigDecimal(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setString(int parameterIndex, String x) throws SQLException {
-		parametres.add(parameterIndex-1, x);
+		parametres.add(getSizeParametre(parameterIndex), x);
 		ps.setString(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setBytes(int parameterIndex, byte[] x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), Arrays.toString(x));
 		ps.setBytes(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setDate(int parameterIndex, Date x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setDate(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setTime(int parameterIndex, Time x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setTime(parameterIndex, x);
 
 	}
 
 	@Override
 	public void setTimestamp(int parameterIndex, Timestamp x) throws SQLException {
-		parametres.add(parameterIndex-1, x+"");
+		parametres.add(getSizeParametre(parameterIndex), x+"");
 		ps.setTimestamp(parameterIndex, x);
 
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream x, int length) throws SQLException {
-		ps.setAsciiStream(parameterIndex, x, length);
-
+	public void setAsciiStream(int parameterIndex, InputStream x, int length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setUnicodeStream(int parameterIndex, InputStream x, int length) throws SQLException {
-		ps.setUnicodeStream(parameterIndex, x, length);
-
+	public void setUnicodeStream(int parameterIndex, InputStream x, int length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream x, int length) throws SQLException {
-		ps.setBinaryStream(parameterIndex, x, length);
-
+	public void setBinaryStream(int parameterIndex, InputStream x, int length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
 	public void clearParameters() throws SQLException {
+		parametres.clear();
 		ps.clearParameters();
-
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x, int targetSqlType) throws SQLException {
-		ps.setObject(parameterIndex, x, targetSqlType);
-
+	public void setObject(int parameterIndex, Object x, int targetSqlType) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x) throws SQLException {
-		ps.setObject(parameterIndex, x);
-
+	public void setObject(int parameterIndex, Object x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
 	public boolean execute() throws SQLException {
+		parametres.clear();
 		return ps.execute();
 	}
 
@@ -428,37 +433,31 @@ public class PreparedStatementMonitoring implements PreparedStatement {
 	public void addBatch() throws SQLException {
 		this.parametres.clear();
 		ps.addBatch();
-
 	}
 
 	@Override
-	public void setCharacterStream(int parameterIndex, Reader reader, int length) throws SQLException {
-		ps.setCharacterStream(parameterIndex, reader, length);
-
+	public void setCharacterStream(int parameterIndex, Reader reader, int length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setRef(int parameterIndex, Ref x) throws SQLException {
-		ps.setRef(parameterIndex, x);
-
+	public void setRef(int parameterIndex, Ref x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, Blob x) throws SQLException {
-		ps.setBlob(parameterIndex, x);
-
+	public void setBlob(int parameterIndex, Blob x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setClob(int parameterIndex, Clob x) throws SQLException {
-		ps.setClob(parameterIndex, x);
-
+	public void setClob(int parameterIndex, Clob x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setArray(int parameterIndex, Array x) throws SQLException {
-		ps.setArray(parameterIndex, x);
-
+	public void setArray(int parameterIndex, Array x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
@@ -467,33 +466,29 @@ public class PreparedStatementMonitoring implements PreparedStatement {
 	}
 
 	@Override
-	public void setDate(int parameterIndex, Date x, Calendar cal) throws SQLException {
-		ps.setDate(parameterIndex, x, cal);
-
+	public void setDate(int parameterIndex, Date x, Calendar cal) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setTime(int parameterIndex, Time x, Calendar cal) throws SQLException {
-		ps.setTime(parameterIndex, x, cal);
-
+	public void setTime(int parameterIndex, Time x, Calendar cal) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) throws SQLException {
-		ps.setTimestamp(parameterIndex, x, cal);
-
+	public void setTimestamp(int parameterIndex, Timestamp x, Calendar cal) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
 	public void setNull(int parameterIndex, int sqlType, String typeName) throws SQLException {
+		parametres.add(parameterIndex-1, "null");
 		ps.setNull(parameterIndex, sqlType, typeName);
-
 	}
 
 	@Override
-	public void setURL(int parameterIndex, URL x) throws SQLException {
-		ps.setURL(parameterIndex, x);
-
+	public void setURL(int parameterIndex, URL x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
@@ -502,120 +497,98 @@ public class PreparedStatementMonitoring implements PreparedStatement {
 	}
 
 	@Override
-	public void setRowId(int parameterIndex, RowId x) throws SQLException {
-		ps.setRowId(parameterIndex, x);
-
+	public void setRowId(int parameterIndex, RowId x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNString(int parameterIndex, String value) throws SQLException {
-		ps.setNString(parameterIndex, value);
-
+	public void setNString(int parameterIndex, String value) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
-		ps.setNCharacterStream(parameterIndex, value, length);
-
+	public void setNCharacterStream(int parameterIndex, Reader value, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNClob(int parameterIndex, NClob value) throws SQLException {
-		ps.setNClob(parameterIndex, value);
-
+	public void setNClob(int parameterIndex, NClob value) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
-		ps.setClob(parameterIndex, reader, length);
-
+	public void setClob(int parameterIndex, Reader reader, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
-		ps.setBlob(parameterIndex, inputStream, length);
-
+	public void setBlob(int parameterIndex, InputStream inputStream, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
-		ps.setNClob(parameterIndex, reader, length);
-
+	public void setNClob(int parameterIndex, Reader reader, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
-		ps.setSQLXML(parameterIndex, xmlObject);
-
+	public void setSQLXML(int parameterIndex, SQLXML xmlObject) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) throws SQLException {
-		ps.setObject(parameterIndex, x, targetSqlType, scaleOrLength);
-
+	public void setObject(int parameterIndex, Object x, int targetSqlType, int scaleOrLength) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
-		ps.setAsciiStream(parameterIndex, x, length);
-
+	public void setAsciiStream(int parameterIndex, InputStream x, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
-		ps.setBinaryStream(parameterIndex, x, length);
-
+	public void setBinaryStream(int parameterIndex, InputStream x, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
-		ps.setCharacterStream(parameterIndex, reader, length);
+	public void setCharacterStream(int parameterIndex, Reader reader, long length) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
-		ps.setAsciiStream(parameterIndex, x);
-
+	public void setAsciiStream(int parameterIndex, InputStream x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
-		ps.setBinaryStream(parameterIndex, x);
-
+	public void setBinaryStream(int parameterIndex, InputStream x) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
-		ps.setCharacterStream(parameterIndex, reader);
-
+	public void setCharacterStream(int parameterIndex, Reader reader) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
-		ps.setNCharacterStream(parameterIndex, value);
-
+	public void setNCharacterStream(int parameterIndex, Reader value) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setClob(int parameterIndex, Reader reader) throws SQLException {
-		ps.setClob(parameterIndex, reader);
-
+	public void setClob(int parameterIndex, Reader reader) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
-		ps.setBlob(parameterIndex, inputStream);
-
+	public void setBlob(int parameterIndex, InputStream inputStream) {
+		throw new RuntimeException("not implemented");
 	}
 
 	@Override
-	public void setNClob(int parameterIndex, Reader reader) throws SQLException {
-		ps.setNClob(parameterIndex, reader);
-
-	}
-
-	public String getSql() {
-		return sql;
+	public void setNClob(int parameterIndex, Reader reader) {
+		throw new RuntimeException("not implemented");
 	}
 
 	public void setSql(String sql) {

@@ -27,23 +27,17 @@ import oracle.jdbc.pool.OracleDataSource;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
 
 
 public class ConnecteurSQL implements java.lang.AutoCloseable {
 
     public static final String FOR_INSCRIPTIONS_TABLE = " G_TRI_INS ";
     public static final String RECRUTEMENTS_GROUPES_TABLE = " A_REC_GRP ";
-    public static final String RECRUTEMENTS_GROUPES_TABLE_ANNEE_PREC = " A_REC_GRP_ARCH ";
     public static final String RECRUTEMENTS_FORMATIONS_TABLE = " A_REC ";
     public static final String CLASSEMENTS_TABLE = " C_CAN_GRP ";
-    public static final String CLASSEMENTS_TABLE_ANNEE_PREC = " C_CAN_GRP_ARCH ";
-    public static final String CLASSEMENTS_INTERNATS_TABLE = " C_CAN_GRP_INT ";
     public static final String CANDIDATS_TABLE = " G_CAN ";
     public static final String INSCRIPTIONS_TABLE = " I_INS ";
-    public static final String VOEUX_TABLE = " A_VOE ";
-    public static final String STATUTS_VOEUX_TABLE = " A_SIT_VOE ";
-    public static final String ADMISSIONS_TABLE = " A_ADM ";
-    public static final String ADMISSIONS_TABLE_ANNEE_PREC = " A_ADM_ARCH ";
     public static final String ADMISSIONS_TABLE_SORTIE = " A_ADM_PROP ";
     public static final String FOR_TYPE_TABLE = " G_FOR " ;
     public static final String FIL_TYPE_TABLE = " G_FIL " ;
@@ -57,7 +51,6 @@ public class ConnecteurSQL implements java.lang.AutoCloseable {
     public static final String A_ADM_PRED_DER_APP = " A_ADM_PRED_DER_APP ";
     public static final String A_REC_GRP_INT_PROP = " A_REC_GRP_INT_PROP ";
     public static final String A_VOE_PROP = " A_VOE_PROP ";
-    public static final String A_REC_GRP_INT = " A_REC_GRP_INT ";
     public static final String V_PROP_RAN_DER_APP = "V_PROP_RAN_DER_APP";
     public static final String V_PROP_REC_GRP = "V_PROP_REC_GRP";
     public static final String V_PROP_REC_GRP_INT = "V_PROP_REC_GRP_INT";
@@ -70,8 +63,6 @@ public class ConnecteurSQL implements java.lang.AutoCloseable {
     public static final String V_PROP_VOE = "V_PROP_VOE";
 
     public static final String V_PROP_VOE_INT = "V_PROP_VOE_INT";
-
-    public static final String V_PROP_ATT_PROP_ANT = "V_PROP_ATT_PROP_ANT";
 
     /* connexion à la base de données */
     private final Connection conn;
@@ -95,6 +86,11 @@ public class ConnecteurSQL implements java.lang.AutoCloseable {
     			ods.setURL(url);
     			ods.setUser(user);
     			ods.setPassword(password);
+    			
+                Properties p = new Properties();
+                p.setProperty("oracle.jdbc.fanEnabled", "FALSE");
+                ods.setConnectionProperties(p);
+    			
     			conn=ods.getConnection();
         	}else {
             conn = DriverManager.getConnection(url, user, password);

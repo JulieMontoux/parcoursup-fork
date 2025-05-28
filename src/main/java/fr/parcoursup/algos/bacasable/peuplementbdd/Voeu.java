@@ -183,29 +183,8 @@ public class Voeu extends EntitePersistante {
         return formations.get(0);
                     
     }
-        
-        
 
-    public FormationInscription getFormationInscription() {
-        
-        Formation formation = this.getFormation();
-        
-        return formation.getFormationInscription();
-                    
-    }
-    
-    
-    
-    public FormationAffectation getFormationAffectation() {
-        
-        Formation formation = this.getFormation();
-        
-        return formation.getFormationAffectation();
-                    
-    }
-    
-    
-    
+
     public SituationVoeu getSituationVoeu() {
         
         if(this.situationVoeu == null) {
@@ -257,8 +236,7 @@ public class Voeu extends EntitePersistante {
     }
     
     
-    @Override
-    public Object getValeurChamp(String nom) {
+    private Object getValeurChamp(String nom) {
         
         return this.get(Voeu.mappingNomsChamps.get(nom));
         

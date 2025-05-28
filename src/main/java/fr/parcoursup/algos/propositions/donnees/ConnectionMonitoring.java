@@ -23,15 +23,11 @@ import org.apache.logging.log4j.Logger;
 
 public class ConnectionMonitoring implements Connection {
 
-	private Connection cn;
+	private final Connection cn;
 	
-	private Logger logger;
-	
-	
-	public Connection getReelConnection()
-	{
-		return cn;
-	}
+	private final Logger logger;
+
+
 	public ConnectionMonitoring(Connection connection, Logger logger) {
 		super();
 		this.cn = connection;
@@ -110,7 +106,7 @@ public class ConnectionMonitoring implements Connection {
 	}
 
 	@Override
-	public void setReadOnly(boolean readOnly) throws SQLException {
+	public void setReadOnly(boolean readOnly) {
 		// TODO Auto-generated method stub
 		
 	}

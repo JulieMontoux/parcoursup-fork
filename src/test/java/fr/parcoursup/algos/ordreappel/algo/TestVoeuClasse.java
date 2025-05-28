@@ -28,7 +28,7 @@ public class TestVoeuClasse {
         VoeuClasse v1 = new VoeuClasse(10, 10, true, true);
         VoeuClasse v2 = new VoeuClasse(15, 15, true, true);
         int comparedTo = v1.compareTo(v2);
-        assertEquals(comparedTo, -5);
+        assertEquals(-5, comparedTo);
     }
 
     @Test

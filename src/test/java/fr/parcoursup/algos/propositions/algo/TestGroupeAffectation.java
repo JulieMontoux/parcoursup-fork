@@ -2,7 +2,6 @@ package fr.parcoursup.algos.propositions.algo;
 
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
-import fr.parcoursup.algos.propositions.Helpers;
 import org.junit.Test;
 
 import java.lang.reflect.Constructor;
@@ -26,7 +25,7 @@ public class TestGroupeAffectation {
     @Test
     public void constructeur_doit_copier() throws VerificationException {
         Parametres p = new Parametres(2, 60, 90);
-        GroupeAffectation g1 = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
+        GroupeAffectation g1 = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, 0, p);
         GroupeAffectation g2 = new GroupeAffectation(g1);
         assertTrue(
                 g1.id == g2.id
@@ -40,10 +39,10 @@ public class TestGroupeAffectation {
     public void constructeur_doit_echouer_si_parametresNegatifs() {
         // False branch coverage de la ligne 55
         Parametres p = new Parametres(1, 1, 90);
-        VerificationException exception1 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, null, 1, 1, p));
-        VerificationException exception2 = assertThrows(VerificationException.class, () -> new GroupeAffectation(-1, new GroupeAffectationUID(0, 0, 0), 1, 1, p));
-        VerificationException exception3 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), -1, 1, p));
-        VerificationException exception4 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, -1, p));
+        VerificationException exception1 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, null, 1, 1, 0, p));
+        VerificationException exception2 = assertThrows(VerificationException.class, () -> new GroupeAffectation(-1, new GroupeAffectationUID(0, 0, 0), 1, 1, 0, p));
+        VerificationException exception3 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), -1, 1, 0, p));
+        VerificationException exception4 = assertThrows(VerificationException.class, () -> new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, -1, 0, p));
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception2.exceptionMessage);
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception3.exceptionMessage);
         assertSame(VerificationExceptionMessage.GROUPE_AFFECTATION_INCOHERENCE_PARAMETRES, exception4.exceptionMessage);
@@ -53,22 +52,13 @@ public class TestGroupeAffectation {
     public void constructeur_doit_reussir_si_milieuCampagne() throws Exception {
         // True branch coverage de la ligne 63
         Parametres p = new Parametres(2, 60, 90);
-        new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 2, 2, p);
-    }
-
-    @Test(expected = Test.None.class /* no exception expected */)
-    public void mettreAJourPropositions_doit_reussir_si_aucunePlacePossible() throws VerificationException {
-        // False branch coverage de la ligne 128
-        Parametres p = new Parametres(2, 60, 90);
-        GroupeAffectation g = new GroupeAffectation(0, new GroupeAffectationUID(0, 0, 0), 0, 2, p);
-        Helpers.creeVoeuSansInternatEtInjecteDependances(1, g, Voeu.StatutVoeu.EN_ATTENTE_DE_PROPOSITION, 1);
-        g.mettreAJourPropositions();
+        new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 2, 2, 0, p);
     }
 
     @Test
     public void setRangLimite_doit_changerLeRangLimite() throws VerificationException {
         Parametres p = new Parametres(2, 60, 90);
-        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
+        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, 0, p);
         assertEquals(1, g.getRangLimite());
         g.setRangLimite(2);
         assertEquals(2, g.getRangLimite());
@@ -77,7 +67,7 @@ public class TestGroupeAffectation {
     @Test
     public void getRangDernierAppeleAffiche_retourne_rangDernierAppeleAffiche() throws VerificationException {
         Parametres p = new Parametres(2, 60, 90);
-        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, p);
+        GroupeAffectation g = new GroupeAffectation(1, new GroupeAffectationUID(0, 0, 0), 1, 1, 0, p);
         assertEquals(0, g.getRangDernierAppeleAffiche());
         g.setRangDernierAppeleAffiche(1);
         assertEquals(1, g.getRangDernierAppeleAffiche());
@@ -86,7 +76,7 @@ public class TestGroupeAffectation {
     @Test
     public void calculerEstimationRangDernierAppeleADateFinReservationInternat_doit_echouer_si_valeurs_incoherentes() {
         GroupeAffectationUID gid = new GroupeAffectationUID(0, 0, 0);
-        VerificationException verif = assertThrows(VerificationException.class,
+        @SuppressWarnings("ResultOfMethodCallIgnored") VerificationException verif = assertThrows(VerificationException.class,
                 () -> new GroupeAffectation(0, gid, 1, 10, 11, new Parametres(1, 60, 90))
                         .getEstimationRangDernierAppeleADateFinReservationInternats()
         );
@@ -96,8 +86,6 @@ public class TestGroupeAffectation {
     @Test
     public void calculerEstimationRangDernierAppeleADateFinReservationInternat_retoure_valeur_correcte() throws VerificationException {
         Random r = new Random();
-
-        GroupeAffectationUID gid = new GroupeAffectationUID(r.nextInt(), r.nextInt(), r.nextInt());
 
         //MAX_INT le premier jour
         assertEquals(

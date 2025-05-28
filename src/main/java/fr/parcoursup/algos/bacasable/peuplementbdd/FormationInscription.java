@@ -104,21 +104,7 @@ public class FormationInscription extends EntitePersistante {
     protected Filiere filiere;
     
     protected JuryPedagogique juryPedagogique;
-    
-    
-    public static List<FormationInscription> findFieldsEqual(
-            Map<String,Object> criteresRecherche) {
-        
-        String requeteSql = prepareRequeteRechercheAvecCriteresEgalite(
-            getTableName(),
-            FormationInscription.mappingNomsChamps,
-            criteresRecherche
-            );
-        
-        return findBySQL(requeteSql);
-                
-    }
-    
+
 
     public FormationInscription() {
         // constructeur par défaut requis par activejdbc
@@ -190,29 +176,7 @@ public class FormationInscription extends EntitePersistante {
     }
 
 
-    public TypeFormation getTypeFormation() {
-
-        if(this.typeFormation == null) {
-            this.typeFormation = this.parent(TypeFormation.class);  
-        }
-        
-        return this.typeFormation;
-
-    }
-
-
-    public Filiere getFiliere() {
-        
-        if(this.filiere == null) {
-            this.filiere = this.parent(Filiere.class);  
-        }
-        
-        return this.filiere;
-
-    }
-
-
-    public JuryPedagogique getJuryPedagogique() {        
+    public JuryPedagogique getJuryPedagogique() {
                 
         if(this.juryPedagogique == null) {
             JuryPedagogique jury;
@@ -244,7 +208,6 @@ public class FormationInscription extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(FormationInscription.mappingNomsChamps.get(nom));

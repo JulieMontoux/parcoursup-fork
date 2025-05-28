@@ -26,9 +26,7 @@ import fr.parcoursup.algos.verification.VerificationEntreeAlgoPropositions;
 import fr.parcoursup.algos.verification.VerificationsResultatsAlgoPropositions;
 
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 public class AlgoPropositions {
 
@@ -44,166 +42,173 @@ public class AlgoPropositions {
      * Algorithme de calcul des propositions à envoyer aux candidats
      *
      * @param entree   Les données d'entrée.
-     * @param verifier si ce paramétre est true, les données d'entrée sont vérifiées. En prod le paramètre est activé. En simulation il est parfois désactivé.
+     * @param verifier détermine si les données d'entrée et de sortie sont vérifiées. En prod le paramètre est activé.
+     *                 En test ou en simulation il est parfois désactivé.
      * @return Un objet de type AlgoPropositionsSortie contenant la liste des voeux mis à jour
      * @throws VerificationException en cas de défaut d'intégrité des données d'entrée
      */
     public static AlgoPropositionsSortie calcule(
             AlgoPropositionsEntree entree,
             boolean verifier) throws VerificationException {
+        return calcule(entree, verifier, true);
+    }
 
-    	LOGGER.info(UtilService.encadrementLog("Calcul des propositions"));
+    public static AlgoPropositionsSortie calcule(AlgoPropositionsEntree entree, boolean verifier, boolean invaliderGroupesAvecalertes) throws VerificationException {
 
-        LOGGER.info(UtilService.petitEncadrementLog("Préparation des données"));
-        entree.injecterGroupesEtInternatsDansVoeux();
+        LOGGER.info(UtilService.encadrementLog("Calcul des propositions"));
 
-        LOGGER.info(UtilService.petitEncadrementLog("Début du calcul propositions"));
-        /* chaque passage dans cette boucle correspond à un calcul des propositions
-        à envoyer suivi d'une étape de réponse automatique par les candidats
-        ayant activé leur répondeur automatique */
-        int nbIterations = 0;
-        while (true) {
-            nbIterations++;
-//
-//            LOGGER.info("***********************************************\n" +
-//                    "*********  Itération " + nbIterations + "   *******\n" +
-//                    "***********************************************"
-//            );
-            
-            LOGGER.info(UtilService.petitEncadrementLog("Itération : " + nbIterations));
-            
-            
-
-            LOGGER.info("Préparation des groupes ");
-            preparerGroupes(entree);
-
-            /* vérification de l'intégrité des données d'entrée */
-            if (verifier) {
-                entree.loggerEtatAdmission();
-                LOGGER.info(UtilService.petitEncadrementLog("Vérification de l'intégrité des données d'entrée"));
-                VerificationEntreeAlgoPropositions.verifierIntegrite(entree);
-            }
-
-            calculerNouvellesPropositions(entree);
-
-            long placesLibereesParDemAutoGDD = 0;
-            boolean appliquerdemAutoGDD =
-                    entree.parametres.nbJoursCampagne >= entree.parametres.nbJoursCampagneDateDebutGDD;
-            if(appliquerdemAutoGDD) {
-                LOGGER.info(UtilService.petitEncadrementLog("Application des démissions automatiques des voeux en attente en GDD"));
-                placesLibereesParDemAutoGDD = DemissionAutoVoeuxOrdonnes.appliquerDemissionAutomatiqueVoeuOrdonnes(entree);
-            }
-
-            long placesLibereesParRepAuto = RepondeurAutomatique.appliquerRepondeurAutomatique(entree);
-
-            if (placesLibereesParRepAuto == 0 && placesLibereesParDemAutoGDD == 0) {
-                break;
-            }
-
+        /* vérification de l'intégrité des données d'entrée */
+        if (verifier) {
+            entree.loggerEtatAdmission();
+            LOGGER.info(UtilService.petitEncadrementLog("Vérification de l'intégrité des données d'entrée"));
+            VerificationEntreeAlgoPropositions.verifierIntegrite(entree);
         }
 
-        LOGGER.info(UtilService.petitEncadrementLog("Préparation données de sortie"));
+        AlgoPropositionsSortie sortie = calculerNouvellesPropositions(entree);
 
-        AlgoPropositionsSortie sortie = new AlgoPropositionsSortie(entree);
-
-        LOGGER.info(UtilService.petitEncadrementLog("Propositions : " + sortie.nbPropositionsDuJour()));
+        LOGGER.info(UtilService.petitEncadrementLog("Propositions du jour " + sortie.nbPropositionsDuJour()));
         LOGGER.info(UtilService.petitEncadrementLog("Demissions Automatiques " + sortie.nbDemissions()));
 
         if (verifier) {
-        	LOGGER.info(UtilService.petitEncadrementLog("V\u00e9rification des "+sortie.nbPropositionsDuJour()+" propositions"));
-            new VerificationsResultatsAlgoPropositions(entree, sortie).verifier();
+            LOGGER.info(UtilService.petitEncadrementLog("Vérification des " + sortie.nbPropositionsDuJour() + " propositions"));
+            if(invaliderGroupesAvecalertes) {
+                new VerificationsResultatsAlgoPropositions(entree, sortie).verifier();
+            } else {
+                new VerificationsResultatsAlgoPropositions(entree, sortie).verifierSansSupprimerDePropositions();
+            }
         }
-        
+
         LOGGER.info(UtilService.encadrementLog("Fin du calcul des propositions"));
         return sortie;
     }
 
-    /* ventile les voeux encore en attente dans les groupes concernés */
-    public static void preparerGroupes(AlgoPropositionsEntree entree) throws VerificationException {
-        /* réinitialisation des groupes */
-        entree.groupesAffectations.values().stream().parallel().forEach(
-                GroupeAffectation::reinitialiser
-        );
-        entree.internats.values().stream().parallel().forEach(
-                GroupeInternat::reinitialiser
-        );
+    /**
+     * Algorithme de calcul des propositions à envoyer aux candidats
+     *
+     * @param entree Les données d'entrée.
+     * @return Un objet de type AlgoPropositionsSortie contenant la liste des voeux mis à jour
+     * @throws VerificationException en cas de défaut d'intégrité des données d'entrée
+     */
+    public static AlgoPropositionsSortie calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
 
-        /* ajout des voeux aux groupes */
-        for (Voeu v : entree.voeux) {
-            v.setRepondeurActive((v.getRangPreferencesCandidat() > 0)
-                    && entree.candidatsAvecRepondeurAutomatique.contains(v.id.gCnCod));
-            v.ajouterAuxGroupes();
-        }
-    }
-
-    public static void calculerNouvellesPropositions(AlgoPropositionsEntree entree) throws VerificationException {
-        /* groupes à mettre à jour */
-    	/*EVOL 2024 : On ne traite pas le groupes si il a le flag adm_stop. */
-        Set<GroupeAffectation> groupesAMettreAJour = new HashSet<>(entree.groupesAffectations.values().stream().filter(g -> g.getA_rg_flg_adm_stop() == 0).collect(Collectors.toList()));
-
-        /* initialisation des positions maximales d'admission dans les internats */
-        for (GroupeInternat internat : entree.internats.values()) {
-            internat.initialiserPositionAdmission(entree.getParametres());
+        boolean appliquerDemissionsAutomatiques =
+                entree.parametres.nbJoursCampagne >= entree.parametres.nbJoursCampagneDateDebutGDD;
+        if (appliquerDemissionsAutomatiques) {
+            LOGGER.info("Les démissions automatiques seront appliquées.");
+        } else {
+            LOGGER.info("Les démissions automatiques ne seront * pas * appliquées.");
         }
 
-        int compteurBoucle = 0;
-        while (!groupesAMettreAJour.isEmpty()) {
+        boolean appliquerRepondeurAutomatique = entree.estRepondeurAutomatiqueActivable();
+        if (appliquerRepondeurAutomatique) {
+            LOGGER.info("Le répondeur automatique sera utilisé.");
+        } else {
+            LOGGER.info("Le répondeur automatique ne sera * pas * utilisé.");
+        }
 
-        	
-            compteurBoucle++;
 
-            LOGGER.info(UtilService.petitEncadrementLog("It\u00e9ration "+compteurBoucle+" : "
-                            + "mise \u00e0 jour des propositions dans "+groupesAMettreAJour.size()+" groupes d''affectations"));
+        AlgoPropositionDonneesPrecalculees donneesPrecalculees = entree.getDonneesPrecalculees();
+        StatutsVoeux statutsInitiaux = entree.getStatutsInitiaux();
+        Map<GroupeInternatUID, Integer> barresAdmissionInternats = BarresInternats.calculerBarresInitialesInternats(
+                donneesPrecalculees.barresMaximalesAdmissionInternats,
+                entree.rangsEnAttenteParInternat()
+        );
 
-            /* calcul des propositions à effectuer,
-                étant données les positions actuelles d'admissions aux internats */
-            for (GroupeAffectation gc : groupesAMettreAJour) {
-                gc.mettreAJourPropositions();
-            }
+
+        /* boucle de diminutions successives des barres internats jusqu'à obtenir un ensemble de propositions
+        ne générant aucune surcapacité internat */
+        LOGGER.info("Recherche de barres internats ne créant pas de surcapacités");
+        //boucle de la mise à jour des barres internats par diminutions succesives
+        int compteurBoucleDiminutionsBarresInternat = 1;
+        while (true) {
+
+            LOGGER.info("Calcul  de barres internats ne créant pas de surcapacités");
+            StatutsVoeux statutsApresPropositionsEtDemissions =
+                    CalculPropositionsEtDemissions.calculerPropositionsEtDemissions(
+                            barresAdmissionInternats,
+                            statutsInitiaux,
+                            compteurBoucleDiminutionsBarresInternat,
+                            appliquerDemissionsAutomatiques,
+                            appliquerRepondeurAutomatique,
+                            donneesPrecalculees
+                    );
 
             /* Test de surcapacité des internats, avec
                mise à jour de la position d'admission si nécessaire.
-
-            Baisser la position d'admission d'un internat ne diminue
-            pas le nombre de candidats dans les autres internats, voire augmente ces nombres,
-            car les formations devront potentiellement descendre plus bas dans l'ordre d'appel.
-
-            Par conséquent, on peut mettre à jour toutes les positions d'admission
-            de tous les internats sans mettre à jour systématiquement les propositions :
-            si un internat est détecté en surcapacité avant la mise
-            à jour des propositions, il l'aurait été également après la mise à jour des propositions.
-            (Mais la réciproque est fausse en général).
-
-            De cette manière, on reste bien dans l'ensemble E des vecteurs de positions
-            d'admission supérieurs sur chaque composante au vecteur de positions d'admission
-            le plus permissif possible parmi tous ceux respectant les contraintes
-            de capacité des internats et situés en deçà des positions maximales
-            d'admission.
-
-            Ce vecteur est égal, sur chaque composante, à la valeur minimum de cette
-            composante parmi les éléments de E.
-
-            La boucle termine quand les contraintes de capacité des internats
-            sont satisfaites, c'est-à-dire quand ce minimum global est atteint.
-
-            Une propriété d'équité intéressante :
-            le résultat ne dépend pas de l'ordre dans lequel on itère sur les internats et
-            les formations.
+               Voir détails dans le documents de algorithmes de Parcoursup,
+               disponible dans ce dépôt de code.
              */
-            groupesAMettreAJour.clear();
+            int nbBarresInternatsDiminuees = 0;
+            int sommeBarresAvant = barresAdmissionInternats.values().stream().mapToInt(x -> x).sum();
+
+            Map<GroupeInternatUID, Long> nbCandidatsAffectesParInternat
+                    = entree.getNbCandidatsAffectesParInternat(statutsApresPropositionsEtDemissions);
+            Set<GroupeInternatUID> internatsAvecAuMoinsUneNouvelleProposition
+                    = entree.getInternatsAvecAuMoinsUneNouvelleProposition(statutsApresPropositionsEtDemissions);
 
             for (GroupeInternat internat : entree.internats.values()) {
-                boolean maj = internat.mettreAJourPositionAdmission();
-                if (maj) {
-                	/*EVOL 2024 : On ne traite pas le groupe si il a le flag adm_stop. */
-                    groupesAMettreAJour.addAll(internat.groupesConcernes().stream().filter(g -> g.getA_rg_flg_adm_stop() == 0).collect(Collectors.toList()));
+                GroupeInternatUID id = internat.id;
+                long nbCandidatsAffectes = nbCandidatsAffectesParInternat.getOrDefault(id, 0L);
+                int capacite = internat.getCapacite();
+                int barreActuelle = barresAdmissionInternats.getOrDefault(id, 0);
+                boolean auMoinsUnePropositionDuJour = internatsAvecAuMoinsUneNouvelleProposition.contains(id);
+                long surCapacite = nbCandidatsAffectes - capacite;
+                if (
+                        surCapacite > 0
+                                && auMoinsUnePropositionDuJour
+                                && barreActuelle > 0//redondant
+                ) {
+                    nbBarresInternatsDiminuees++;
+                    List<Voeu> voeuxInitialementEnAttenteTriesParClassementInternatDecroissant
+                            = donneesPrecalculees.voeuxInternatsInitialementEnAttenteTriesParClassementInternatDecroissant.get(internat.id);
+                    int nouvelleBarre = decroitreBarreEnFonctionDeSurcapacite(
+                            barreActuelle,
+                            voeuxInitialementEnAttenteTriesParClassementInternatDecroissant,
+                            surCapacite
+                    );
+                    barresAdmissionInternats.put(id, nouvelleBarre);
                 }
             }
+            int sommeBarresApres = barresAdmissionInternats.values().stream().mapToInt(x -> x).sum();
 
+            if (nbBarresInternatsDiminuees != 0) {
+                int diff = sommeBarresAvant - sommeBarresApres;
+                LOGGER.info(UtilService.petitEncadrementLog("Calcul barre internat: diminution de " + nbBarresInternatsDiminuees + " barre(s) internat(s) (" + diff + " rangs)."));
+                compteurBoucleDiminutionsBarresInternat++;
+            } else {
+                LOGGER.info(UtilService.petitEncadrementLog("Calcul terminé après " + compteurBoucleDiminutionsBarresInternat + "diminution(s) des barres internats."));
+                return new AlgoPropositionsSortie(
+                        entree,
+                        barresAdmissionInternats,
+                        donneesPrecalculees.barresMaximalesAdmissionInternats,
+                        statutsApresPropositionsEtDemissions
+                );
+            }
         }
+    }
 
-        LOGGER.info(UtilService.petitEncadrementLog("Calcul terminé après "+compteurBoucle+" itération(s)."));
-
+    /**
+     * Calcul du plus grand rang en attente inférieur à la barre d'admission
+     *
+     * @param barreActuelle                                                   la barre d'admission actuelle
+     * @param voeuxInitialementEnAttenteTriesParClassementInternatDecroissant les voeux en attente dans cet internat
+     * @param surCapacite                                                     le nombre de candidats en surcapacité
+     * @return le plus grand rang en attente inférieur à la barre d'admission
+     */
+    private static int decroitreBarreEnFonctionDeSurcapacite(
+            int barreActuelle,
+            List<Voeu> voeuxInitialementEnAttenteTriesParClassementInternatDecroissant,
+            long surCapacite) {
+        surCapacite--;
+        for (Voeu v : voeuxInitialementEnAttenteTriesParClassementInternatDecroissant) {
+            if (v.rangInternat < barreActuelle) {
+                surCapacite--;
+                if(surCapacite <= 0) {
+                    return v.rangInternat;
+                }
+            }
+        }
+        return 0;
     }
 
     private AlgoPropositions() {

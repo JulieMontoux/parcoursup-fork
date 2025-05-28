@@ -18,6 +18,7 @@ import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 
+@SuppressWarnings("ExtractMethodRecommender")
 public class DemoOrdreAppelBdd {
     
     private static final Logger LOGGER = Logger.getLogger("");

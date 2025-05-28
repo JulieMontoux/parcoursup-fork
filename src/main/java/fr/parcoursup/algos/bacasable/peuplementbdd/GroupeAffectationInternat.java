@@ -154,21 +154,8 @@ public class GroupeAffectationInternat extends EntitePersistante {
         }
 
     }
-         
-    
-    
-    public GroupeAffectationInternat(
-            int idInternat
-            ) {
-               
-        this(
-            idInternat,
-                new HashMap<>()
-            );
-               
-    }
-       
-    
+
+
     @Override
     public String getNomTable() {
         
@@ -180,7 +167,6 @@ public class GroupeAffectationInternat extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(GroupeAffectationInternat.mappingNomsChamps.get(nom));

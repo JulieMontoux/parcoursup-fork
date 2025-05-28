@@ -54,14 +54,6 @@ public class JeuDonneesBaseTestPropositions {
                     "25/06/2023:0000"   // date et heure du début GDD
             ));
             
-            
-            
-            this.scenario.ajouteEntite(new ParametreApplication(
-                    437,                // indexDateFinOrdGDD
-                    "18/07/2023:0000"   //
-            ));
-
-            
             // Candidats
 
             HashMap<String, Object> parametrageCandidat1 = new HashMap<>();

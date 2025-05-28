@@ -20,13 +20,17 @@ l'Innovation,
  */
 package fr.parcoursup.algos.verification;
 
-import java.util.logging.Logger;
-
 import fr.parcoursup.algos.exceptions.VerificationException;
 import fr.parcoursup.algos.exceptions.VerificationExceptionMessage;
 import fr.parcoursup.algos.propositions.affichages.AlgosAffichages;
-import fr.parcoursup.algos.propositions.algo.GroupeAffectation;
+import fr.parcoursup.algos.propositions.algo.StatutVoeu;
 import fr.parcoursup.algos.propositions.algo.Voeu;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Comparator;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class VerificationAffichages {
 
@@ -41,14 +45,25 @@ public class VerificationAffichages {
     et si tous deux ont des voeuxEnAttente en attente pour F 
     alors C1 a un rang sur liste d'attente <= à celui de C2. 
      */
-    public static void verifierRangsSurListeAttente(GroupeAffectation groupe) throws VerificationException {
+    public static void verifierRangsSurListeAttente(
+            @Nullable List<Voeu> voeuxDuGroupe
+    ) throws VerificationException {
+
+        if(voeuxDuGroupe == null)
+            return;
 
         /* on trie les voeuxEnAttente, le meilleur rang sur liste attente en tête de liste */
-        for (Voeu v1 : groupe.voeuxTriesParOrdreAppel()) {
-            if (v1.estEnAttenteDeProposition()
+        List<Voeu> voeuxEnAttenteTriesParOrdreAppel =
+                voeuxDuGroupe.stream()
+                .filter(v -> StatutVoeu.estEnAttenteDeProposition(v.statut))
+                .sorted(Comparator.comparing(v -> v.ordreAppel))
+                .collect(Collectors.toList());
+
+        for (Voeu v1 : voeuxEnAttenteTriesParOrdreAppel) {
+            if (StatutVoeu.estEnAttenteDeProposition(v1.statut)
                     && !v1.avecInternatAClassementPropre()) {
-                for (Voeu v2 : groupe.getVoeuxEnAttente()) {
-                    if (v2.estEnAttenteDeProposition()
+                for (Voeu v2 : voeuxEnAttenteTriesParOrdreAppel) {
+                    if (StatutVoeu.estEnAttenteDeProposition(v2.statut)
                     		&& v2.internatUID == null // Sinoon ordreAppel vaut 0 cf mettreAJourRangsListeAttente
                             && v2.ordreAppel > v1.ordreAppel
                             && v2.getRangListeAttente() < v1.getRangListeAttente()) {

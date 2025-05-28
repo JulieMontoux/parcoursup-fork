@@ -57,20 +57,8 @@ public class JuryPedagogique extends EntitePersistante {
     
     
     protected FormationInscription formationInscription;
-    
-    
-    public static List<JuryPedagogique> findFieldsEqual(Map<String,Object> criteresRecherche) {
-        
-        String requeteSql = prepareRequeteRechercheAvecCriteresEgalite(
-            getTableName(),
-            JuryPedagogique.mappingNomsChamps,
-            criteresRecherche);
-        
-        return findBySQL(requeteSql);
-        
-    }
-    
-    
+
+
     public JuryPedagogique() {
         // constructeur par défaut requis par activejdbc
     } 
@@ -114,15 +102,8 @@ public class JuryPedagogique extends EntitePersistante {
             );
                
     }
-    
-    
-    public FormationInscription getFormationInscription() {
 
-        return this.formationInscription;
 
-    }
-    
-    
     @Override
     public String getNomTable() {
         
@@ -134,7 +115,6 @@ public class JuryPedagogique extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(JuryPedagogique.mappingNomsChamps.get(nom));

@@ -154,7 +154,6 @@ public class SituationVoeu extends EntitePersistante {
     }
     
     
-    @Override
     public Object getValeurChamp(String nom) {
         
         return this.get(SituationVoeu.mappingNomsChamps.get(nom));
