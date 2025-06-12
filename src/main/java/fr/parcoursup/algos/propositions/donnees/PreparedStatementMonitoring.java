@@ -321,13 +321,19 @@ public class PreparedStatementMonitoring implements PreparedStatement {
 		ps.setShort(parameterIndex, x);
 	}
 
-	@Override
-	public void setInt(int parameterIndex, int x) throws SQLException {
-		parametres.add(getSizeParametre(parameterIndex), x+"");
-		ps.setInt(parameterIndex, x);
+	private void putParam(int parameterIndex, String value) {
+		int idx = parameterIndex - 1;          // JDBC est 1-based
+		while (parametres.size() <= idx) {     // on complète avec des null
+			parametres.add(null);
+		}
+		parametres.set(idx, value);            // on écrase ou on écrit
 	}
 
-
+	@Override
+	public void setInt(int parameterIndex, int x) throws SQLException {
+		putParam(parameterIndex, Integer.toString(x));
+		ps.setInt(parameterIndex, x);
+	}
 
 	@Override
 	public void setLong(int parameterIndex, long x) throws SQLException {
