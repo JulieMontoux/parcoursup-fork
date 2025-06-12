@@ -23,9 +23,9 @@ public class TestConnecteurSQL {
     public void test_creation_connecteur_avec_objet_connexion_valide() throws Exception {
 
         Connection conn = DriverManager.getConnection(
-            this.parametresConnexion.urlBddJdbc,
-            this.parametresConnexion.nomUtilisateur,
-            this.parametresConnexion.mdp
+            this.parametresConnexion.getUrlBddJdbc(),
+            this.parametresConnexion.getNomUtilisateur(),
+            this.parametresConnexion.getMdp()
         );
 
         try (ConnecteurSQL connecteurSQL = new ConnecteurSQL(conn)) {
@@ -54,9 +54,9 @@ public class TestConnecteurSQL {
     public void test_creation_connecteur_avec_url_jdbc_valide() throws Exception {
 
         try (ConnecteurSQL connecteurSQL = new ConnecteurSQL(
-                this.parametresConnexion.urlBddJdbc,
-                this.parametresConnexion.nomUtilisateur,
-                this.parametresConnexion.mdp
+                this.parametresConnexion.getUrlBddJdbc(),
+                this.parametresConnexion.getNomUtilisateur(),
+                this.parametresConnexion.getMdp()
         )) {
             connecteurSQL.connection();
         }

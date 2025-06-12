@@ -32,19 +32,19 @@ public class TestConnecteurDonneesAppelSQL extends DBTestCase {
 
         System.setProperty(
                 PropertiesBasedJdbcDatabaseTester.DBUNIT_DRIVER_CLASS,
-                parametresConnexion.driver
+                parametresConnexion.getDriver()
         );
         System.setProperty(
                 PropertiesBasedJdbcDatabaseTester.DBUNIT_CONNECTION_URL,
-                parametresConnexion.urlBddJdbc
+                parametresConnexion.getUrlBddJdbc()
         );
         System.setProperty(
                 PropertiesBasedJdbcDatabaseTester.DBUNIT_USERNAME,
-                parametresConnexion.nomUtilisateur
+                parametresConnexion.getNomUtilisateur()
         );
         System.setProperty(
                 PropertiesBasedJdbcDatabaseTester.DBUNIT_PASSWORD,
-                parametresConnexion.mdp
+                parametresConnexion.getMdp()
         );
 
         this.jeuDonneesBase = new JeuDonneesBaseTestOrdreAppel();
